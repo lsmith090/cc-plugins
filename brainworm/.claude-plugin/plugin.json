@@ -1,0 +1,109 @@
+{
+  "name": "brainworm",
+  "version": "1.0.0",
+  "description": "DAIC workflow enforcement and multi-project analytics for Claude Code",
+  "author": {
+    "name": "Brainworm Project",
+    "email": "brainworm@logansmith.dev"
+  },
+  "homepage": "https://github.com/logansmith/brainworm",
+  "repository": "https://github.com/logansmith/brainworm",
+  "license": "MIT",
+  "keywords": ["daic", "workflow", "analytics", "productivity", "hooks"],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": {"tools": ["Bash", "Edit", "Write", "MultiEdit"]},
+        "hooks": [{
+          "type": "command",
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use.py --analytics --verbose"
+        }]
+      },
+      {
+        "matcher": {"tools": ["Task"]},
+        "hooks": [{
+          "type": "command",
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/transcript_processor.py --analytics --verbose"
+        }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": {"tools": ["Edit", "Write", "MultiEdit", "Bash", "Task"]},
+        "hooks": [{
+          "type": "command",
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/post_tool_use.py --analytics --verbose"
+        }]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [{
+          "type": "command",
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py --context --verbose --analytics"
+        }]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [{
+          "type": "command",
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/session_end.py --verbose --analytics"
+        }]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [{
+          "type": "command",
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/user_prompt_submit.py --analytics --verbose"
+        }]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [{
+          "type": "command",
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/stop.py --summary --analytics"
+        }]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [{
+          "type": "command",
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/notification.py --feedback --analytics"
+        }]
+      }
+    ]
+  },
+  "commands": {
+    "daic": {
+      "description": "Control DAIC workflow mode",
+      "file": "${CLAUDE_PLUGIN_ROOT}/commands/daic.md"
+    },
+    "api-mode": {
+      "description": "Toggle API mode for automatic ultrathink",
+      "file": "${CLAUDE_PLUGIN_ROOT}/commands/api-mode.md"
+    },
+    "add-trigger": {
+      "description": "Add a new trigger phrase for implementation mode",
+      "file": "${CLAUDE_PLUGIN_ROOT}/commands/add-trigger.md"
+    },
+    "install-brainworm": {
+      "description": "Set up brainworm in the current project",
+      "file": "${CLAUDE_PLUGIN_ROOT}/commands/install-brainworm.md"
+    }
+  },
+  "agents": {
+    "context-gathering": "${CLAUDE_PLUGIN_ROOT}/agents/context-gathering.md",
+    "context-refinement": "${CLAUDE_PLUGIN_ROOT}/agents/context-refinement.md",
+    "code-review": "${CLAUDE_PLUGIN_ROOT}/agents/code-review.md",
+    "logging": "${CLAUDE_PLUGIN_ROOT}/agents/logging.md",
+    "service-documentation": "${CLAUDE_PLUGIN_ROOT}/agents/service-documentation.md",
+    "session-docs": "${CLAUDE_PLUGIN_ROOT}/agents/session-docs.md",
+    "data-analyst": "${CLAUDE_PLUGIN_ROOT}/agents/data-analyst.md",
+    "meta-agent": "${CLAUDE_PLUGIN_ROOT}/agents/meta-agent.md",
+    "claude-hooks-developer": "${CLAUDE_PLUGIN_ROOT}/agents/claude-hooks-developer.md"
+  }
+}

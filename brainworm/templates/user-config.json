@@ -1,0 +1,20 @@
+{
+  "developer": {
+    "name": "Developer Name",
+    "email": "developer@example.com",
+    "git_identity_source": "auto"
+  },
+  "preferences": {
+    "daic_default_mode": "discussion",
+    "context_warning_threshold": 75,
+    "analytics_participation": true,
+    "statusline_format": "full"
+  },
+  "team": {
+    "organization": "",
+    "project_role": "developer"
+  },
+  "created": "2025-09-04T16:00:00.000Z",
+  "updated": "2025-09-04T16:00:00.000Z",
+  "version": "1.0"
+}

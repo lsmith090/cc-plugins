@@ -1,0 +1,14 @@
+{
+  "name": "brainworm-marketplace",
+  "owner": {
+    "name": "Logan Smith",
+    "url": "https://github.com/lsmith090/brainworm"
+  },
+  "plugins": [
+    {
+      "name": "brainworm",
+      "source": "./brainworm",
+      "description": "DAIC workflow enforcement and multi-project analytics for Claude Code"
+    }
+  ]
+}
