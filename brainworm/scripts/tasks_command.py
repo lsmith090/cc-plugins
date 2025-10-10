@@ -25,10 +25,11 @@ from utils.project import find_project_root
 console = Console()
 
 
-def run_script(script_path: Path, args: List[str]) -> int:
-    """Run a script with the given arguments"""
+def run_script(project_root: Path, script_name: str, args: List[str]) -> int:
+    """Run a script using plugin-launcher"""
     try:
-        cmd = ["uv", "run", str(script_path)] + args
+        plugin_launcher = project_root / ".brainworm" / "plugin-launcher"
+        cmd = [str(plugin_launcher), script_name] + args
         result = subprocess.run(cmd, check=False)
         return result.returncode
     except Exception as e:
@@ -71,35 +72,30 @@ def main() -> None:
             
         command = args[0]
         remaining_args = args[1:]
-        
-        # Define script paths
-        scripts_dir = project_root / ".brainworm" / "scripts"
-        task_state_script = scripts_dir / "update_task_state.py"
-        session_correlation_script = scripts_dir / "update_session_correlation.py"
-        
+
         if command in ["status", "s"]:
             # Show current task state
-            return_code = run_script(task_state_script, ["--show-current"])
+            return_code = run_script(project_root, "update_task_state.py", ["--show-current"])
             sys.exit(return_code)
-            
+
         elif command in ["set", "update"]:
             # Update task state with provided arguments
-            return_code = run_script(task_state_script, remaining_args)
+            return_code = run_script(project_root, "update_task_state.py", remaining_args)
             sys.exit(return_code)
-            
+
         elif command in ["clear", "c"]:
             # Clear current task
-            return_code = run_script(task_state_script, ["--clear-task"])
+            return_code = run_script(project_root, "update_task_state.py", ["--clear-task"])
             sys.exit(return_code)
-            
+
         elif command in ["session", "sess"]:
             # Show session correlation info
             if remaining_args and remaining_args[0] == "set":
                 # Set session correlation
-                return_code = run_script(session_correlation_script, remaining_args[1:])
+                return_code = run_script(project_root, "update_session_correlation.py", remaining_args[1:])
             else:
                 # Show current session correlation
-                return_code = run_script(session_correlation_script, ["--show-current"])
+                return_code = run_script(project_root, "update_session_correlation.py", ["--show-current"])
             sys.exit(return_code)
             
         else:
