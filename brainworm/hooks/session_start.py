@@ -297,10 +297,8 @@ def update_gitignore(project_root: Path) -> None:
 
         patterns = [
             '# Brainworm',
-            '.brainworm/state/',
-            '.brainworm/analytics/',
-            '.brainworm/timing/',
-            '.brainworm/plugin-launcher',
+            '.brainworm/',
+            'CLAUDE.sessions.md',
             'daic',
             'tasks',
             ''
