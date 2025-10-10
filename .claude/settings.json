@@ -1,0 +1,10 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": ".brainworm/plugin-launcher statusline-script.py",
+    "padding": 0
+  },
+  "env": {
+    "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "true"
+  }
+}

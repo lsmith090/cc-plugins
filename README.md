@@ -21,4 +21,4 @@ DAIC workflow enforcement and multi-project analytics for Claude Code.
 - Task management and session correlation
 - Specialized subagents for code review, logging, documentation
 
-**Repository:** https://github.com/logansmith/brainworm
+**Repository:** https://github.com/lsmith090/cc-plugins

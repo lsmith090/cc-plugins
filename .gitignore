@@ -15,9 +15,7 @@ Thumbs.db
 *.swo
 
 # Brainworm
-.brainworm/state/
-.brainworm/analytics/
-.brainworm/timing/
-.brainworm/plugin-launcher
+.brainworm
+CLAUDE.sessions.md
 daic
 tasks
