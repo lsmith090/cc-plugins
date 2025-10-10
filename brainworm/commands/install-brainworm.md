@@ -2,11 +2,11 @@
 description: Set up brainworm in the current project
 ---
 
-Run the following command to install brainworm in your current project:
+Install brainworm in the current project:
 
-```bash
-uv run ${CLAUDE_PLUGIN_ROOT}/scripts/install_project.py
-```
+1. Find the brainworm plugin directory in `~/.claude/plugins/marketplaces/brainworm-marketplace/brainworm/`
+2. Execute the installation script at `scripts/install_project.py` using `uv run`
+3. The script will prompt for confirmation before creating the `.brainworm` structure
 
 This will:
 - Create `.brainworm` directory with state, analytics, and configuration
