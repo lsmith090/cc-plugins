@@ -74,6 +74,9 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
 
                 # Always configure statusline to ensure it's up to date
                 configure_statusline(project_root, plugin_root)
+
+                # Always ensure CLAUDE.sessions.md exists and is referenced
+                setup_claude_sessions_docs(project_root, plugin_root)
                 return
             except Exception:
                 pass  # If state file is corrupt, recreate it below
@@ -142,6 +145,9 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
 
         # 7. Configure statusline
         configure_statusline(project_root, plugin_root)
+
+        # 8. Setup CLAUDE.sessions.md
+        setup_claude_sessions_docs(project_root, plugin_root)
 
         console.print("[dim green]✓ Brainworm initialized[/dim green]")
 
@@ -347,6 +353,44 @@ def configure_statusline(project_root: Path, plugin_root: Path) -> None:
 
     except Exception:
         pass  # Don't fail session start
+
+def setup_claude_sessions_docs(project_root: Path, plugin_root: Path) -> None:
+    """Setup CLAUDE.sessions.md and ensure it's referenced in CLAUDE.md"""
+    try:
+        # 1. Copy CLAUDE.sessions.md from plugin templates if needed
+        sessions_file = project_root / 'CLAUDE.sessions.md'
+        template_file = plugin_root / 'templates' / 'CLAUDE.sessions.md'
+
+        if template_file.exists():
+            # Always copy to ensure latest version (it's documentation, not state)
+            shutil.copy(template_file, sessions_file)
+
+        # 2. Ensure CLAUDE.md exists and has the @CLAUDE.sessions.md reference
+        claude_md = project_root / 'CLAUDE.md'
+
+        if claude_md.exists():
+            content = claude_md.read_text()
+
+            # Check if reference already exists
+            if '@CLAUDE.sessions.md' not in content:
+                # Add reference at the end
+                if not content.endswith('\n'):
+                    content += '\n'
+                content += '\n## Brainworm System Behaviors\n\n@CLAUDE.sessions.md\n'
+                claude_md.write_text(content)
+        else:
+            # Create minimal CLAUDE.md with reference
+            claude_md.write_text('''# CLAUDE.md
+
+Guidance for Claude Code when working with this project.
+
+## Brainworm System Behaviors
+
+@CLAUDE.sessions.md
+''')
+
+    except Exception:
+        pass  # Don't fail session start if docs setup fails
 
 def initialize_user_config(project_root: Path) -> None:
     """Initialize user config if it doesn't exist"""
