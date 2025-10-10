@@ -313,7 +313,9 @@ def update_gitignore(project_root: Path) -> None:
 
         # Append patterns
         with open(gitignore_path, 'a') as f:
-            f.write('\n' + '\n'.join(patterns))
+            # Only add leading newline if file exists and has content
+            prefix = '\n' if existing and not existing.endswith('\n') else ''
+            f.write(prefix + '\n'.join(patterns))
     except Exception:
         pass  # Don't fail if gitignore update fails
 
