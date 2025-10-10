@@ -13,3 +13,11 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Brainworm
+.brainworm/state/
+.brainworm/analytics/
+.brainworm/timing/
+.brainworm/plugin-launcher
+daic
+tasks

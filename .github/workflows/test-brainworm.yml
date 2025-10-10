@@ -1,0 +1,38 @@
+name: Test Brainworm Plugin
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'brainworm/**'
+      - 'tests/brainworm/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'brainworm/**'
+      - 'tests/brainworm/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Run tests
+      run: uv run pytest tests/brainworm/ -v --cov=brainworm --cov-report=term-missing
+
+    - name: Run linter
+      run: uv run ruff check brainworm/
