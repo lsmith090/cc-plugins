@@ -1,9 +1,9 @@
 ---
-allowed-tools: Bash(uv run:*)
+allowed-tools: Bash(.brainworm/plugin-launcher:*)
 description: Toggle API mode (enables/disables automatic ultrathink)
 ---
 
-!`uv run .brainworm/scripts/api_mode.py $ARGUMENTS`
+!`.brainworm/plugin-launcher api_mode.py $ARGUMENTS`
 
 API mode configuration updated. The change will take effect in your next message.
 
