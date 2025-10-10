@@ -200,6 +200,12 @@ def copy_templates(project_root: Path, plugin_root: Path) -> bool:
                 shutil.copy2(protocol_file, protocols_target / protocol_file.name)
             console.print(f"[green]  ✓ Copied {len(list(protocols_source.glob('*.md')))} protocol files[/green]")
 
+        # Copy CLAUDE.sessions.md to project root
+        claude_sessions = templates_source / "CLAUDE.sessions.md"
+        if claude_sessions.exists():
+            shutil.copy2(claude_sessions, project_root / "CLAUDE.sessions.md")
+            console.print("[green]  ✓ Copied CLAUDE.sessions.md to project root[/green]")
+
         console.print("[green]✅ Templates copied successfully[/green]")
         return True
 
@@ -229,6 +235,13 @@ def copy_utility_scripts(project_root: Path, plugin_root: Path) -> bool:
             if source_file.exists():
                 shutil.copy2(source_file, scripts_target / script_name)
                 copied_count += 1
+
+        # Copy statusline-script.py from plugin scripts
+        statusline_source = plugin_root / "scripts" / "statusline-script.py"
+        if statusline_source.exists():
+            shutil.copy2(statusline_source, scripts_target / "statusline-script.py")
+            console.print(f"[green]  ✓ Copied statusline-script.py[/green]")
+            copied_count += 1
 
         # Copy utils directory for script imports
         utils_source = scripts_source / "utils"
