@@ -1,8 +1,8 @@
 api_mode = false
 [[sources]]
-name = "onemit-project"
+name = "example-project-1"
 type = "local"
-path = "/Users/logansmith/OneMIT-Project"
+path = "/path/to/your/first-project"
 enabled = true
 
 [sources.patterns]
@@ -13,9 +13,9 @@ sessions = ".claude/sessions/**/*.md"
 exclude_patterns = [ "**/temp/**", "**/.tmp/**", "**/node_modules/**",]
 min_file_age_minutes = 5
 [[sources]]
-name = "brainworm-self"
+name = "example-project-2"
 type = "local"
-path = "/Users/logansmith/brainworm"
+path = "/path/to/your/second-project"
 enabled = true
 
 [sources.patterns]
@@ -26,9 +26,9 @@ sessions = ".claude/sessions/**/*.md"
 exclude_patterns = [ "**/test/**",]
 min_file_age_minutes = 5
 [[sources]]
-name = "other-project"
+name = "example-project-3"
 type = "local"
-path = "/Users/logansmith/other-claude-project"
+path = "/path/to/your/third-project"
 enabled = false
 
 [sources.patterns]

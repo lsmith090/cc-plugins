@@ -209,7 +209,8 @@ def get_daic_mode(project_root: Path) -> str:
         try:
             with open(unified_state_file, 'r') as f:
                 data = json.load(f)
-                mode = data.get('daic_mode', DAICMode.DISCUSSION)
+                mode_str = data.get('daic_mode', 'discussion')
+                mode = DAICMode.from_string(mode_str)
         except:
             pass
     

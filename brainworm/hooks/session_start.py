@@ -72,6 +72,14 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
                 # Always regenerate wrappers to ensure new wrappers are created
                 generate_wrappers(project_root, plugin_root)
 
+                # Always copy protocols to ensure latest versions
+                protocols_source = plugin_root / 'templates' / 'protocols'
+                protocols_dest = brainworm_dir / 'protocols'
+                protocols_dest.mkdir(parents=True, exist_ok=True)
+                if protocols_source.exists():
+                    for protocol_file in protocols_source.glob('*.md'):
+                        shutil.copy(protocol_file, protocols_dest / protocol_file.name)
+
                 # Always configure statusline to ensure it's up to date
                 configure_statusline(project_root, plugin_root)
 
@@ -89,6 +97,7 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
         (brainworm_dir / 'analytics').mkdir(parents=True, exist_ok=True)
         (brainworm_dir / 'tasks').mkdir(parents=True, exist_ok=True)
         (brainworm_dir / 'timing').mkdir(parents=True, exist_ok=True)
+        (brainworm_dir / 'protocols').mkdir(parents=True, exist_ok=True)
 
         # 2. Copy config.toml from plugin template (if not exists)
         config_file = brainworm_dir / 'config.toml'
@@ -96,6 +105,13 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
             template = plugin_root / 'templates' / 'config.toml.template'
             if template.exists():
                 shutil.copy(template, config_file)
+
+        # 2b. Copy protocol files from plugin templates (always refresh)
+        protocols_source = plugin_root / 'templates' / 'protocols'
+        protocols_dest = brainworm_dir / 'protocols'
+        if protocols_source.exists():
+            for protocol_file in protocols_source.glob('*.md'):
+                shutil.copy(protocol_file, protocols_dest / protocol_file.name)
 
         # 3. Initialize unified session state with plugin_root
         initial_state = {

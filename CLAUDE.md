@@ -427,3 +427,7 @@ ruff check .
 ---
 
 **Marketplace Philosophy**: Provide high-quality, well-documented Claude Code plugins that enhance development workflows. Focus on user experience, reliability, and continuous improvement.
+
+## Brainworm System Behaviors
+
+@CLAUDE.sessions.md
