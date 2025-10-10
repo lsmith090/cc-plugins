@@ -79,31 +79,31 @@
   },
   "commands": {
     "daic": {
-      "description": "Control DAIC workflow mode",
-      "file": "${CLAUDE_PLUGIN_ROOT}/commands/daic.md"
+      "source": "./commands/daic.md",
+      "description": "Control DAIC workflow mode"
     },
     "api-mode": {
-      "description": "Toggle API mode for automatic ultrathink",
-      "file": "${CLAUDE_PLUGIN_ROOT}/commands/api-mode.md"
+      "source": "./commands/api-mode.md",
+      "description": "Toggle API mode for automatic ultrathink"
     },
     "add-trigger": {
-      "description": "Add a new trigger phrase for implementation mode",
-      "file": "${CLAUDE_PLUGIN_ROOT}/commands/add-trigger.md"
+      "source": "./commands/add-trigger.md",
+      "description": "Add a new trigger phrase for implementation mode"
     },
     "install-brainworm": {
-      "description": "Set up brainworm in the current project",
-      "file": "${CLAUDE_PLUGIN_ROOT}/commands/install-brainworm.md"
+      "source": "./commands/install-brainworm.md",
+      "description": "Set up brainworm in the current project"
     }
   },
-  "agents": {
-    "context-gathering": "${CLAUDE_PLUGIN_ROOT}/agents/context-gathering.md",
-    "context-refinement": "${CLAUDE_PLUGIN_ROOT}/agents/context-refinement.md",
-    "code-review": "${CLAUDE_PLUGIN_ROOT}/agents/code-review.md",
-    "logging": "${CLAUDE_PLUGIN_ROOT}/agents/logging.md",
-    "service-documentation": "${CLAUDE_PLUGIN_ROOT}/agents/service-documentation.md",
-    "session-docs": "${CLAUDE_PLUGIN_ROOT}/agents/session-docs.md",
-    "data-analyst": "${CLAUDE_PLUGIN_ROOT}/agents/data-analyst.md",
-    "meta-agent": "${CLAUDE_PLUGIN_ROOT}/agents/meta-agent.md",
-    "claude-hooks-developer": "${CLAUDE_PLUGIN_ROOT}/agents/claude-hooks-developer.md"
-  }
+  "agents": [
+    "./agents/context-gathering.md",
+    "./agents/context-refinement.md",
+    "./agents/code-review.md",
+    "./agents/logging.md",
+    "./agents/service-documentation.md",
+    "./agents/session-docs.md",
+    "./agents/data-analyst.md",
+    "./agents/meta-agent.md",
+    "./agents/claude-hooks-developer.md"
+  ]
 }
