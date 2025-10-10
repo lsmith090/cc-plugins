@@ -15,9 +15,12 @@ similar to the DAIC command but focused on task tracking and session state.
 Works in both discussion and implementation modes.
 """
 
+# Add plugin root to sys.path before any utils imports
 import sys
-import subprocess
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+import subprocess
 from typing import List, Optional
 from rich.console import Console
 from utils.project import find_project_root

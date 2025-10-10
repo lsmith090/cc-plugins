@@ -12,7 +12,11 @@ Stop Hook - Framework Implementation
 Handles session stop with correlation cleanup.
 """
 
+# Add plugin root to sys.path before any utils imports
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from utils.hook_framework import HookFramework
 
 def stop_session_logic(framework, typed_input):

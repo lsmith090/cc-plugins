@@ -14,9 +14,12 @@ Allows manual switching between discussion and implementation modes.
 Can be run via Bash tool: `daic` or `daic discussion` or `daic implementation`
 """
 
+# Add plugin root to sys.path before any utils imports
 import sys
-import json
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+import json
 from datetime import datetime, timezone
 from typing import Dict, Any
 from rich.console import Console

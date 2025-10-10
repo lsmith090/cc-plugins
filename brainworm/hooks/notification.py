@@ -11,15 +11,19 @@ Enhanced Notification Hook - Framework-Based Implementation
 
 Uses Hooks Framework with:
 - Type-safe input processing
-- Advanced DAIC-aware analytics 
+- Advanced DAIC-aware analytics
 - Structured logging infrastructure
 - Official Claude Code compliance
 
 Reduces from 83 lines to 8 lines (90% reduction).
 """
 
-from utils.hook_framework import HookFramework
+# Add plugin root to sys.path before any utils imports
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.hook_framework import HookFramework
 
 def notification_logic(framework, typed_input):
     """Logic for notification processing."""

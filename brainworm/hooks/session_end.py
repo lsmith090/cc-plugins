@@ -11,8 +11,12 @@ Creates session snapshot on actual session termination.
 Handles session end with correlation cleanup.
 """
 
-import subprocess
+# Add plugin root to sys.path before any utils imports
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+import subprocess
 from utils.hook_framework import HookFramework
 
 def session_end_logic(framework, typed_input):

@@ -12,14 +12,17 @@ Session Start Hook - Framework Implementation
 Initializes user config, cleans up session flags, and auto-sets up .brainworm/ structure.
 """
 
+# Add plugin root to sys.path before any utils imports
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from utils.hook_framework import HookFramework
 import json
 import subprocess
-import sys
 import shutil
 import sqlite3
 import os
-from pathlib import Path
 from datetime import datetime, timezone
 from rich.console import Console
 

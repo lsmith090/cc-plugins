@@ -14,9 +14,12 @@ Core intelligence engine for context-aware subagent execution.
 Processes transcripts for optimal subagent consumption with service awareness.
 """
 
-import json
+# Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+import json
 from datetime import datetime, timezone
 from collections import deque
 from typing import Dict, Any, List, Optional

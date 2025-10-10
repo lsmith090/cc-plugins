@@ -14,10 +14,13 @@ DAIC workflow enforcement with intelligent subagent coordination.
 Critical tool blocking functionality for Claude Code integration.
 """
 
+# Add plugin root to sys.path before any utils imports
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import json
 import re
-from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, Any, Tuple
 from utils.hook_framework import HookFramework

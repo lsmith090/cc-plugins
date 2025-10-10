@@ -12,7 +12,11 @@ Subagent Stop Hook - Hooks Framework
 Captures subagent stop events with specialized analytics marking.
 """
 
+# Add plugin root to sys.path before any utils imports
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from typing import Dict, Any
 from utils.hook_framework import HookFramework
 

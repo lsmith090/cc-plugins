@@ -12,10 +12,14 @@ Post-Tool Use Hook - Framework Implementation
 Captures tool execution results with analytics and subagent cleanup.
 """
 
+# Add plugin root to sys.path before any utils imports
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from utils.hook_framework import HookFramework
 from utils.business_controllers import create_subagent_manager, create_tool_analyzer
 from utils.analysis_utils import create_file_path_extractor, create_command_extractor
-import sys
 
 def post_tool_use_logic(framework, typed_input):
     """Custom logic for post-tool use processing."""

@@ -14,10 +14,13 @@ Intelligent context injection system with DAIC workflow management.
 Provides Claude with contextual guidance based on user prompts.
 """
 
-import json
-import re
+# Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+import json
+import re
 from datetime import datetime, timezone
 from typing import Dict, Any, List
 from utils.hook_framework import HookFramework

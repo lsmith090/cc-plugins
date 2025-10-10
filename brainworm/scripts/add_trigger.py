@@ -5,9 +5,12 @@
 #     "toml>=0.10.0",
 # ]
 # ///
+# Add plugin root to sys.path before any utils imports
 import sys
-import toml
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+import toml
 from utils.project import find_project_root
 
 def add_trigger_phrase() -> None:
