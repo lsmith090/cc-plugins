@@ -64,9 +64,8 @@ class DAICStateManager:
     def load_config(self) -> Dict[str, Any]:
         """Load brainworm configuration using shared canonical config"""
         try:
-            # Import and use shared config loader
-            sys.path.insert(0, str(Path(__file__).parent / "utils"))
-            from config import load_config
+            # Import config loader from same directory (we're already in utils/)
+            from .config import load_config
             
             # Use shared loader with verbose support
             verbose = '--verbose' in sys.argv

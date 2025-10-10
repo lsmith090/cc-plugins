@@ -22,8 +22,8 @@ from typing import Dict, Any, Optional, Tuple
 
 # Import DAICMode enum if available
 try:
-    sys.path.insert(0, str(Path(__file__).parent / "utils"))
-    from hook_types import DAICMode
+    sys.path.insert(0, str(Path(__file__).parent.parent))  # Add plugin root for utils access
+    from utils.hook_types import DAICMode
 except ImportError:
     # Fallback if not available - define enum values as constants
     class DAICMode:

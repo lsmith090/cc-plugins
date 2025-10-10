@@ -37,7 +37,7 @@ def log_raw_event(hook_name: str, raw_input_data: Dict[str, Any], extra_data: Di
     """Log raw event data using analytics processor"""
     try:
         # Import analytics processor
-        sys.path.insert(0, str(Path(__file__).parent))
+        sys.path.insert(0, str(Path(__file__).parent.parent))  # Add plugin root for utils access
         from utils.analytics_processor import ClaudeAnalyticsProcessor
         
         # Initialize processor

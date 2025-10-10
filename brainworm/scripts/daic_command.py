@@ -48,9 +48,9 @@ def get_daic_state(project_root: Path) -> Dict[str, Any]:
 
 def set_daic_mode(project_root: Path, mode: str, trigger: str = "manual_command") -> Dict[str, Any]:
     """Set DAIC mode using DAICStateManager (unified state)"""
-    
+
     # Use DAICStateManager for unified state management
-    sys.path.insert(0, str(Path(__file__).parent))
+    sys.path.insert(0, str(Path(__file__).parent.parent))  # Add plugin root for utils access
     from utils.daic_state_manager import DAICStateManager
     
     state_manager = DAICStateManager(project_root)

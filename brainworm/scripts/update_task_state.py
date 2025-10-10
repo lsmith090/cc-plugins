@@ -25,8 +25,8 @@ from pathlib import Path
 from typing import List, Optional
 from rich.console import Console
 
-# Add path to utils modules in hooks directory when deployed as script
-sys.path.append(str(Path(__file__).parent.parent / 'hooks'))
+# Add plugin root to path for utils access
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.project import find_project_root
 
 console = Console()
@@ -43,7 +43,7 @@ def update_task_state(
     
     try:
         # Import DAICStateManager
-        sys.path.insert(0, str(Path(__file__).parent))
+        sys.path.insert(0, str(Path(__file__).parent.parent))
         from utils.daic_state_manager import DAICStateManager
         
         state_manager = DAICStateManager(project_root)
@@ -129,7 +129,7 @@ Examples:
     # Show current state if requested
     if args.show_current:
         try:
-            sys.path.insert(0, str(Path(__file__).parent))
+            sys.path.insert(0, str(Path(__file__).parent.parent))
             from utils.daic_state_manager import DAICStateManager
             
             state_manager = DAICStateManager(project_root)

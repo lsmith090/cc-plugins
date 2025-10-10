@@ -749,7 +749,7 @@ def log_analytics_event(project_root: Path, event_data: Dict[str, Any]) -> None:
     Log transcript processing event to brainworm analytics with comprehensive metrics.
     """
     try:
-        sys.path.insert(0, str(Path(__file__).parent))
+        sys.path.insert(0, str(Path(__file__).parent.parent))  # Add plugin root for utils access
         from utils.analytics_processor import ClaudeAnalyticsProcessor
         
         # Enhance event data with additional brainworm-specific fields

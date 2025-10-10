@@ -24,8 +24,8 @@ import argparse
 from pathlib import Path
 from rich.console import Console
 
-# Add path to utils modules in hooks directory when deployed as script
-sys.path.append(str(Path(__file__).parent.parent / 'hooks'))
+# Add plugin root to path for utils access
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.project import find_project_root
 from utils.business_controllers import create_daic_controller
 from utils.hook_types import DAICMode

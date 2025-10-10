@@ -23,22 +23,19 @@ from datetime import datetime
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 
-# Import brainworm utilities - handle both installed and source locations
+# Import brainworm utilities - add plugin root to path
 script_path = Path(__file__).resolve()
 
-# Determine if we're running from installed location or source
-if '.brainworm/scripts' in str(script_path):
-    # Running from installed location: .brainworm/scripts/create_task.py
-    # Utils are in .brainworm/hooks/utils/
-    utils_path = script_path.parent.parent / 'hooks' / 'utils'
+# Determine plugin root based on location
+if '.claude/plugins' in str(script_path):
+    # Running from installed location: ~/.claude/plugins/.../brainworm/scripts/
+    plugin_root = script_path.parent.parent
 else:
-    # Running from source: src/hooks/templates/create_task.py
-    # Utils are in src/hooks/templates/utils/
-    utils_path = script_path.parent / 'utils'
+    # Running from source: ~/repos/cc-plugins/brainworm/scripts/
+    plugin_root = script_path.parent.parent
 
-sys.path.insert(0, str(utils_path))
-# Also add parent for relative imports within utils modules
-sys.path.insert(0, str(utils_path.parent))
+# Add plugin root to path for utils access
+sys.path.insert(0, str(plugin_root))
 
 try:
     # Import with utils. prefix to help with relative imports
