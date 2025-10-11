@@ -19,13 +19,9 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 from datetime import datetime, timezone
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "hooks" / "templates"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "hooks" / "templates" / "utils"))
 
 # Import type system components
-from utils.hook_types import (
+from brainworm.utils.hook_types import (
     BaseHookInput, PreToolUseInput, PostToolUseInput, UserPromptSubmitInput,
     PreToolUseDecisionOutput, UserPromptContextResponse, HookSpecificOutput,
     SessionCorrelationResponse, DAICModeResult, ToolAnalysisResult,
@@ -33,7 +29,7 @@ from utils.hook_types import (
     parse_tool_input, parse_log_event, get_standard_timestamp,
     to_json_serializable, normalize_validation_issues
 )
-from utils.hook_framework import HookFramework
+from brainworm.utils.hook_framework import HookFramework
 
 class TestTypeSystemCompliance:
     """Test Claude Code specification compliance for Hooks Framework"""

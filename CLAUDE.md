@@ -132,20 +132,22 @@ Create `<plugin-name>/CLAUDE.md` with:
 ### Run All Tests
 
 ```bash
-pytest tests/
+uv run pytest tests/
 ```
 
 ### Test Specific Plugin
 
 ```bash
-pytest tests/<plugin-name>/
+uv run pytest tests/<plugin-name>/
 ```
 
 ### With Coverage
 
 ```bash
-pytest --cov=<plugin-name> --cov-report=term-missing tests/<plugin-name>/
+uv run pytest --cov=<plugin-name> --cov-report=term-missing tests/<plugin-name>/
 ```
+
+**Note**: Always use `uv run` to ensure tests run with the correct dependencies and plugin package is built.
 
 ### Test Organization
 
@@ -199,7 +201,7 @@ test(plugin-name): Add comprehensive parsing tests
 
 3. **Run Tests**:
    ```bash
-   pytest tests/<plugin-name>/
+   uv run pytest tests/<plugin-name>/
    ```
 
 4. **Test Installation**:
@@ -321,12 +323,12 @@ uv sync
 
 **Run Verbose**:
 ```bash
-pytest -v tests/<plugin-name>/
+uv run pytest -v tests/<plugin-name>/
 ```
 
 **Check Isolation**:
 ```bash
-pytest tests/<plugin-name>/unit/test_specific.py
+uv run pytest tests/<plugin-name>/unit/test_specific.py
 ```
 
 ### Plugin Installation Issues
@@ -413,8 +415,8 @@ uv sync
 
 ```bash
 # Testing
-pytest tests/<plugin-name>/
-pytest --cov=<plugin-name> tests/<plugin-name>/
+uv run pytest tests/<plugin-name>/
+uv run pytest --cov=<plugin-name> tests/<plugin-name>/
 
 # Linting
 ruff check .

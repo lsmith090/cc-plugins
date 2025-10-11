@@ -23,15 +23,11 @@ from unittest.mock import patch, MagicMock
 import sys
 import uuid
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "hooks" / "templates"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "hooks" / "templates" / "utils"))
 
-from hooks.install_hooks import install_hooks_to_project, find_analytics_root
-from hooks.verify_installation import verify_installation as verify_hooks_installation
-from hooks.configure_analytics import BrainwormConfig
-from utils.analytics_processor import ClaudeAnalyticsProcessor
+from brainworm.hooks.install_hooks import install_hooks_to_project, find_analytics_root
+from brainworm.hooks.verify_installation import verify_installation as verify_hooks_installation
+from brainworm.hooks.configure_analytics import BrainwormConfig
+from brainworm.utils.analytics_processor import ClaudeAnalyticsProcessor
 
 
 class CompleteInstallationWorkflowTester:
@@ -108,8 +104,6 @@ import pytest
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from main import main
 

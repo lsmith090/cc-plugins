@@ -9,10 +9,8 @@ import os
 import json
 from pathlib import Path
 
-# Add src/hooks/templates to path to import utils modules
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../src/hooks/templates'))
 
-from utils.hook_types import PreToolUseDecisionOutput
+from brainworm.utils.hook_types import PreToolUseDecisionOutput
 
 
 class TestPreToolUseJSONValidation:

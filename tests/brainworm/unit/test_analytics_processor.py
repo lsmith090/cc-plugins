@@ -22,11 +22,8 @@ from typing import Dict, Any
 
 import pytest
 
-# Import the analytics processor
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "hooks" / "templates"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "hooks" / "templates" / "utils"))
-from utils.analytics_processor import ClaudeAnalyticsProcessor
+# Import the analytics processor from brainworm plugin package
+from brainworm.utils.analytics_processor import ClaudeAnalyticsProcessor
 
 
 class TestClaudeAnalyticsProcessor:

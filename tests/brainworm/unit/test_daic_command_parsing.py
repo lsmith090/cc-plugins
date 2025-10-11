@@ -15,12 +15,9 @@ import pytest
 import sys
 from pathlib import Path
 
-# Add src paths for testing
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root / "src" / "hooks" / "templates"))
-sys.path.insert(0, str(project_root / "src" / "hooks" / "templates" / "utils"))
-
-from pre_tool_use import is_read_only_bash_command, is_brainworm_system_command, split_command_respecting_quotes
+# Import from brainworm plugin package
+from brainworm.hooks.pre_tool_use import is_read_only_bash_command, is_brainworm_system_command
+from brainworm.utils.bash_validator import split_command_respecting_quotes
 
 
 class TestDAICCommandParsing:

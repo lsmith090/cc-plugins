@@ -28,10 +28,8 @@ from unittest.mock import patch, MagicMock
 from typing import Dict, Any, List
 import tempfile
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "hooks" / "templates" / "utils"))
 
-from hook_types import (
+from brainworm.utils.hook_types import (
     BaseHookInput, PreToolUseInput, PostToolUseInput, UserPromptSubmitInput,
     PreToolUseDecisionOutput, UserPromptContextResponse, HookSpecificOutput,
     CommandToolInput, FileWriteToolInput, FileEditToolInput, ToolResponse,

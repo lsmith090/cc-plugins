@@ -14,12 +14,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "hooks" / "templates"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "hooks" / "templates" / "utils"))
 
-from utils.analytics_processor import ClaudeAnalyticsProcessor
+from brainworm.utils.analytics_processor import ClaudeAnalyticsProcessor
 
 
 class TestEssentialSecurity:
