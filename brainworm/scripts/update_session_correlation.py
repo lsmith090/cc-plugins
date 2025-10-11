@@ -3,6 +3,7 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "rich>=13.0.0",
+#     "toml>=0.10.0",
 # ]
 # ///
 
@@ -39,20 +40,20 @@ def update_session_correlation(
         if show_current:
             # Show current state with consistency check
             consistency_result = controller.check_consistency()
-            
+
             console.print("\n[green]Current Session Correlation:[/green]")
-            console.print(f"  Unified Session ID: {consistency_result.get('unified_session')}")
-            console.print(f"  Unified Correlation ID: {consistency_result.get('unified_correlation')}")
-            console.print(f"  Task Session ID: {consistency_result.get('task_session')}")
-            
-            if consistency_result["consistent"]:
+            console.print(f"  Unified Session ID: {consistency_result.unified_session}")
+            console.print(f"  Unified Correlation ID: {consistency_result.unified_correlation}")
+            console.print(f"  Task Session ID: {consistency_result.task_session}")
+
+            if consistency_result.consistent:
                 console.print("\n✅ [green]Session correlation is consistent[/green]")
             else:
                 console.print("\n⚠️  [yellow]WARNING: Session correlation inconsistency detected![/yellow]")
-                for issue in consistency_result["inconsistencies"]:
+                for issue in consistency_result.inconsistencies:
                     console.print(f"  • {issue}")
                 console.print("  Use this tool to synchronize session IDs")
-            
+
             return consistency_result
         
         # Generate IDs if not provided

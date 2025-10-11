@@ -35,11 +35,16 @@ console = Console()
 def update_task_state(
     project_root: Path,
     task: Optional[str] = None,
-    branch: Optional[str] = None, 
+    branch: Optional[str] = None,
     services: Optional[List[str]] = None,
     clear_task: bool = False
 ) -> dict:
-    """Update task state using DAICStateManager for atomic updates"""
+    """Update task state using DAICStateManager for atomic updates
+
+    Note: This updates state only. It does NOT run git commands.
+    To actually switch branches, use git checkout manually.
+    This is useful for fixing state mismatches or updating metadata.
+    """
     
     try:
         # Import DAICStateManager
@@ -107,7 +112,7 @@ Examples:
     )
     
     parser.add_argument("--task", help="Task name to set")
-    parser.add_argument("--branch", help="Git branch to set") 
+    parser.add_argument("--branch", help="Git branch to set in state (does not run git checkout)")
     parser.add_argument("--services", help="Comma-separated list of services")
     parser.add_argument("--clear-task", action="store_true", help="Clear current task")
     parser.add_argument("--show-current", action="store_true", help="Show current task state")

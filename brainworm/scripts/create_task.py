@@ -54,6 +54,35 @@ except ImportError as e:
 console = Console()
 
 
+def should_be_interactive() -> bool:
+    """
+    Auto-detect if we should run in interactive mode.
+
+    Returns False (non-interactive) when:
+    - Not running in a TTY (e.g., called by Claude Code, CI/CD)
+    - Running in CI environment
+
+    Returns True (interactive) when:
+    - Running in a terminal by a human user
+
+    Returns:
+        bool: True if interactive prompts should be shown
+    """
+    import os
+
+    # Check if running in a TTY (terminal)
+    # When Claude Code calls this, stdin won't be a TTY
+    if not sys.stdin.isatty():
+        return False
+
+    # Check for CI environment variables
+    if os.getenv('CI') or os.getenv('GITHUB_ACTIONS'):
+        return False
+
+    # Default to interactive for terminal use
+    return True
+
+
 def determine_branch_prefix(task_name: str) -> str:
     """
     Determine git branch prefix based on task name.
@@ -148,6 +177,7 @@ def create_task(
 
         # Replace template placeholders
         content = template.replace('[prefix]-[descriptive-name]', task_name)
+        content = content.replace('feature/[name]|fix/[name]|experiment/[name]|none', branch_name)
         content = content.replace('[submodule-path]|none', submodule or 'none')
         content = content.replace('YYYY-MM-DD', datetime.now().strftime('%Y-%m-%d'))
         content = content.replace('[current-session-id]', 'pending')
@@ -316,7 +346,7 @@ Examples:
     parser.add_argument(
         '--no-interactive',
         action='store_true',
-        help='Skip interactive prompts (use for non-submodule tasks)'
+        help='Force non-interactive mode (auto-detected by default)'
     )
 
     args = parser.parse_args()
@@ -324,12 +354,19 @@ Examples:
     # Parse services
     services = args.services.split(',') if args.services else None
 
+    # Auto-detect interactive mode if not explicitly set
+    if args.no_interactive:
+        interactive = False
+    else:
+        # Auto-detect based on environment (TTY detection)
+        interactive = should_be_interactive()
+
     # Create task
     success = create_task(
         task_name=args.task_name,
         submodule=args.submodule,
         services=services,
-        interactive=not args.no_interactive
+        interactive=interactive
     )
 
     sys.exit(0 if success else 1)

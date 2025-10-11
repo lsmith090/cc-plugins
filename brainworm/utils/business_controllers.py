@@ -217,8 +217,14 @@ class SessionCorrelationController:
     
     def check_consistency(self) -> ConsistencyCheckResult:
         """Check session correlation consistency across state files."""
-        if not self.state_manager or not ConsistencyCheckResult:
-            return ConsistencyCheckResult.check_failed("No state manager available")
+        if not self.state_manager:
+            if ConsistencyCheckResult:
+                return ConsistencyCheckResult.check_failed("No state manager available")
+            else:
+                raise RuntimeError("State manager not available and ConsistencyCheckResult not imported")
+
+        if not ConsistencyCheckResult:
+            raise RuntimeError("ConsistencyCheckResult type not imported")
         
         try:
             unified_state = self.state_manager.get_unified_state()
