@@ -20,7 +20,7 @@ from typing import Dict, Any
 
 def get_canonical_default_config() -> Dict[str, Any]:
     """Get the canonical default configuration structure
-    
+
     This represents the complete, authoritative default configuration
     that gets written to .brainworm/config.toml during installation.
     """
@@ -32,13 +32,13 @@ def get_canonical_default_config() -> Dict[str, Any]:
             "blocked_tools": ["Edit", "Write", "MultiEdit", "NotebookEdit"],
             "read_only_bash_commands": {
                 "basic": [
-                    "ls", "ll", "pwd", "cd", "echo", "cat", "head", "tail", 
-                    "less", "more", "grep", "rg", "find", "which", "whereis", 
+                    "ls", "ll", "pwd", "cd", "echo", "cat", "head", "tail",
+                    "less", "more", "grep", "rg", "find", "which", "whereis",
                     "type", "file", "stat"
                 ],
                 "git": [
-                    "git status", "git log", "git diff", "git show", "git branch", 
-                    "git remote", "git fetch", "git describe", "git rev-parse", 
+                    "git status", "git log", "git diff", "git show", "git branch",
+                    "git remote", "git fetch", "git describe", "git rev-parse",
                     "git blame"
                 ],
                 "docker": [
@@ -53,6 +53,15 @@ def get_canonical_default_config() -> Dict[str, Any]:
                 "text_processing": [
                     "jq", "awk", "sed -n"
                 ]
+            }
+        },
+        "debug": {
+            "enabled": False,
+            "level": "INFO",
+            "outputs": {
+                "stderr": True,
+                "file": False,
+                "framework": False
             }
         }
     }

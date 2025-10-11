@@ -18,3 +18,31 @@ docker = [ "docker ps", "docker images", "docker logs",]
 package_managers = [ "npm list", "npm ls", "pip list", "pip show", "yarn list",]
 network = [ "curl", "wget", "ping", "nslookup", "dig",]
 text_processing = [ "jq", "awk", "sed -n",]
+
+# Debug logging configuration
+# Controls debug output behavior for all brainworm hooks and utilities
+[debug]
+# Master switch for debug output (false = disabled, true = enabled)
+# Can be overridden temporarily with --verbose CLI flag
+enabled = false
+
+# Debug level controls verbosity (ERROR, WARNING, INFO, DEBUG, TRACE)
+# - ERROR: Only errors
+# - WARNING: Errors + warnings
+# - INFO: Normal operations (default)
+# - DEBUG: Detailed debugging information
+# - TRACE: Everything including internal state
+level = "INFO"
+
+# Control where debug output goes
+[debug.outputs]
+# Print debug messages to stderr (recommended for immediate feedback)
+stderr = true
+
+# Write debug messages to .brainworm/logs/debug.log
+# Useful for offline analysis or when stderr is too noisy
+file = false
+
+# Write framework-specific debug to .brainworm/debug_framework_output.log
+# Captures JSON communication between hooks and Claude Code
+framework = false

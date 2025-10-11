@@ -37,16 +37,23 @@ from rich.console import Console
 try:
     from .hook_types import (
         BaseHookInput, PreToolUseInput, PostToolUseInput, UserPromptSubmitInput,
+        SessionStartInput, SessionEndInput, StopInput, NotificationInput,
         PreToolUseDecisionOutput, parse_log_event, get_standard_timestamp
     )
     from .hook_analytics import AnalyticsHookLogger, create_analytics_logger
     from .hook_logging import HookLogger, create_logger
+    from .debug_logger import DebugLogger, DebugConfig, create_debug_logger
+    from .config import load_config
 except ImportError:
     # Fallback imports for backward compatibility
     BaseHookInput = None
     PreToolUseInput = None
     PostToolUseInput = None
     UserPromptSubmitInput = None
+    SessionStartInput = None
+    SessionEndInput = None
+    StopInput = None
+    NotificationInput = None
     PreToolUseDecisionOutput = None
     parse_log_event = None
     get_standard_timestamp = lambda: datetime.now(timezone.utc).isoformat()
@@ -54,6 +61,10 @@ except ImportError:
     create_analytics_logger = None
     HookLogger = None
     create_logger = None
+    DebugLogger = None
+    DebugConfig = None
+    create_debug_logger = None
+    load_config = None
 
 
 class HookFramework:
@@ -104,7 +115,8 @@ class HookFramework:
         self.security_critical = security_critical
         self.analytics_logger: Optional[AnalyticsHookLogger] = None
         self.structured_logger: Optional[HookLogger] = None
-        
+        self.debug_logger: Optional[DebugLogger] = None
+
         self._setup_environment()
     
     def _setup_environment(self) -> None:
@@ -151,7 +163,7 @@ class HookFramework:
         """Parse input using type-safe schemas from hook_types.py."""
         if not self.raw_input_data:
             return
-        
+
         try:
             # Parse based on hook type for type-safe processing
             if self.hook_name in ('pre_tool_use', 'daic_pre_tool_use') and PreToolUseInput:
@@ -160,12 +172,23 @@ class HookFramework:
                 self.typed_input = PostToolUseInput.parse(self.raw_input_data)
             elif self.hook_name == 'user_prompt_submit' and UserPromptSubmitInput:
                 self.typed_input = UserPromptSubmitInput.parse(self.raw_input_data)
+            elif self.hook_name == 'session_start' and SessionStartInput:
+                self.typed_input = SessionStartInput.parse(self.raw_input_data)
+            elif self.hook_name == 'session_end' and SessionEndInput:
+                self.typed_input = SessionEndInput.parse(self.raw_input_data)
+            elif self.hook_name == 'stop' and StopInput:
+                self.typed_input = StopInput.parse(self.raw_input_data)
+            elif self.hook_name == 'notification' and NotificationInput:
+                self.typed_input = NotificationInput.parse(self.raw_input_data)
             elif BaseHookInput:
                 # Fallback to base input for other hooks
                 self.typed_input = BaseHookInput.parse(self.raw_input_data)
         except Exception as e:
-            # Sanitize error message to prevent information disclosure
-            print("Warning: Type-safe parsing failed, using raw input", file=sys.stderr)
+            # Log the actual error for debugging
+            if '--verbose' in sys.argv:
+                print(f"Warning: Type-safe parsing failed for {self.hook_name}: {type(e).__name__}: {e}", file=sys.stderr)
+            else:
+                print(f"Warning: Type-safe parsing failed for {self.hook_name}, using raw input", file=sys.stderr)
             # Continue with raw input
     
     def _discover_project_root(self) -> None:
@@ -188,18 +211,30 @@ class HookFramework:
         """Initialize advanced analytics and logging infrastructure."""
         if not self.project_root:
             return
-        
+
         try:
+            # Load debug configuration and initialize debug logger
+            if create_debug_logger and load_config:
+                config = load_config(self.project_root)
+                debug_config_data = config.get('debug', {})
+                debug_config = DebugConfig.from_dict(debug_config_data) if DebugConfig else None
+                self.debug_logger = create_debug_logger(
+                    self.hook_name,
+                    self.project_root,
+                    debug_config,
+                    check_verbose_flag=True
+                )
+
             # Initialize structured logger
             if self.enable_logging and create_logger:
                 self.structured_logger = create_logger(self.project_root, self.hook_name)
-            
+
             # Initialize analytics logger with Claude Code session correlation
             if self.enable_analytics and create_analytics_logger:
                 analytics_enabled = '--analytics' in sys.argv
                 self.analytics_logger = create_analytics_logger(
-                    self.project_root, self.hook_name, 
-                    enable_analytics=analytics_enabled, 
+                    self.project_root, self.hook_name,
+                    enable_analytics=analytics_enabled,
                     session_id=self.session_id
                 )
         except Exception as e:
@@ -210,10 +245,10 @@ class HookFramework:
         """Process analytics using sophisticated DAIC-aware infrastructure."""
         if not self.analytics_logger:
             return True  # Skip if analytics not available
-        
+
         try:
-            debug_mode = '--verbose' in sys.argv
-            
+            debug_mode = self.debug_logger.is_enabled() if self.debug_logger else False
+
             # Use hook-specific analytics logging methods based on hook type
             if self.hook_name in ('pre_tool_use', 'daic_pre_tool_use'):
                 success = self.analytics_logger.log_pre_tool_execution(self.raw_input_data, debug=debug_mode)
@@ -224,15 +259,15 @@ class HookFramework:
             else:
                 # General event logging with advanced metadata enrichment
                 success = self.analytics_logger.log_event_with_analytics(self.raw_input_data, debug=debug_mode)
-            
-            if debug_mode:
+
+            if self.debug_logger:
                 if success:
-                    print("✅ Advanced analytics processed", file=sys.stderr)
+                    self.debug_logger.debug("Advanced analytics processed")
                 else:
-                    print("⚠️ Advanced analytics failed", file=sys.stderr)
-            
+                    self.debug_logger.warning("Advanced analytics failed")
+
             return success
-            
+
         except Exception as e:
             # Sanitize error message to prevent information disclosure
             error_msg = "Warning: Advanced analytics processing failed"
@@ -249,10 +284,10 @@ class HookFramework:
         """Process event using structured logging infrastructure."""
         if not self.structured_logger:
             return True  # Skip if logging not available
-        
+
         try:
-            debug_mode = '--verbose' in sys.argv
-            
+            debug_mode = self.debug_logger.is_enabled() if self.debug_logger else False
+
             # Use hook-specific logging methods based on hook type
             if self.hook_name in ['pre_tool_use', 'post_tool_use']:
                 success = self.structured_logger.log_tool_use(self.raw_input_data, debug=debug_mode)
@@ -262,9 +297,9 @@ class HookFramework:
             else:
                 # General event logging with structured enrichment
                 success = self.structured_logger.log_event(self.raw_input_data, debug=debug_mode)
-            
+
             return success
-            
+
         except Exception as e:
             # Sanitize error message to prevent information disclosure
             error_msg = "Warning: Structured logging failed"
@@ -279,7 +314,7 @@ class HookFramework:
     
     def _show_success(self) -> None:
         """Display success message with standardized formatting."""
-        if '--verbose' in sys.argv:
+        if self.debug_logger and self.debug_logger.is_enabled():
             if self.success_handler_fn:
                 try:
                     self.success_handler_fn(self)
@@ -438,20 +473,11 @@ class HookFramework:
         """Output JSON response for hooks that provide context to Claude."""
         if self.json_response:
             try:
-                # FRAMEWORK DEBUG LOGGING - Capture JSON output to Claude
-                if self.project_root:
-                    debug_log_path = self.project_root / '.brainworm' / 'debug_framework_output.log'
-                    try:
-                        with open(debug_log_path, 'a') as f:
-                            import datetime
-                            timestamp = datetime.datetime.now().isoformat()
-                            f.write(f"\n=== FRAMEWORK JSON OUTPUT {timestamp} ===\n")
-                            f.write(f"HOOK: {self.hook_name}\n")
-                            f.write(f"JSON TO STDOUT: {json.dumps(self.json_response)}\n")
-                            f.flush()
-                    except Exception:
-                        pass  # Don't let debug break the hook
-                
+                # Use centralized debug logger for framework output (if configured)
+                if self.debug_logger and self.debug_logger.debug_config.outputs.framework:
+                    json_str = json.dumps(self.json_response)
+                    self.debug_logger.trace(f"JSON TO STDOUT: {json_str}")
+
                 # Secure JSON output with ASCII encoding to prevent injection
                 print(json.dumps(self.json_response, ensure_ascii=True, separators=(',', ':')))
                 sys.stdout.flush()  # Ensure JSON reaches Claude Code
@@ -459,8 +485,8 @@ class HookFramework:
                 # Emergency fallback - always provide some JSON
                 fallback_response = {"context": ""}
                 print(json.dumps(fallback_response))
-                if '--verbose' in sys.argv:
-                    print(f"Warning: JSON response formatting failed: {e}", file=sys.stderr)
+                if self.debug_logger and self.debug_logger.is_enabled():
+                    self.debug_logger.warning(f"JSON response formatting failed: {e}")
     
     def execute(self) -> None:
         """
@@ -483,17 +509,16 @@ class HookFramework:
             # 2. Discover project root and initialize infrastructure (eliminates 20+ lines per hook)
             self._discover_project_root()
             
-            # 3. Execute custom logic if provided - BREAKING CHANGE: Always pass typed input
+            # 3. Execute custom logic if provided
+            # Pass typed input if available, otherwise pass raw input for backward compatibility
             if self.custom_logic_fn:
                 try:
-                    if not self.typed_input:
-                        raise ValueError(f"No typed input available for {self.hook_name}. Framework parsing failed.")
-                    # BREAKING CHANGE: Custom logic must accept (framework, typed_input)
-                    self.custom_logic_fn(self, self.typed_input)
+                    # Use typed input if available, otherwise fall back to raw input
+                    input_to_pass = self.typed_input if self.typed_input else self.raw_input_data
+                    self.custom_logic_fn(self, input_to_pass)
                 except Exception as e:
                     # Sanitize error message to prevent information disclosure
                     print(f"Error: Custom logic failed for {self.hook_name}: {str(e)}", file=sys.stderr)
-                    # BREAKING CHANGE: Don't continue on typed input errors
                     sys.exit(1)
             
             # 4. Process advanced analytics with DAIC awareness (eliminates 40+ lines per hook)

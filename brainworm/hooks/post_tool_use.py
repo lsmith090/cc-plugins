@@ -23,24 +23,34 @@ from utils.analysis_utils import create_file_path_extractor, create_command_extr
 
 def post_tool_use_logic(framework, typed_input):
     """Custom logic for post-tool use processing."""
-    # Extract basic info from typed input
-    tool_name = typed_input.tool_name
-    
+    # Handle both typed input and raw dict for graceful degradation
+    if hasattr(typed_input, 'tool_name'):
+        tool_name = typed_input.tool_name
+        tool_response = typed_input.tool_response
+        tool_input = typed_input.tool_input
+    elif isinstance(typed_input, dict):
+        tool_name = typed_input.get('tool_name', 'unknown')
+        tool_response = typed_input.get('tool_response')
+        tool_input = typed_input.get('tool_input')
+    else:
+        tool_name = 'unknown'
+        tool_response = None
+        tool_input = None
+
     # Clean up subagent flag if Task tool completed
     subagent_manager = create_subagent_manager(framework.project_root)
     subagent_manager.cleanup_on_task_completion(tool_name)
-    
+
     # Analyze tool success
     tool_analyzer = create_tool_analyzer()
-    tool_response = typed_input.tool_response
-    tool_response_dict = tool_response.to_dict() if tool_response and hasattr(tool_response, 'to_dict') else {}
+    tool_response_dict = tool_response.to_dict() if tool_response and hasattr(tool_response, 'to_dict') else (tool_response if isinstance(tool_response, dict) else {})
     success = tool_analyzer.determine_success(tool_response_dict)
-    
+
     # Extract file paths and commands for analytics
     file_extractor = create_file_path_extractor()
     command_extractor = create_command_extractor()
-    
-    tool_input_dict = typed_input.tool_input.to_dict() if typed_input.tool_input and hasattr(typed_input.tool_input, 'to_dict') else {}
+
+    tool_input_dict = tool_input.to_dict() if tool_input and hasattr(tool_input, 'to_dict') else (tool_input if isinstance(tool_input, dict) else {})
     file_paths = file_extractor.extract_from_tool_input(tool_input_dict)
     command_info = command_extractor.extract_command_info(tool_input_dict)
     

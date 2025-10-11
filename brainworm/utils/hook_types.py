@@ -314,7 +314,89 @@ class UserPromptSubmitInput:
         )
 
 
-# ---------------------------------------------------------------------------  
+@dataclass
+class SessionStartInput:
+    session_id: str
+    transcript_path: str
+    cwd: str
+    hook_event_name: str
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @staticmethod
+    def parse(data: Dict[str, Any]) -> 'SessionStartInput':
+        return SessionStartInput(
+            session_id=data.get('session_id',''),
+            transcript_path=data.get('transcript_path',''),
+            cwd=data.get('cwd',''),
+            hook_event_name=data.get('hook_event_name',''),
+            raw=data
+        )
+
+
+@dataclass
+class SessionEndInput:
+    session_id: str
+    transcript_path: str
+    cwd: str
+    hook_event_name: str
+    reason: Optional[str] = None  # Why session ended: "user_stop", "timeout", "error"
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @staticmethod
+    def parse(data: Dict[str, Any]) -> 'SessionEndInput':
+        return SessionEndInput(
+            session_id=data.get('session_id',''),
+            transcript_path=data.get('transcript_path',''),
+            cwd=data.get('cwd',''),
+            hook_event_name=data.get('hook_event_name',''),
+            reason=data.get('reason'),
+            raw=data
+        )
+
+
+@dataclass
+class StopInput:
+    session_id: str
+    transcript_path: str
+    cwd: str
+    hook_event_name: str
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @staticmethod
+    def parse(data: Dict[str, Any]) -> 'StopInput':
+        return StopInput(
+            session_id=data.get('session_id',''),
+            transcript_path=data.get('transcript_path',''),
+            cwd=data.get('cwd',''),
+            hook_event_name=data.get('hook_event_name',''),
+            raw=data
+        )
+
+
+@dataclass
+class NotificationInput:
+    session_id: str
+    transcript_path: str
+    cwd: str
+    hook_event_name: str
+    message: str  # Notification message text
+    severity: Optional[str] = None  # "info", "warning", "error"
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @staticmethod
+    def parse(data: Dict[str, Any]) -> 'NotificationInput':
+        return NotificationInput(
+            session_id=data.get('session_id',''),
+            transcript_path=data.get('transcript_path',''),
+            cwd=data.get('cwd',''),
+            hook_event_name=data.get('hook_event_name',''),
+            message=data.get('message', ''),
+            severity=data.get('severity'),
+            raw=data
+        )
+
+
+# ---------------------------------------------------------------------------
 # Hook output response schemas (for context injection and responses)
 # ---------------------------------------------------------------------------
 
@@ -1556,6 +1638,7 @@ def format_for_database(ts: str) -> str:
 
 __all__ = [
     'BaseHookInput','PreToolUseInput','PostToolUseInput','UserPromptSubmitInput',
+    'SessionStartInput','SessionEndInput','StopInput','NotificationInput',
     'PreToolUseDecisionOutput','CommandToolInput','FileWriteToolInput','FileEditToolInput',
     'ToolResponse','parse_tool_input','BaseLogEvent','PreToolUseLogEvent','PostToolUseLogEvent',
     'UserPromptSubmitLogEvent','parse_log_event','CentralHookEventRow','DeveloperInfo','normalize_validation_issues',

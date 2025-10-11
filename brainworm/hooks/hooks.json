@@ -5,14 +5,14 @@
         "matcher": "Bash|Edit|Write|MultiEdit",
         "hooks": [{
           "type": "command",
-          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use.py --analytics --verbose"
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use.py"
         }]
       },
       {
         "matcher": "Task",
         "hooks": [{
           "type": "command",
-          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/transcript_processor.py --analytics --verbose"
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/transcript_processor.py"
         }]
       }
     ],
@@ -21,7 +21,7 @@
         "matcher": "Edit|Write|MultiEdit|Bash|Task",
         "hooks": [{
           "type": "command",
-          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/post_tool_use.py --analytics --verbose"
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/post_tool_use.py"
         }]
       }
     ],
@@ -29,7 +29,7 @@
       {
         "hooks": [{
           "type": "command",
-          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py --context --verbose --analytics"
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py"
         }]
       }
     ],
@@ -37,7 +37,7 @@
       {
         "hooks": [{
           "type": "command",
-          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/session_end.py --verbose --analytics"
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/session_end.py"
         }]
       }
     ],
@@ -45,7 +45,7 @@
       {
         "hooks": [{
           "type": "command",
-          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/user_prompt_submit.py --analytics --verbose"
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/user_prompt_submit.py"
         }]
       }
     ],
@@ -53,7 +53,7 @@
       {
         "hooks": [{
           "type": "command",
-          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/stop.py --summary --analytics"
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/stop.py"
         }]
       }
     ],
@@ -61,7 +61,7 @@
       {
         "hooks": [{
           "type": "command",
-          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/notification.py --feedback --analytics"
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/notification.py"
         }]
       }
     ]

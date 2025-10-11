@@ -117,6 +117,105 @@ docker = ["docker ps", "docker images"]
 - `network` - Network diagnostic commands
 - `text_processing` - Text processing utilities
 
+### Debug Logging Configuration (`[debug]`) ✅ IMPLEMENTED
+
+Configure centralized debug output behavior for all brainworm hooks and utilities:
+
+```toml
+[debug]
+enabled = false
+level = "INFO"
+
+[debug.outputs]
+stderr = true
+file = false
+framework = false
+```
+
+**Core Options**:
+- `enabled` - Master switch for debug output (default: `false`)
+  - Set to `true` to enable debug logging
+  - Can be temporarily overridden with `--verbose` CLI flag
+- `level` - Debug verbosity level (default: `"INFO"`)
+  - `"ERROR"` - Only errors
+  - `"WARNING"` - Errors + warnings
+  - `"INFO"` - Normal operations (recommended default)
+  - `"DEBUG"` - Detailed debugging information
+  - `"TRACE"` - Everything including internal state
+
+**Output Destinations** (`[debug.outputs]`):
+- `stderr` - Print debug messages to stderr (default: `true`)
+  - Recommended for immediate feedback during development
+  - Integrates with Claude Code terminal output
+- `file` - Write debug messages to `.brainworm/logs/debug.log` (default: `false`)
+  - Useful for offline analysis or when stderr is too noisy
+  - Persists across sessions for debugging patterns
+- `framework` - Write framework-specific debug to `.brainworm/debug_framework_output.log` (default: `false`)
+  - Captures JSON communication between hooks and Claude Code
+  - Useful for debugging hook/Claude integration issues
+
+**CLI Flag Override**:
+
+The `--verbose` flag provides temporary debug override:
+```bash
+# Temporarily enable debug output at DEBUG level
+claude --verbose
+```
+
+When `--verbose` is detected:
+- Debug is automatically enabled (regardless of config)
+- Debug level is set to `DEBUG`
+- Output follows configured destinations
+- Only affects current session (doesn't modify config file)
+
+**Usage Examples**:
+
+**Development debugging** (verbose stderr output):
+```toml
+[debug]
+enabled = true
+level = "DEBUG"
+
+[debug.outputs]
+stderr = true
+file = false
+framework = false
+```
+
+**Production troubleshooting** (minimal file logging):
+```toml
+[debug]
+enabled = true
+level = "WARNING"
+
+[debug.outputs]
+stderr = false
+file = true
+framework = false
+```
+
+**Framework integration debugging** (capture Claude Code communication):
+```toml
+[debug]
+enabled = true
+level = "TRACE"
+
+[debug.outputs]
+stderr = true
+file = true
+framework = true
+```
+
+**Debugging Double Logging Issues**:
+
+If you observe duplicate log entries:
+1. Set `debug.enabled = true` and `debug.level = "TRACE"`
+2. Enable `debug.outputs.file = true` for persistent logs
+3. Review `.brainworm/logs/debug.log` to identify duplicate sources
+4. Report findings to brainworm issue tracker
+
+**Note**: The centralized debug system eliminates ad-hoc debug statements that previously caused double logging. All hooks and utilities now use the unified debug logger configured here.
+
 ## Configuration Management
 
 ### Interactive Configuration Tool ✅ IMPLEMENTED

@@ -192,21 +192,30 @@ def extract_metadata(raw_input_data: Dict[str, Any]) -> Dict[str, Any]:
 def pre_tool_use_framework_logic(framework, typed_input):
     """Custom logic for pre-tool use using pure framework approach"""
     project_root = framework.project_root
-    
+
     # Handle case where project_root might be None
     if not project_root:
         framework.set_exit_decision(0, "Error: Could not determine project root")
         return
-    
+
     # Load configuration and DAIC state
     from utils.config import load_config
     config = load_config(project_root)
     daic_state = get_daic_state(project_root)
-    
-    # Extract basic info from typed input
-    session_id = typed_input.session_id
-    tool_name = typed_input.tool_name
-    tool_input = typed_input.tool_input
+
+    # Handle both typed input and raw dict for graceful degradation
+    if hasattr(typed_input, 'session_id'):
+        session_id = typed_input.session_id
+        tool_name = typed_input.tool_name
+        tool_input = typed_input.tool_input
+    elif isinstance(typed_input, dict):
+        session_id = typed_input.get('session_id', 'unknown')
+        tool_name = typed_input.get('tool_name', 'unknown')
+        tool_input = typed_input.get('tool_input', {})
+    else:
+        session_id = 'unknown'
+        tool_name = 'unknown'
+        tool_input = {}
     
     # PHASE 1: Basic security check
     passes_security = basic_security_check(framework.raw_input_data)

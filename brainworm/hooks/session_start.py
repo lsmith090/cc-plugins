@@ -530,11 +530,19 @@ def session_start_logic(framework, typed_input):
     """Custom logic for session start with auto-setup, user config, and flag cleanup."""
     project_root = framework.project_root
 
+    # Handle both typed input and raw dict for graceful degradation
+    if hasattr(typed_input, 'session_id'):
+        session_id = typed_input.session_id
+    elif isinstance(typed_input, dict):
+        session_id = typed_input.get('session_id', 'unknown')
+    else:
+        session_id = 'unknown'
+
     debug_log(project_root, "=== SESSION START LOGIC CALLED ===")
     debug_log(project_root, "session_start_logic: Entry", {
-        "session_id": typed_input.session_id,
+        "session_id": session_id,
         "project_root": str(project_root),
-        "source": getattr(typed_input, 'source', 'unknown')
+        "source": getattr(typed_input, 'source', 'unknown') if hasattr(typed_input, 'source') else 'unknown'
     })
 
     # Auto-setup minimal .brainworm/ structure if needed
@@ -554,7 +562,7 @@ def session_start_logic(framework, typed_input):
         current_state = state_mgr.get_unified_state()
 
         current_session_id = current_state.get('session_id')
-        new_session_id = typed_input.session_id
+        new_session_id = session_id
 
         debug_log(project_root, "session_start_logic: Loaded current state", {
             "current_session_id": current_session_id,
@@ -595,7 +603,7 @@ def session_start_logic(framework, typed_input):
                 from datetime import datetime, timezone
                 f.write(f"\n{'='*80}\n")
                 f.write(f"Session Start Error: {datetime.now(timezone.utc).isoformat()}\n")
-                f.write(f"Session ID: {getattr(typed_input, 'session_id', 'N/A')}\n")
+                f.write(f"Session ID: {session_id}\n")
                 f.write(f"Error: {str(e)}\n")
                 f.write(traceback.format_exc())
                 f.write(f"{'='*80}\n")
@@ -611,7 +619,7 @@ def session_start_logic(framework, typed_input):
             subprocess.run([
                 str(snapshot_script),
                 "--action", "start",
-                "--session-id", typed_input.session_id,
+                "--session-id", session_id,
                 "--quiet"
             ], timeout=10, check=False)
     except Exception:

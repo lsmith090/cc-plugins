@@ -21,7 +21,13 @@ from utils.hook_framework import HookFramework
 
 def stop_session_logic(framework, typed_input):
     """Custom logic for session stop with correlation cleanup."""
-    session_id = typed_input.session_id
+    # Handle both typed input and raw dict for graceful degradation
+    if hasattr(typed_input, 'session_id'):
+        session_id = typed_input.session_id
+    elif isinstance(typed_input, dict):
+        session_id = typed_input.get('session_id', 'unknown')
+    else:
+        session_id = 'unknown'
 
     try:
         from utils.correlation_manager import CorrelationManager

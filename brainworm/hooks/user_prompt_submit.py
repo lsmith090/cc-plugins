@@ -355,21 +355,7 @@ def user_prompt_submit_framework_logic(framework, typed_input):
     typed_response = UserPromptContextResponse.create_context(
         result["context"], debug_info
     )
-    
-    # RAW DEBUG LOGGING - Capture what we're sending to Claude
-    try:
-        debug_log_path = project_root / '.brainworm' / 'debug_user_prompt_context.log'
-        with open(debug_log_path, 'a') as f:
-            import datetime
-            timestamp = datetime.datetime.now().isoformat()
-            f.write(f"\n=== {timestamp} ===\n")
-            f.write(f"INPUT: {input_data.get('prompt', '')[:100]}...\n")
-            f.write(f"RESPONSE JSON: {json.dumps(typed_response.to_dict(), indent=2)}\n")
-            f.write(f"RAW CONTEXT: {repr(result['context'])}\n")
-            f.flush()
-    except Exception as debug_err:
-        pass  # Don't let debug logging break the hook
-    
+
     # Set typed JSON response for framework to handle
     framework.set_json_response(typed_response.to_dict())
 
