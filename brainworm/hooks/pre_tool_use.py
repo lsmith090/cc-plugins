@@ -216,27 +216,50 @@ def pre_tool_use_framework_logic(framework, typed_input):
         session_id = 'unknown'
         tool_name = 'unknown'
         tool_input = {}
-    
+
+    # Debug logging - INFO level
+    if framework.debug_logger:
+        daic_mode = daic_state.get('mode', 'unknown')
+        framework.debug_logger.info(f"DAIC pre-validation: {tool_name} in {daic_mode} mode")
+
     # PHASE 1: Basic security check
     passes_security = basic_security_check(framework.raw_input_data)
-    
+
+    if framework.debug_logger and not passes_security:
+        framework.debug_logger.warning(f"Security check FAILED for {tool_name}")
+
     # PHASE 2: DAIC enforcement check
     daic_result = should_block_tool_daic(
         framework.raw_input_data, config, daic_state, project_root
     )
-    
+
     # Determine final blocking decision
     should_block = not passes_security or daic_result.should_block
     block_reason = daic_result.reason if daic_result.should_block else ("Security check failed" if not passes_security else "")
-    
-    # Display debug info
+
+    # Debug logging - decision details
+    if framework.debug_logger:
+        if should_block:
+            framework.debug_logger.info(f"🚫 BLOCKED: {tool_name} - {block_reason}")
+            # DEBUG level: log more details
+            framework.debug_logger.debug(f"Block reason: {block_reason}")
+            if tool_name == "Bash" and isinstance(tool_input, dict):
+                command = tool_input.get("command", "")
+                framework.debug_logger.debug(f"Bash command: {command[:100]}")
+            elif isinstance(tool_input, dict) and "file_path" in tool_input:
+                framework.debug_logger.debug(f"File path: {tool_input.get('file_path')}")
+        else:
+            framework.debug_logger.info(f"✅ ALLOWED: {tool_name}")
+            framework.debug_logger.debug(f"Allow reason: {daic_result.reason}")
+
+    # Display debug info (legacy --verbose support)
     if '--verbose' in sys.argv:
         block_status = "🚫" if should_block else "✅"
         mode_indicator = "💭" if daic_state.get('mode') == 'discussion' else "⚡"
         print(f"{block_status} {mode_indicator} DAIC Pre-validation: {tool_name} (Session: {session_id[:8]})", file=sys.stderr)
         if should_block:
             print(f"Tool execution blocked: {block_reason}", file=sys.stderr)
-    
+
     # Use typed decision methods for framework to handle
     if should_block:
         framework.block_tool(block_reason, [block_reason])  # Block tool execution

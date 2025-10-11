@@ -210,46 +210,57 @@ def detect_task_patterns(prompt: str) -> bool:
     
     return any(re.search(pattern, prompt) for pattern in task_patterns)
 
-def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, config: Dict[str, Any], verbose: bool = False) -> Dict[str, Any]:
+def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, config: Dict[str, Any], verbose: bool = False, debug_logger=None) -> Dict[str, Any]:
     """Custom logic for user prompt submit processing"""
     # Get DAIC configuration
     daic_config = config.get("daic", {})
-    
+
     # Extract data
     session_id = input_data.get('session_id', 'unknown')
     prompt = input_data.get('prompt', '')
     transcript_path = input_data.get('transcript_path', '')
-    
+
     # Initialize context response
     context = ""
     debug_info = {}
-    
+
     # Check for context warnings
     context_warning = check_context_warnings(transcript_path, project_root)
     if context_warning:
         print(context_warning, file=sys.stderr)
-    
+        if debug_logger:
+            if "90%" in context_warning:
+                debug_logger.warning("Context 90% WARNING triggered")
+            elif "75%" in context_warning:
+                debug_logger.info("Context 75% WARNING triggered")
+
     # DAIC Workflow Processing (only if enabled)
     if daic_config.get("enabled", True):
         # Get current DAIC state
         current_daic_state = get_daic_state(project_root)
         current_mode = current_daic_state.get("mode", str(DAICMode.DISCUSSION))
         is_discussion_mode = current_mode == str(DAICMode.DISCUSSION)
-        
+
+        if debug_logger:
+            mode_name = "discussion" if is_discussion_mode else "implementation"
+            debug_logger.debug(f"Current DAIC mode: {mode_name}")
+
         # Emergency stop detection
         if detect_emergency_stop(prompt):
             set_daic_mode(project_root, str(DAICMode.DISCUSSION), "emergency_stop")
             context += "[DAIC: EMERGENCY STOP] All tools locked. You are now in discussion mode. Re-align with your pair programmer.\n"
+            if debug_logger:
+                debug_logger.warning("🚫 EMERGENCY STOP detected - forced to discussion mode")
             if verbose:
                 print("🚫 Emergency stop activated - forced to discussion mode", file=sys.stderr)
-        
+
         # Trigger phrase detection (only in discussion mode)
         # NOTE: Only user prompts can trigger DAIC mode switches - the primary Claude agent
         # cannot trigger transitions independently. This enforces human-in-the-loop control.
         elif is_discussion_mode:
             trigger_phrases = daic_config.get("trigger_phrases", [])
             detected_trigger = detect_trigger_phrases(prompt, trigger_phrases)
-            
+
             if detected_trigger:
                 # Create trigger exception flag to allow DAIC state management
                 trigger_flag = project_root / '.brainworm' / 'state' / 'trigger_phrase_detected.flag'
@@ -258,12 +269,17 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
                     set_daic_mode(project_root, str(DAICMode.IMPLEMENTATION), detected_trigger)
                     # Clean up trigger flag after successful mode change
                     trigger_flag.unlink(missing_ok=True)
+
+                    if debug_logger:
+                        debug_logger.info(f"⚡ Trigger phrase detected: '{detected_trigger}' → implementation mode")
                 except Exception as e:
                     # Clean up flag on error
                     trigger_flag.unlink(missing_ok=True)
+                    if debug_logger:
+                        debug_logger.error(f"Failed to switch DAIC mode: {e}")
                     if verbose:
                         print(f"Warning: Failed to set DAIC mode: {e}", file=sys.stderr)
-                
+
                 context += f"[DAIC: Implementation Mode Activated] Trigger phrase '{detected_trigger}' detected. You may now implement ONLY the immediately discussed steps. DO NOT take **any** actions beyond what was explicitly agreed upon. When you're done, run the command: ./daic\n"
                 if verbose:
                     print(f"⚡ Implementation mode activated by: '{detected_trigger}'", file=sys.stderr)
@@ -272,9 +288,11 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
         detected_protocols = detect_protocols(prompt)
         for protocol in detected_protocols:
             context += f"If the user is asking to {protocol.replace('-', ' ')}, read and follow sessions/protocols/{protocol}.md protocol.\n"
+            if debug_logger:
+                debug_logger.info(f"📋 Protocol detected: {protocol}")
             if verbose:
                 print(f"📋 Protocol detected: {protocol}", file=sys.stderr)
-        
+
         # Task pattern detection
         if daic_config.get("task_detection", {}).get("enabled", True):
             if detect_task_patterns(prompt):
@@ -284,6 +302,8 @@ The message may reference something that could be a task.
 If this looks like work that should be tracked separately, consider creating a task for it.
 Ask the user if they'd like you to create a task for this work.
 """
+                if debug_logger:
+                    debug_logger.debug("📝 Task pattern detected in prompt")
                 if verbose:
                     print("📝 Task pattern detected", file=sys.stderr)
         
@@ -325,19 +345,19 @@ Ask the user if they'd like you to create a task for this work.
 def user_prompt_submit_framework_logic(framework, typed_input):
     """Custom logic for user prompt submit using pure framework approach"""
     project_root = framework.project_root
-    
+
     # Handle case where project_root might be None
     if not project_root:
         framework.set_json_response({"context": ""})
         return
-    
+
     # Load configuration
     from utils.config import load_config
     config = load_config(project_root)
-    
+
     # Check if running in verbose mode
     verbose = '--verbose' in sys.argv
-    
+
     # Convert typed input to dict format for legacy function
     input_data = {
         'session_id': typed_input.session_id,
@@ -346,10 +366,20 @@ def user_prompt_submit_framework_logic(framework, typed_input):
         'hook_event_name': typed_input.hook_event_name,
         'prompt': typed_input.prompt
     }
-    
+
+    # Debug logging - INFO level
+    if framework.debug_logger:
+        prompt_len = len(typed_input.prompt)
+        framework.debug_logger.info(f"Processing user prompt ({prompt_len} chars)")
+
     # Call custom logic
-    result = user_prompt_submit_logic(input_data, project_root, config, verbose)
-    
+    result = user_prompt_submit_logic(input_data, project_root, config, verbose, framework.debug_logger)
+
+    # Debug logging - context injection summary
+    if framework.debug_logger and result.get("context"):
+        context_summary = result["context"][:100].replace('\n', ' ')
+        framework.debug_logger.debug(f"Context injected: {context_summary}...")
+
     # Generate typed JSON response for Claude
     debug_info = result["debug_info"] if verbose and result.get("debug_info") else None
     typed_response = UserPromptContextResponse.create_context(

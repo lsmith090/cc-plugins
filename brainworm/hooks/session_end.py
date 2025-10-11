@@ -44,8 +44,15 @@ def session_end_logic(framework, typed_input):
 
 def session_end_success_message(framework):
     """Custom success message for session end hook."""
+    # Handle both typed input and raw dict for graceful degradation
     if hasattr(framework, 'typed_input') and framework.typed_input:
-        session_id = framework.typed_input.session_id
+        typed_input = framework.typed_input
+        if hasattr(typed_input, 'session_id'):
+            session_id = typed_input.session_id
+        elif isinstance(typed_input, dict):
+            session_id = typed_input.get('session_id', 'unknown')
+        else:
+            session_id = 'unknown'
         reason = framework.raw_input_data.get('reason', 'unknown')
     else:
         session_id = framework.raw_input_data.get('session_id', 'unknown')

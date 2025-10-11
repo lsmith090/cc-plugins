@@ -627,9 +627,15 @@ def session_start_logic(framework, typed_input):
 
 def session_start_success_message(framework):
     """Custom success message for session start hook."""
-    # Access typed input from framework if available, fallback to raw data
+    # Handle both typed input and raw dict for graceful degradation
     if hasattr(framework, 'typed_input') and framework.typed_input:
-        session_id = framework.typed_input.session_id
+        typed_input = framework.typed_input
+        if hasattr(typed_input, 'session_id'):
+            session_id = typed_input.session_id
+        elif isinstance(typed_input, dict):
+            session_id = typed_input.get('session_id', 'unknown')
+        else:
+            session_id = 'unknown'
     else:
         session_id = framework.raw_input_data.get('session_id', 'unknown')
     session_short = session_id[:8] if len(session_id) >= 8 else session_id

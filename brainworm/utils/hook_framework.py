@@ -491,7 +491,7 @@ class HookFramework:
     def execute(self) -> None:
         """
         Execute the complete hook lifecycle with sophisticated infrastructure systems.
-        
+
         Enhanced Lifecycle:
         1. Read and parse JSON input from stdin with type-safe processing
         2. Discover project root and initialize infrastructure systems
@@ -505,22 +505,34 @@ class HookFramework:
         try:
             # 1. Read input with type-safe parsing (eliminates 10+ lines per hook)
             self._read_input()
-            
+
             # 2. Discover project root and initialize infrastructure (eliminates 20+ lines per hook)
             self._discover_project_root()
-            
+
+            if self.debug_logger:
+                self.debug_logger.info(f"Hook {self.hook_name} executing (session: {self.session_id[:8]})")
+                self.debug_logger.debug(f"Typed input available: {self.typed_input is not None and not isinstance(self.typed_input, dict)}")
+
             # 3. Execute custom logic if provided
             # Pass typed input if available, otherwise pass raw input for backward compatibility
             if self.custom_logic_fn:
                 try:
+                    if self.debug_logger:
+                        self.debug_logger.debug(f"Executing custom logic for {self.hook_name}")
+
                     # Use typed input if available, otherwise fall back to raw input
                     input_to_pass = self.typed_input if self.typed_input else self.raw_input_data
                     self.custom_logic_fn(self, input_to_pass)
+
+                    if self.debug_logger:
+                        self.debug_logger.debug(f"Custom logic completed successfully")
                 except Exception as e:
+                    if self.debug_logger:
+                        self.debug_logger.error(f"Custom logic failed: {type(e).__name__}: {str(e)}")
                     # Sanitize error message to prevent information disclosure
                     print(f"Error: Custom logic failed for {self.hook_name}: {str(e)}", file=sys.stderr)
                     sys.exit(1)
-            
+
             # 4. Process advanced analytics with DAIC awareness (eliminates 40+ lines per hook)
             self._process_analytics()
             
