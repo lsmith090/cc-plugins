@@ -252,14 +252,6 @@ def pre_tool_use_framework_logic(framework, typed_input):
             framework.debug_logger.info(f"✅ ALLOWED: {tool_name}")
             framework.debug_logger.debug(f"Allow reason: {daic_result.reason}")
 
-    # Display debug info (legacy --verbose support)
-    if '--verbose' in sys.argv:
-        block_status = "🚫" if should_block else "✅"
-        mode_indicator = "💭" if daic_state.get('mode') == 'discussion' else "⚡"
-        print(f"{block_status} {mode_indicator} DAIC Pre-validation: {tool_name} (Session: {session_id[:8]})", file=sys.stderr)
-        if should_block:
-            print(f"Tool execution blocked: {block_reason}", file=sys.stderr)
-
     # Use typed decision methods for framework to handle
     if should_block:
         framework.block_tool(block_reason, [block_reason])  # Block tool execution
@@ -273,11 +265,9 @@ def main() -> None:
         HookFramework("daic_pre_tool_use", enable_analytics=True, enable_logging=True, security_critical=True) \
             .with_custom_logic(pre_tool_use_framework_logic) \
             .execute()
-            
-    except Exception as e:
+
+    except Exception:
         # Non-blocking error - allow tool to proceed
-        if '--verbose' in sys.argv:
-            print(f"Hook error (non-blocking): {e}", file=sys.stderr)
         sys.exit(0)
 
 

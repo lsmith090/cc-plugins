@@ -27,17 +27,21 @@ from utils.hook_framework import HookFramework
 
 def notification_logic(framework, typed_input):
     """Logic for notification processing."""
-    pass  # No specific logic needed for notifications currently
-
-def custom_notification_display(framework):
-    """Custom success handler that shows notification message."""
-    if '--verbose' in sys.argv:
+    # Log notification via debug_logger
+    if framework.debug_logger:
         # Access message from typed input if available, fallback to raw data
-        if hasattr(framework, 'typed_input') and framework.typed_input:
-            message = getattr(framework.typed_input, 'message', 'Unknown notification')
+        if hasattr(typed_input, 'message'):
+            message = typed_input.message
+        elif isinstance(typed_input, dict):
+            message = typed_input.get('message', 'Unknown notification')
         else:
             message = framework.raw_input_data.get('message', 'Unknown notification')
-        print(f"Notification: {message}", file=sys.stderr)
+
+        framework.debug_logger.info(f"📢 Notification received: {message}")
+
+def custom_notification_display(framework):
+    """Custom success handler - no longer needed as debug_logger handles display."""
+    pass  # Debug logging now handled by debug_logger in notification_logic
 
 if __name__ == "__main__":
     # Hooks Framework: Deploys 863+ lines of sophisticated infrastructure

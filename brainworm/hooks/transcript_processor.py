@@ -945,9 +945,6 @@ def transcript_processor_framework_logic(framework, typed_input):
     if not project_root:
         return  # Exit gracefully if no project root
 
-    # Check if running in verbose mode
-    verbose = '--verbose' in sys.argv
-
     # Convert typed input to dict format for legacy function
     # For transcript_processor, we need to check raw data as well since it may not have tool_name in BaseHookInput
     # Use defensive access in case typed_input is a dict fallback
@@ -966,7 +963,7 @@ def transcript_processor_framework_logic(framework, typed_input):
         framework.debug_logger.info(f"🔄 Transcript processor invoked for tool: {tool_name}")
 
     # Call custom logic (passing debug_logger for internal logging)
-    result = transcript_processor_logic(input_data, project_root, verbose, framework.debug_logger)
+    result = transcript_processor_logic(input_data, project_root, False, framework.debug_logger)
 
     # Debug logging after processing
     if framework.debug_logger and result:
@@ -977,10 +974,6 @@ def transcript_processor_framework_logic(framework, typed_input):
             processing_time = result.get("processing_time", 0)
             chunk_count = result.get("chunk_count", 0)
             framework.debug_logger.info(f"✅ Transcript processing complete: {chunk_count} chunks in {processing_time:.1f}ms")
-
-    # Call success handler if we have a result
-    if result:
-        transcript_processor_success_handler(result, verbose)
 
     # Skip processing or handle special transcript processor requirements
     if result and result.get("skip", False):

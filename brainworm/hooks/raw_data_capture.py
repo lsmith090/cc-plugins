@@ -81,35 +81,10 @@ def create_standard_raw_hook(hook_name: str, extract_extra_data_fn=None):
         try:
             # Read raw input from Claude Code
             raw_input_data = read_raw_input()
-            
-            # Process analytics if requested
-            if '--analytics' in sys.argv:
-                # Get extra data if function provided
-                extra_data = {}
-                if extract_extra_data_fn:
-                    try:
-                        extra_data = extract_extra_data_fn(raw_input_data)
-                    except Exception as e:
-                        print(f"Warning: Extra data extraction failed: {e}", file=sys.stderr)
-                
-                # Log raw event
-                success = log_raw_event(hook_name, raw_input_data, extra_data)
-                
-                if '--verbose' in sys.argv:
-                    from rich.console import Console
-                    console = Console()
-                    if success:
-                        console.print("[green]✅ Raw data logged to analytics[/green]")
-                    else:
-                        console.print("[yellow]⚠️ Analytics logging failed[/yellow]")
-            
-            # Display basic feedback
-            if '--verbose' in sys.argv:
-                from rich.console import Console
-                console = Console()
-                session_id = raw_input_data.get('session_id', 'unknown')
-                console.print(f"[green]✅ {hook_name} completed:[/green] {session_id[:8]}")
-            
+
+            # Note: Analytics and debug logging now handled by HookFramework
+            # This legacy utility is no longer used for new hooks
+
             # Exit successfully
             sys.exit(0)
             
