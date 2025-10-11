@@ -171,6 +171,51 @@ class TestDAICCommandParsing:
             result = is_read_only_bash_command(cmd, config)
             assert result == expected, f"SECURITY - {description}: '{cmd}'"
 
+    def test_prefix_matching_bug_prevention(self, config):
+        """
+        Test that we prevent the prefix matching bug
+
+        CRITICAL: This test validates that commands are matched exactly or with space-separated args,
+        not just by prefix. Without this fix, "git status-foo" would incorrectly match "git status".
+
+        The bug: part.startswith("git status") allows "git status-foo" ❌
+        The fix: part == "git status" or part.startswith("git status ") ✅
+        """
+        test_cases = [
+            # Should be ALLOWED - exact matches or with args
+            ("git status", True, "Exact match of allowed command"),
+            ("git status --short", True, "Allowed command with space-separated args"),
+            ("git status --porcelain", True, "Allowed command with different args"),
+            ("git log", True, "Different allowed command exact match"),
+            ("git log --oneline", True, "Different allowed command with args"),
+            ("git diff", True, "Another allowed command"),
+            ("git diff --cached", True, "Another allowed command with args"),
+            ("ls", True, "Basic command exact match"),
+            ("ls -la", True, "Basic command with args"),
+            ("docker ps", True, "Multi-word allowed command exact"),
+            ("docker ps -a", True, "Multi-word allowed command with args"),
+
+            # Should be BLOCKED - the prefix matching bug cases
+            ("git status-foo", False, "BUGFIX: Fake command similar to valid one"),
+            ("git status_extra", False, "BUGFIX: Fake command with underscore"),
+            ("git statusbar", False, "BUGFIX: Fake command concatenated"),
+            ("git commit", False, "Valid git command but not in allowed list"),
+            ("git push", False, "Write git command not in allowed list"),
+            ("git add", False, "Write git command not in allowed list"),
+            ("gitfoo", False, "Invalid command starting with 'git'"),
+            ("git", False, "Incomplete git command"),
+            ("docker psaux", False, "BUGFIX: Fake docker command"),
+            ("docker ps-all", False, "BUGFIX: Fake docker command with dash"),
+
+            # Edge cases with similar prefixes
+            ("lsblk", False, "Valid command but not in allowed list"),
+            ("pwd-extra", False, "BUGFIX: Fake command based on allowed one"),
+        ]
+
+        for cmd, expected, description in test_cases:
+            result = is_read_only_bash_command(cmd, config)
+            assert result == expected, f"PREFIX MATCHING BUG - {description}: '{cmd}' should be {'allowed' if expected else 'blocked'}"
+
     def test_brainworm_system_commands(self, config):
         """Test brainworm system commands are properly allowed"""
         test_cases = [
@@ -183,7 +228,7 @@ class TestDAICCommandParsing:
             ("tasks set --task='feature'", True, "Tasks set command"),
             ("uv run .brainworm/scripts/update_task_state.py --show-current", True, "Show current state")
         ]
-        
+
         for cmd, expected, description in test_cases:
             result = is_brainworm_system_command(cmd, config)
             assert result == expected, f"{description}: '{cmd}'"

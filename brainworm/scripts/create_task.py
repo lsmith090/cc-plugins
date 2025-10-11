@@ -233,7 +233,6 @@ def create_task(
             task=task_name,
             branch=main_branch,  # Main repo's actual branch
             services=services or [],
-            submodule=submodule,
             active_submodule_branches=active_submodule_branches
         )
         console.print("[green]✓ DAIC state updated[/green]")

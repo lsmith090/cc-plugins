@@ -63,11 +63,11 @@ def update_task_state(
         # Get current state for partial updates
         current_state = state_manager.get_task_state()
         current_unified = state_manager.get_unified_state()
-        
+
         # Use provided values or keep existing ones
-        final_task = task if task is not None else current_state.get("task")
-        final_branch = branch if branch is not None else current_state.get("branch") 
-        final_services = services if services is not None else current_state.get("services", [])
+        final_task = task if task is not None else current_state.get("current_task")
+        final_branch = branch if branch is not None else current_state.get("current_branch")
+        final_services = services if services is not None else current_state.get("task_services", [])
         
         # Update task state atomically
         result = state_manager.set_task_state(
@@ -136,9 +136,9 @@ Examples:
             task_state = state_manager.get_task_state()
             
             console.print("\n[green]Current Task State:[/green]")
-            console.print(f"  Task: {task_state.get('task', 'None')}")
-            console.print(f"  Branch: {task_state.get('branch', 'None')}")  
-            console.print(f"  Services: {', '.join(task_state.get('services', []))}")
+            console.print(f"  Task: {task_state.get('current_task', 'None')}")
+            console.print(f"  Branch: {task_state.get('current_branch', 'None')}")
+            console.print(f"  Services: {', '.join(task_state.get('task_services', []))}")
             console.print(f"  Updated: {task_state.get('updated', 'None')}")
             console.print(f"  Session ID: {task_state.get('session_id', 'None')}")
             console.print(f"  Correlation ID: {task_state.get('correlation_id', 'None')}")

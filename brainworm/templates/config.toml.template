@@ -1,76 +1,15 @@
-api_mode = false
-[[sources]]
-name = "example-project-1"
-type = "local"
-path = "/path/to/your/first-project"
-enabled = true
-
-[sources.patterns]
-jsonl = ".claude/logs/**/*.jsonl"
-sessions = ".claude/sessions/**/*.md"
-
-[sources.filters]
-exclude_patterns = [ "**/temp/**", "**/.tmp/**", "**/node_modules/**",]
-min_file_age_minutes = 5
-[[sources]]
-name = "example-project-2"
-type = "local"
-path = "/path/to/your/second-project"
-enabled = true
-
-[sources.patterns]
-jsonl = ".claude/logs/**/*.jsonl"
-sessions = ".claude/sessions/**/*.md"
-
-[sources.filters]
-exclude_patterns = [ "**/test/**",]
-min_file_age_minutes = 5
-[[sources]]
-name = "example-project-3"
-type = "local"
-path = "/path/to/your/third-project"
-enabled = false
-
-[sources.patterns]
-jsonl = ".claude/logs/**/*.jsonl"
-sessions = ".claude/sessions/**/*.md"
-
-[sources.filters]
-exclude_patterns = [ "**/test/**",]
-min_file_age_minutes = 5
-[[sources]]
-name = "shared-drive"
-type = "network"
-path = "/Volumes/SharedDrive/claude-data"
-enabled = false
-
-[sources.patterns]
-jsonl = "**/*.jsonl"
-sessions = "**/*.md"
-
-[sources.filters]
-exclude_patterns = []
-min_file_age_minutes = 30
-
-[harvesting]
-schedule = "*/15 * * * *"
-enabled = true
-max_concurrent_sources = 3
-
-[analytics]
-real_time_processing = true
-correlation_timeout_minutes = 60
-success_rate_window_hours = 24
+# Brainworm Configuration Template
+# This file contains the core DAIC workflow and brainworm settings.
+#
+# NOTE: Multi-project analytics settings (sources, harvesting) belong in
+# nautiloid's configuration, not here. Brainworm focuses on single-project
+# DAIC enforcement and local analytics capture.
 
 [daic]
 enabled = true
 default_mode = "discussion"
 trigger_phrases = [ "make it so", "run that", "go ahead", "ship it", "let's do it", "execute", "implement it",]
 blocked_tools = [ "Edit", "Write", "MultiEdit", "NotebookEdit",]
-
-[daic.branch_enforcement]
-enabled = true
-task_prefixes = [ "implement-", "fix-", "refactor-", "migrate-", "test-", "docs-",]
 
 [daic.read_only_bash_commands]
 basic = [ "ls", "ll", "pwd", "cd", "echo", "cat", "head", "tail", "less", "more", "grep", "rg", "find", "fd", "which", "whereis", "type", "file", "stat", "du", "df", "tree", "basename", "dirname", "realpath", "readlink", "whoami", "env", "printenv", "date", "cal", "uptime", "wc", "cut", "sort", "uniq", "comm", "diff", "cmp", "md5sum", "sha256sum",]
@@ -79,16 +18,3 @@ docker = [ "docker ps", "docker images", "docker logs",]
 package_managers = [ "npm list", "npm ls", "pip list", "pip show", "yarn list",]
 network = [ "curl", "wget", "ping", "nslookup", "dig",]
 text_processing = [ "jq", "awk", "sed -n",]
-
-[daic.intelligence]
-codebase_learning = true
-pattern_recognition = true
-smart_recommendations = true
-
-[daic.branch_enforcement.branch_prefixes]
-implement- = "feature/"
-fix- = "fix/"
-refactor- = "feature/"
-migrate- = "feature/"
-test- = "feature/"
-docs- = "feature/"

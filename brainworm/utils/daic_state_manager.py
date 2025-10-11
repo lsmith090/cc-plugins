@@ -36,6 +36,9 @@ except ImportError:
 # Import type definitions
 from .hook_types import DeveloperInfo, DAICMode, UserConfig, DAICConfig, ToolBlockingResult
 
+# Import bash validation utilities
+from .bash_validator import is_read_only_bash_command as validate_bash_command
+
 
 class DAICStateManager:
     """Unified state manager combining DAIC workflow with analytics correlation"""
@@ -187,21 +190,17 @@ class DAICStateManager:
         unified_state = self.get_unified_state()
 
         return {
-            "task": unified_state.get("current_task"),
-            "branch": unified_state.get("current_branch"),
-            "submodule": unified_state.get("task_submodule"),
-            "submodule_path": unified_state.get("task_submodule_path"),
-            "services": unified_state.get("task_services", []),
+            "current_task": unified_state.get("current_task"),
+            "current_branch": unified_state.get("current_branch"),
+            "task_services": unified_state.get("task_services", []),
             "active_submodule_branches": unified_state.get("active_submodule_branches", {}),
             "updated": unified_state.get("last_updated", "")[:10] if unified_state.get("last_updated") else None,  # YYYY-MM-DD format
             "correlation_id": unified_state.get("correlation_id"),
-            "session_id": unified_state.get("session_id"),
-            "success_prediction": unified_state.get("success_prediction")
+            "session_id": unified_state.get("session_id")
         }
     
     def set_task_state(self, task: str, branch: str, services: List[str],
                       correlation_id: Optional[str] = None, session_id: Optional[str] = None,
-                      submodule: Optional[str] = None,
                       active_submodule_branches: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """
         Set current task state using unified state (single source of truth).
@@ -212,46 +211,34 @@ class DAICStateManager:
             services: List of affected services/modules
             correlation_id: Analytics correlation ID
             session_id: Session ID
-            submodule: Target submodule name (None for main repo) - legacy single submodule support
             active_submodule_branches: Mapping of submodule name to branch name for multi-service tasks
         """
         # Get developer info
         developer_info = self.get_developer_info()
-
-        # Calculate submodule path if submodule specified
-        submodule_path = None
-        if submodule:
-            submodule_path = str(self.project_root / submodule)
 
         # Update unified state only
         self._update_unified_state({
             "current_task": task,
             "current_branch": branch,
             "task_services": services,
-            "task_correlation_id": correlation_id,
             "session_id": session_id,
             "correlation_id": correlation_id,
-            "task_submodule": submodule,
-            "task_submodule_path": submodule_path,
             "active_submodule_branches": active_submodule_branches or {},
-            "main_repo_branch_created": submodule is None and not active_submodule_branches,
-            "success_prediction": None,  # Will be populated by ML models
-            "developer_name": developer_info.name,
-            "developer_email": developer_info.email
+            "developer": {
+                "name": developer_info.name,
+                "email": developer_info.email
+            }
         })
 
         # Return task state format
         return {
-            "task": task,
-            "branch": branch,
-            "submodule": submodule,
-            "submodule_path": submodule_path,
-            "services": services,
+            "current_task": task,
+            "current_branch": branch,
+            "task_services": services,
             "active_submodule_branches": active_submodule_branches or {},
             "updated": datetime.now().strftime("%Y-%m-%d"),
             "correlation_id": correlation_id,
-            "session_id": session_id,
-            "success_prediction": None
+            "session_id": session_id
         }
     
     def get_unified_state(self) -> Dict[str, Any]:
@@ -259,18 +246,18 @@ class DAICStateManager:
         default_unified = {
             "daic_mode": str(DAICMode.DISCUSSION),
             "daic_timestamp": None,
+            "previous_daic_mode": None,
             "current_task": None,
             "current_branch": None,
-            "task_submodule": None,
-            "task_submodule_path": None,
             "task_services": [],
             "active_submodule_branches": {},
-            "main_repo_branch_created": False,
             "session_id": None,
             "correlation_id": None,
-            "task_correlation_id": None,
-            "success_prediction": None,
-            "workflow_confidence": None,
+            "plugin_root": None,
+            "developer": {
+                "name": "",
+                "email": ""
+            },
             "last_updated": None
         }
         
@@ -398,56 +385,27 @@ class DAICStateManager:
         return ToolBlockingResult.allow_tool()
     
     def _is_read_only_bash_command(self, command: str, daic_config: DAICConfig) -> bool:
-        """Check if a bash command is read-only and safe in discussion mode"""
-        import re
-        
-        # Get all read-only commands from the typed config
-        read_only_commands = daic_config.read_only_bash_commands
-        all_read_only_commands = (
-            read_only_commands.basic +
-            read_only_commands.git +
-            read_only_commands.docker +
-            read_only_commands.package_managers +
-            read_only_commands.network +
-            read_only_commands.text_processing
-        )
-        
-        # Check for write patterns first
-        write_patterns = [
-            r'>\s*[^>]',  # Output redirection
-            r'>>',         # Append redirection
-            r'\btee\b',    # tee command
-            r'\bmv\b',     # move/rename
-            r'\bcp\b',     # copy
-            r'\brm\b',     # remove
-            r'\bmkdir\b',  # make directory
-            r'\btouch\b',  # create/update file
-            r'\bsed\s+(?!-n)',  # sed without -n flag
-            r'\bnpm\s+install',  # npm install
-            r'\bpip\s+install',  # pip install
-        ]
-        
-        # If command has write patterns, it's not read-only
-        if any(re.search(pattern, command) for pattern in write_patterns):
-            return False
-        
-        # Check if ALL commands in chain are read-only
-        command_parts = re.split(r'(?:&&|\|\||;|\|)', command)
-        for part in command_parts:
-            part = part.strip()
-            if not part:
-                continue
-            
-            # Check against configured read-only commands
-            is_part_read_only = any(
-                part.startswith(prefix) 
-                for prefix in all_read_only_commands
-            )
-            
-            if not is_part_read_only:
-                return False
-        
-        return True
+        """
+        Check if a bash command is read-only and safe in discussion mode.
+
+        Delegates to shared bash_validator module for consistent behavior.
+        """
+        # Convert DAICConfig to dict format expected by validator
+        config_dict = {
+            "daic": {
+                "read_only_bash_commands": {
+                    "basic": daic_config.read_only_bash_commands.basic,
+                    "git": daic_config.read_only_bash_commands.git,
+                    "docker": daic_config.read_only_bash_commands.docker,
+                    "package_managers": daic_config.read_only_bash_commands.package_managers,
+                    "network": daic_config.read_only_bash_commands.network,
+                    "text_processing": daic_config.read_only_bash_commands.text_processing,
+                }
+            }
+        }
+
+        # Use shared validator with fixed prefix matching logic
+        return validate_bash_command(command, config_dict)
     
     def log_daic_transition(self, from_mode: str, to_mode: str, trigger: str = None):
         """Log DAIC mode transitions for analytics"""

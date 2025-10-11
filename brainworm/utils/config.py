@@ -30,14 +30,6 @@ def get_canonical_default_config() -> Dict[str, Any]:
             "default_mode": "discussion",
             "trigger_phrases": ["make it so", "run that", "go ahead", "ship it"],
             "blocked_tools": ["Edit", "Write", "MultiEdit", "NotebookEdit"],
-            "branch_enforcement": {
-                "enabled": True
-            },
-            "intelligence": {
-                "codebase_learning": True,
-                "pattern_recognition": True,
-                "smart_recommendations": True
-            },
             "read_only_bash_commands": {
                 "basic": [
                     "ls", "ll", "pwd", "cd", "echo", "cat", "head", "tail", 
@@ -62,10 +54,6 @@ def get_canonical_default_config() -> Dict[str, Any]:
                     "jq", "awk", "sed -n"
                 ]
             }
-        },
-        "analytics": {
-            "memory_capture": True,
-            "correlation_timeout_minutes": 60
         }
     }
 

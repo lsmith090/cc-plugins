@@ -116,16 +116,20 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
         # 3. Initialize unified session state with plugin_root
         initial_state = {
             "daic_mode": "discussion",
-            "task": None,
-            "branch": None,
-            "services": [],
+            "daic_timestamp": None,
+            "previous_daic_mode": None,
+            "current_task": None,
+            "current_branch": None,
+            "task_services": [],
+            "active_submodule_branches": {},
             "correlation_id": None,
             "session_id": None,
             "plugin_root": str(plugin_root),
             "developer": {
                 "name": "",
                 "email": ""
-            }
+            },
+            "last_updated": datetime.now(timezone.utc).isoformat()
         }
 
         # Try to get git identity

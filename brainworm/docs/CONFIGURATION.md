@@ -2,9 +2,9 @@
 
 ## Overview
 
-Brainworm uses `brainworm-config.toml` for system configuration and auto-generates `.claude/settings.json` during installation. The configuration covers implemented brainworm features: DAIC workflow enforcement, analytics intelligence, and multi-project data sources.
+Brainworm uses `.brainworm/config.toml` for system configuration and auto-generates `.claude/settings.json` during installation. The configuration covers DAIC workflow enforcement, branch management, and local analytics capture.
 
-**Important**: This documentation covers only implemented features. Some advanced features shown in sample configurations are planned but not yet functional.
+**Important**: Multi-project analytics aggregation (sources, harvesting, dashboards) is handled by the separate **nautiloid** project, not brainworm. This documentation covers only brainworm's single-project features.
 
 ## Installation
 
@@ -12,52 +12,9 @@ See [`CLAUDE.md`](../CLAUDE.md) for installation commands. Configuration files a
 
 ## Core Configuration Example
 
-Here's a `brainworm-config.toml` with implemented system features:
+Here's a `.brainworm/config.toml` with brainworm's core features:
 
 ```toml
-# Multi-Project Data Sources
-[[sources]]
-name = "main-project"
-type = "local"
-path = "/Users/you/main-claude-project"
-enabled = true
-
-[sources.patterns]
-jsonl = ".claude/logs/**/*.jsonl"
-sessions = ".claude/sessions/**/*.md"
-transcripts = ".claude/logs/transcript_backups/**/*.jsonl"
-
-[sources.filters]
-exclude_patterns = ["**/temp/**", "**/.tmp/**", "**/node_modules/**"]
-min_file_age_minutes = 5
-archive_originals = false
-
-[[sources]]
-name = "secondary-project"
-type = "local"
-path = "/Users/you/secondary-project"
-enabled = true
-
-[sources.patterns]
-jsonl = ".claude/logs/**/*.jsonl"
-sessions = ".claude/sessions/**/*.md"
-
-[sources.filters]
-exclude_patterns = ["**/test/**"]
-min_file_age_minutes = 10
-
-# Data Harvesting Configuration
-[harvesting]
-schedule = "*/15 * * * *"  # Every 15 minutes
-enabled = true
-max_concurrent_sources = 3
-
-# Analytics Intelligence Configuration
-[analytics]
-real_time_processing = true
-correlation_timeout_minutes = 60
-success_rate_window_hours = 24
-
 # DAIC Workflow Configuration
 [daic]
 enabled = true
@@ -113,68 +70,15 @@ package_managers = ["npm list", "npm ls", "pip list", "pip show", "yarn list"]
 network = ["curl", "wget", "ping", "nslookup", "dig"]
 text_processing = ["jq", "awk", "sed -n"]
 
-# Analytics Features (PLANNED - Limited Implementation)
-[daic.analytics]
-codebase_learning = true          # BASIC: Learn codebase patterns and conventions
-pattern_recognition = true        # BASIC: Identify successful implementation patterns
-smart_recommendations = true      # BASIC: Provide context-aware guidance
 ```
 
 ## Configuration Sections
 
-### Data Sources (`[[sources]]`) ✅ IMPLEMENTED
+### Multi-Project Analytics
 
-Configure multiple Claude Code projects for central analytics:
+**Note**: Multi-project data sources, harvesting schedules, and cross-project analytics aggregation are managed by the separate **nautiloid** project. Nautiloid reads brainworm's local analytics database (`.brainworm/analytics/hooks.db`) but configuration for multi-project features belongs in nautiloid's config, not here.
 
-```toml
-[[sources]]
-name = "unique-project-name"
-type = "local"  # or "network" for mounted drives
-path = "/absolute/path/to/claude-project"
-enabled = true
-
-[sources.patterns]
-jsonl = ".claude/logs/**/*.jsonl"
-sessions = ".claude/sessions/**/*.md"
-transcripts = ".claude/logs/transcript_backups/**/*.jsonl"
-
-[sources.filters]
-exclude_patterns = ["**/temp/**", "**/.tmp/**"]
-min_file_age_minutes = 5
-archive_originals = false
-```
-
-**Options**:
-- `name` - Unique identifier for the project
-- `type` - `"local"` (filesystem) or `"network"` (mounted drives)
-- `path` - Absolute path to the Claude Code project
-- `enabled` - Whether to collect data from this source
-- `patterns.jsonl` - Glob pattern for JSONL log files
-- `patterns.sessions` - Glob pattern for session files
-- `patterns.transcripts` - Glob pattern for transcript backups
-- `filters.exclude_patterns` - Patterns to exclude from harvesting
-- `filters.min_file_age_minutes` - Minimum file age before processing
-- `filters.archive_originals` - Whether to archive original files after processing
-
-### Data Harvesting (`[harvesting]`) ✅ IMPLEMENTED
-
-Configure automatic data collection across projects:
-
-```toml
-[harvesting]
-schedule = "*/15 * * * *"  # Cron expression
-enabled = true
-max_concurrent_sources = 3
-```
-
-**Options**:
-- `schedule` - Cron expression for automatic collection frequency
-- `enabled` - Enable/disable automatic harvesting
-- `max_concurrent_sources` - Number of projects to process simultaneously
-
-### Analytics Intelligence (`[analytics]`)
-
-Basic analytics configuration for background intelligence. See [`docs/ANALYTICS.md`](ANALYTICS.md) for complete analytics configuration and capabilities.
+For nautiloid documentation, see: https://github.com/lsmith090/nautiloid
 
 ### DAIC Workflow Configuration (`[daic]`) ✅ IMPLEMENTED
 
@@ -194,26 +98,6 @@ blocked_tools = ["Edit", "Write", "MultiEdit", "NotebookEdit"]
 - `trigger_phrases` - Phrases that activate implementation mode
 - `blocked_tools` - Tools blocked in discussion mode
 
-### Branch Enforcement (`[daic.branch_enforcement]`) ✅ IMPLEMENTED
-
-Configure automatic git branch management:
-
-```toml
-[daic.branch_enforcement]
-enabled = true
-task_prefixes = ["implement-", "fix-", "refactor-"]
-
-[daic.branch_enforcement.branch_prefixes]
-"implement-" = "feature/"
-"fix-" = "fix/"
-"refactor-" = "feature/"
-```
-
-**Options**:
-- `enabled` - Enable automatic branch management
-- `task_prefixes` - Task name prefixes that require specific branches
-- `branch_prefixes` - Mapping of task prefixes to git branch prefixes
-
 ### Read-Only Commands (`[daic.read_only_bash_commands]`) ✅ IMPLEMENTED
 
 Configure commands allowed in discussion mode:
@@ -232,10 +116,6 @@ docker = ["docker ps", "docker images"]
 - `package_managers` - Package manager listing commands
 - `network` - Network diagnostic commands
 - `text_processing` - Text processing utilities
-
-### Analytics Features (`[daic.analytics]`)
-
-Analytics feature toggles. See [`docs/ANALYTICS.md`](ANALYTICS.md) for current implementation status and capabilities.
 
 ## Configuration Management
 
@@ -318,34 +198,28 @@ Manual editing is rarely needed as installation handles proper setup, but existi
 ### Development Environment
 ```toml
 [daic]
-default_mode = "discussion"
-trigger_phrases = ["make it so", "go ahead"]
-
-# Enable discussion quality features
-[daic.analytics] 
-codebase_learning = true
-pattern_recognition = true
-smart_recommendations = true
-```
-
-### Production Environment  
-```toml
-[analytics]
-real_time_processing = true
-
-# Keep analytics features disabled until implemented
-[daic.analytics]
-smart_recommendations = true  # Only basic version available
-```
-
-### Team Environment
-```toml
-[harvesting]
 enabled = true
-schedule = "*/5 * * * *"  # More frequent harvesting
+default_mode = "discussion"
+trigger_phrases = ["make it so", "go ahead", "ship it"]
+blocked_tools = ["Edit", "Write", "MultiEdit", "NotebookEdit"]
+```
 
-[analytics]
-success_rate_window_hours = 168  # Weekly analytics window
+### Production Environment
+```toml
+[daic]
+enabled = true
+default_mode = "discussion"
+trigger_phrases = ["make it so", "ship it", "let's do it", "execute"]
+blocked_tools = ["Edit", "Write", "MultiEdit", "NotebookEdit"]
+```
+
+### Minimal Environment
+```toml
+[daic]
+enabled = true
+default_mode = "discussion"
+trigger_phrases = ["go ahead"]
+blocked_tools = ["Edit", "Write"]
 ```
 
 ## Migration and Upgrades
@@ -401,17 +275,35 @@ cp brainworm-config.toml.backup brainworm-config.toml
 2. Check `./daic status` shows current mode
 3. Validate with blocked tool attempt in discussion mode
 
+## Brainworm vs Nautiloid Separation
+
+### Brainworm (This Plugin)
+- **Single-project DAIC enforcement**: Discussion → Implementation workflow
+- **Local analytics capture**: Captures hook events to `.brainworm/analytics/hooks.db`
+- **Branch management**: Automatic git branch enforcement
+- **Task management**: Task tracking and correlation
+- **Configuration**: `.brainworm/config.toml` (DAIC settings only)
+
+### Nautiloid (Separate Project)
+- **Multi-project aggregation**: Harvests data from multiple brainworm installations
+- **Cross-project analytics**: Success patterns, developer insights, trends
+- **Dashboards**: Grafana, Metabase, real-time dashboards
+- **Data harvesting**: Scheduled collection across projects
+- **Configuration**: Nautiloid's own config (sources, harvesting, dashboards)
+
+See nautiloid documentation for multi-project analytics: https://github.com/lsmith090/nautiloid
+
 ## Known Limitations
 
-### Unimplemented Features
-- **Dashboard Configuration**: Dashboard runs with hardcoded settings, not config file settings
-- **Metabase Integration**: Not implemented (files exist but no integration)
-- **Advanced Intelligence**: ML-driven features are planned but not functional
-- **Dynamic Configuration**: Some settings require system restart to take effect
+### Brainworm Scope
+- **Single-project focus**: Only manages the current project's workflow
+- **Local analytics only**: Analytics database is local to each project
+- **No cross-project insights**: Use nautiloid for aggregated analytics
+- **Dynamic Configuration**: Some settings require Claude Code restart
 
-### Workarounds
-- **Dashboard Settings**: Modify hardcoded values in `src/analytics/realtime_dashboard.py`
-- **Intelligence Features**: Keep disabled in configuration until implemented
-- **Advanced Analytics**: Use existing analytics viewer and harvesting tools
+### Configuration Best Practices
+- **Keep it simple**: Brainworm config should only contain DAIC workflow settings
+- **No orphaned sections**: Remove sources/harvesting if copied from old configs
+- **Use defaults**: Most users only need to customize trigger phrases and blocked tools
 
-This configuration system enables brainworm's implemented features while clearly marking planned capabilities for future development.
+This configuration system enables brainworm's core DAIC workflow enforcement while maintaining clear separation from multi-project analytics capabilities.

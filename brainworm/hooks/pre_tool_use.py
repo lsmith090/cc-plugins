@@ -26,6 +26,7 @@ from typing import Dict, Any, Tuple
 from utils.hook_framework import HookFramework
 from utils.business_controllers import create_daic_controller, create_subagent_manager
 from utils.hook_types import DAICMode, ToolBlockingResult
+from utils.bash_validator import is_read_only_bash_command, split_command_respecting_quotes
 
 
 # Removed - now using shared function from utils.git
@@ -56,113 +57,7 @@ def get_daic_state(project_root: Path) -> Dict[str, Any]:
         }
 
 
-def split_command_respecting_quotes(command: str) -> list:
-    """
-    Split command on operators (&&, ||, ;, |) while respecting quoted strings
-    
-    Examples:
-    - 'ls | grep "test|pattern"' → ['ls', 'grep "test|pattern"']
-    - 'ls && pwd' → ['ls', 'pwd']
-    """
-    parts = []
-    current_part = []
-    in_single_quote = False
-    in_double_quote = False
-    i = 0
-    
-    while i < len(command):
-        char = command[i]
-        
-        # Handle quotes
-        if char == '"' and not in_single_quote:
-            in_double_quote = not in_double_quote
-            current_part.append(char)
-        elif char == "'" and not in_double_quote:
-            in_single_quote = not in_single_quote
-            current_part.append(char)
-        # Handle operators only when not in quotes
-        elif not in_single_quote and not in_double_quote:
-            # Check for multi-character operators
-            if i < len(command) - 1:
-                two_char = command[i:i+2]
-                if two_char in ['&&', '||', '>>']:
-                    # End current part and start new one
-                    if current_part:
-                        parts.append(''.join(current_part))
-                        current_part = []
-                    i += 2  # Skip both characters
-                    continue
-            
-            # Check for single-character operators  
-            if char in [';', '|']:
-                # End current part and start new one
-                if current_part:
-                    parts.append(''.join(current_part))
-                    current_part = []
-            else:
-                current_part.append(char)
-        else:
-            current_part.append(char)
-        
-        i += 1
-    
-    # Add final part
-    if current_part:
-        parts.append(''.join(current_part))
-    
-    return [part.strip() for part in parts if part.strip()]
-
-
-def is_read_only_bash_command(command: str, config: Dict[str, Any]) -> bool:
-    """Check if a bash command is read-only and safe in discussion mode"""
-    import re
-    
-    daic_config = config.get("daic", {})
-    read_only_commands = daic_config.get("read_only_bash_commands", {})
-    
-    # Flatten all read-only command categories
-    all_read_only = []
-    for category_commands in read_only_commands.values():
-        all_read_only.extend(category_commands)
-    
-    # Check for write patterns first
-    write_patterns = [
-        r'>\s*[^>]',  # Output redirection
-        r'>>',         # Append redirection
-        r'\btee\b',    # tee command
-        r'\bmv\b',     # move/rename
-        r'\bcp\b',     # copy
-        r'\brm\b',     # remove
-        r'\bmkdir\b',  # make directory
-        r'\btouch\b',  # create/update file
-        r'\bsed\s+(?!-n)',  # sed without -n flag
-        r'\bnpm\s+install',  # npm install
-        r'\bpip\s+install',  # pip install
-        r'-delete\b',  # find -delete flag (SECURITY FIX)
-        r'-exec\s+.*rm\b',  # find -exec with rm (SECURITY FIX)
-    ]
-    
-    # If command has write patterns, it's not read-only
-    if any(re.search(pattern, command) for pattern in write_patterns):
-        return False
-    
-    # Check if ALL commands in chain are read-only (FIXED: use quote-aware splitting)
-    command_parts = split_command_respecting_quotes(command)
-    for part in command_parts:
-        part = part.strip()
-        if not part:
-            continue
-        
-        # Check against configured read-only commands
-        is_part_read_only = any(
-            part.startswith(prefix) 
-            for prefix in all_read_only
-        )
-        
-        if not is_part_read_only:
-            return False
-    
-    return True
+# Removed - now using shared functions from utils.bash_validator
 
 
 def is_brainworm_system_command(command: str, config: Dict[str, Any], project_root: Path = None) -> bool:
