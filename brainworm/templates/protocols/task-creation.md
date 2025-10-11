@@ -1,11 +1,3 @@
-# THIS FILE IS AUTO-GENERATED - DO NOT EDIT DIRECTLY
-# Generated from: /Users/logansmith/brainworm/src/hooks/templates/task-creation.md
-# Generation time: 2025-10-08T17:06:54.726382Z
-# Template checksum: 4b07591f861c679e...
-# 
-# To modify this file, edit the source template and run: ./install
-# For questions about this file, see: docs/GOVERNANCE.md
-#
 # Task Creation Protocol
 
 ## Overview
@@ -101,9 +93,9 @@ cp .brainworm/templates/TEMPLATE.md .brainworm/tasks/[task-name]/README.md
 **If using manual method, update DAIC state:**
 ```json
 {
-  "task": "[task-name]",
-  "branch": "[feature/fix/refactor]/[task-name]",
-  "services": ["service1", "service2"],
+  "current_task": "[task-name]",
+  "current_branch": "[feature/fix/refactor]/[task-name]",
+  "task_services": ["service1", "service2"],
   "updated": "[current-date]",
   "correlation_id": "[generated-correlation-id]",
   "session_id": "[current-session-id]"

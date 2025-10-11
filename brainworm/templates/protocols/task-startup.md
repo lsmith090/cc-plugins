@@ -1,11 +1,3 @@
-# THIS FILE IS AUTO-GENERATED - DO NOT EDIT DIRECTLY
-# Generated from: /Users/logansmith/brainworm/src/hooks/templates/task-startup.md
-# Generation time: 2025-10-08T17:06:54.727412Z
-# Template checksum: daf8c4c085f6cdf9...
-# 
-# To modify this file, edit the source template and run: ./install
-# For questions about this file, see: docs/GOVERNANCE.md
-#
 # Task Startup Protocol
 
 ## Overview
@@ -58,9 +50,9 @@ This protocol guides the proper startup and resumption of tasks in the DAIC-enha
 **Update DAIC state:**
 ```json
 {
-  "task": "[task-name]",
-  "branch": "[appropriate-branch-name]",
-  "services": ["affected-service-1", "affected-service-2"],
+  "current_task": "[task-name]",
+  "current_branch": "[appropriate-branch-name]",
+  "task_services": ["affected-service-1", "affected-service-2"],
   "updated": "[current-date]",
   "session_id": "[current-session-id]",
   "correlation_id": "[correlation-id]"

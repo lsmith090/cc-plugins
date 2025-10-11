@@ -37,8 +37,8 @@ git branch --show-current                                   # Current branch/tas
 # Update task state
 ./tasks set --task="task-name" --branch="feature/xyz"
 
-# Update DAIC mode  
-uv run .brainworm/scripts/update_daic_mode.py --mode="implementation"
+# Update DAIC mode
+./daic discussion
 
 # Update session correlation
 ./tasks session set --session-id="abc123"
@@ -143,7 +143,7 @@ Specifically, avoid long prompts when invoking the logging or context-refinement
 These protocols guide specific workflows:
 
 1. **.brainworm/protocols/task-creation.md** - Creating new tasks
-   - **Automated script available**: `uv run .brainworm/scripts/create_task.py [task-name]`
+   - **Automated script available**: `./tasks create [task-name]`
    - EXPLICIT: "create a new task", "let's make a task for X"
    - VAGUE: "we should track this", "might need a task for that"
 

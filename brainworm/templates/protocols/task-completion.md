@@ -1,11 +1,3 @@
-# THIS FILE IS AUTO-GENERATED - DO NOT EDIT DIRECTLY
-# Generated from: /Users/logansmith/brainworm/src/hooks/templates/task-completion.md
-# Generation time: 2025-10-08T17:06:54.726916Z
-# Template checksum: e647bf8e4f7cf0cb...
-# 
-# To modify this file, edit the source template and run: ./install
-# For questions about this file, see: docs/GOVERNANCE.md
-#
 # Task Completion Protocol
 
 ## Overview

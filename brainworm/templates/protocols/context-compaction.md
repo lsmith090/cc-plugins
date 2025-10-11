@@ -1,11 +1,3 @@
-# THIS FILE IS AUTO-GENERATED - DO NOT EDIT DIRECTLY
-# Generated from: /Users/logansmith/brainworm/src/hooks/templates/context-compaction.md
-# Generation time: 2025-10-08T17:06:54.727743Z
-# Template checksum: 5d8effceba726e0c...
-# 
-# To modify this file, edit the source template and run: ./install
-# For questions about this file, see: docs/GOVERNANCE.md
-#
 # Context Compaction Protocol
 
 ## Overview
