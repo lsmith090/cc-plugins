@@ -545,12 +545,30 @@ def session_start_logic(framework, typed_input):
         "source": getattr(typed_input, 'source', 'unknown') if hasattr(typed_input, 'source') else 'unknown'
     })
 
+    # Debug logging - INFO level
+    if framework.debug_logger:
+        session_short = session_id[:8] if len(session_id) >= 8 else session_id
+        framework.debug_logger.info(f"🚀 Session starting: {session_short}")
+
     # Auto-setup minimal .brainworm/ structure if needed
     auto_setup_minimal_brainworm(project_root)
 
+    # Debug logging after auto-setup
+    if framework.debug_logger:
+        framework.debug_logger.debug("Auto-setup completed")
+
     # Initialize user config and cleanup flags
     initialize_user_config(project_root)
+
+    # Debug logging after config init
+    if framework.debug_logger:
+        framework.debug_logger.debug("User config initialized")
+
     cleanup_session_flags(project_root)
+
+    # Debug logging after cleanup
+    if framework.debug_logger:
+        framework.debug_logger.debug("Session flags cleaned up")
 
     debug_log(project_root, "session_start_logic: Starting session_id update")
 
@@ -574,6 +592,12 @@ def session_start_logic(framework, typed_input):
         # Only update if session_id is different (avoid unnecessary writes)
         if current_session_id != new_session_id:
             debug_log(project_root, "session_start_logic: Attempting update")
+
+            if framework.debug_logger:
+                current_short = current_session_id[:8] if current_session_id and len(current_session_id) >= 8 else 'none'
+                new_short = new_session_id[:8] if len(new_session_id) >= 8 else new_session_id
+                framework.debug_logger.info(f"📝 Updating session_id: {current_short} → {new_short}")
+
             state_mgr._update_unified_state({
                 'session_id': new_session_id
             })
@@ -587,14 +611,26 @@ def session_start_logic(framework, typed_input):
                 "matches_expected": final_session_id == new_session_id,
                 "update_successful": final_session_id == new_session_id
             })
+
+            if framework.debug_logger:
+                if final_session_id == new_session_id:
+                    framework.debug_logger.info("✅ Session_id updated successfully")
+                else:
+                    framework.debug_logger.warning(f"⚠️ Session_id mismatch after update")
         else:
             debug_log(project_root, "session_start_logic: Skipping update (session_id already matches)")
+
+            if framework.debug_logger:
+                framework.debug_logger.debug("Session_id unchanged, skipping update")
     except Exception as e:
         # Log error for debugging but don't fail session start
         debug_log(project_root, "session_start_logic: EXCEPTION in session_id update", {
             "error": str(e),
             "type": type(e).__name__
         })
+
+        if framework.debug_logger:
+            framework.debug_logger.error(f"❌ Session_id update failed: {type(e).__name__}: {str(e)}")
 
         try:
             import traceback
@@ -612,17 +648,29 @@ def session_start_logic(framework, typed_input):
 
     debug_log(project_root, "session_start_logic: Completed successfully")
 
+    # Debug logging - INFO level
+    if framework.debug_logger:
+        framework.debug_logger.info(f"✅ Session start logic completed")
+
     # Create session snapshot
     try:
         snapshot_script = project_root / ".brainworm" / "scripts" / "snapshot_session.py"
         if snapshot_script.exists():
+            if framework.debug_logger:
+                framework.debug_logger.debug(f"📸 Creating session snapshot")
+
             subprocess.run([
                 str(snapshot_script),
                 "--action", "start",
                 "--session-id", session_id,
                 "--quiet"
             ], timeout=10, check=False)
-    except Exception:
+
+            if framework.debug_logger:
+                framework.debug_logger.debug("Snapshot script executed")
+    except Exception as e:
+        if framework.debug_logger:
+            framework.debug_logger.warning(f"⚠️ Snapshot creation failed: {type(e).__name__}")
         pass  # Don't fail session start if snapshot fails
 
 def session_start_success_message(framework):
@@ -642,4 +690,7 @@ def session_start_success_message(framework):
     print(f"✅ Session started: {session_short}", file=sys.stderr)
 
 if __name__ == "__main__":
-    HookFramework("session_start").with_custom_logic(session_start_logic).with_success_handler(session_start_success_message).execute()
+    HookFramework("session_start", enable_analytics=True, enable_logging=True) \
+        .with_custom_logic(session_start_logic) \
+        .with_success_handler(session_start_success_message) \
+        .execute()

@@ -29,17 +29,30 @@ def session_end_logic(framework, typed_input):
     else:
         session_id = 'unknown'
 
+    # Debug logging - INFO level
+    if framework.debug_logger:
+        session_short = session_id[:8] if len(session_id) >= 8 else session_id
+        framework.debug_logger.info(f"🔚 Session ending: {session_short}")
+
     # Create session snapshot (moved from stop.py)
     try:
         snapshot_script = framework.project_root / ".brainworm" / "scripts" / "snapshot_session.py"
         if snapshot_script.exists():
+            if framework.debug_logger:
+                framework.debug_logger.debug(f"📸 Creating session end snapshot")
+
             subprocess.run([
                 str(snapshot_script),
                 "--action", "stop",
                 "--session-id", session_id,
                 "--quiet"
             ], timeout=10, check=False)
-    except Exception:
+
+            if framework.debug_logger:
+                framework.debug_logger.debug("Snapshot script executed")
+    except Exception as e:
+        if framework.debug_logger:
+            framework.debug_logger.warning(f"⚠️ Snapshot creation failed: {type(e).__name__}")
         pass  # Don't fail session end if snapshot fails
 
 def session_end_success_message(framework):
@@ -62,7 +75,7 @@ def session_end_success_message(framework):
     print(f"✅ Session ended ({reason}): {session_short}", file=sys.stderr)
 
 if __name__ == "__main__":
-    HookFramework("session_end") \
+    HookFramework("session_end", enable_analytics=True, enable_logging=True) \
         .with_custom_logic(session_end_logic) \
         .with_success_handler(session_end_success_message) \
         .execute()

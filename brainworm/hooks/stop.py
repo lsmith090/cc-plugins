@@ -29,13 +29,24 @@ def stop_session_logic(framework, typed_input):
     else:
         session_id = 'unknown'
 
+    # Debug logging - INFO level
+    if framework.debug_logger:
+        session_short = session_id[:8] if len(session_id) >= 8 else session_id
+        framework.debug_logger.info(f"🧹 Clearing session correlation for {session_short}")
+
     try:
         from utils.correlation_manager import CorrelationManager
 
         correlation_manager = CorrelationManager(framework.project_root)
         correlation_manager.clear_session_correlation(session_id)
 
+        # Debug logging - DEBUG level
+        if framework.debug_logger:
+            framework.debug_logger.debug("✓ Session correlation cleared")
+
     except Exception as e:
+        if framework.debug_logger:
+            framework.debug_logger.warning(f"⚠️ Session correlation cleanup failed: {type(e).__name__}")
         print(f"Warning: Session correlation cleanup failed", file=sys.stderr)
 
 def stop_success_message(framework):
@@ -55,4 +66,7 @@ def stop_success_message(framework):
     print(f"✅ Session stopped: {session_short}", file=sys.stderr)
 
 if __name__ == "__main__":
-    HookFramework("stop").with_custom_logic(stop_session_logic).with_success_handler(stop_success_message).execute()
+    HookFramework("stop", enable_analytics=True, enable_logging=True) \
+        .with_custom_logic(stop_session_logic) \
+        .with_success_handler(stop_success_message) \
+        .execute()

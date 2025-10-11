@@ -773,29 +773,38 @@ def log_analytics_event(project_root: Path, event_data: Dict[str, Any]) -> None:
     except Exception as e:
         print(f"Warning: Analytics logging failed: {e}", file=sys.stderr)
 
-def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, verbose: bool = False) -> Dict[str, Any]:
+def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, verbose: bool = False, debug_logger=None) -> Dict[str, Any]:
     """Custom logic for transcript processing"""
     start_time = datetime.now(timezone.utc)
     tool_name = input_data.get("tool_name", "")
-    
+
     # Only process Task tool calls
     if tool_name != "Task":
+        if debug_logger:
+            debug_logger.debug(f"Skipping non-Task tool: {tool_name}")
         if verbose:
             print(f"Skipping non-Task tool: {tool_name}", file=sys.stderr)
         return {"skip": True, "reason": "non_task_tool"}
-    
+
     # RECURSION PREVENTION: Check if we're already in a subagent context
     try:
         subagent_manager = create_subagent_manager(project_root)
         if subagent_manager.is_in_subagent_context():
+            if debug_logger:
+                debug_logger.warning("🔄 Recursion prevented: Already in subagent context")
             if verbose:
                 print("⚠️  Recursion prevention: Already in subagent context, skipping transcript processing", file=sys.stderr)
             return {"skip": True, "reason": "recursion_prevention"}
+        else:
+            if debug_logger:
+                debug_logger.debug("✓ Not in subagent context, proceeding")
     except Exception:
         # Fallback to direct flag check
         state_dir = project_root / '.brainworm' / 'state'
         subagent_flag = state_dir / 'in_subagent_context.flag'
         if subagent_flag.exists():
+            if debug_logger:
+                debug_logger.warning("🔄 Recursion prevented: Subagent flag exists")
             if verbose:
                 print("⚠️  Recursion prevention: Already in subagent context, skipping transcript processing", file=sys.stderr)
             return {"skip": True, "reason": "recursion_prevention"}
@@ -821,15 +830,26 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
     # Remove pre-work entries
     transcript = remove_prework_entries(transcript)
     processed_entry_count = len(transcript)
+
+    # Debug logging - INFO level
+    if debug_logger:
+        removed_count = original_entry_count - processed_entry_count
+        debug_logger.info(f"📋 Transcript processing: {original_entry_count} → {processed_entry_count} entries (removed {removed_count} prework)")
+
     if verbose:
         print(f"After pre-work removal: {processed_entry_count}", file=sys.stderr)
-    
+
     # Clean transcript entries
     clean_transcript = clean_transcript_entries(transcript)
     cleaned_entry_count = len(list(clean_transcript))
-    
+
     # Extract subagent type for routing
     subagent_type = extract_subagent_type(list(clean_transcript), input_data)
+
+    # Debug logging - INFO level
+    if debug_logger:
+        debug_logger.info(f"🤖 Routing to subagent: {subagent_type}")
+
     if verbose:
         print(f"🤖 Routing to subagent: {subagent_type}", file=sys.stderr)
 
@@ -839,6 +859,15 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
 
     # Detect service context for location awareness
     service_context = identify_current_service_context(project_root, input_data)
+
+    # Debug logging - INFO level
+    if debug_logger:
+        current_service = service_context.get("current_service", {})
+        service_name = current_service.get("name", "unknown") if current_service else "none"
+        detection_method = service_context.get("detection_method", "unknown")
+        project_type = service_context.get("project_structure", {}).get("project_type", "unknown")
+        debug_logger.info(f"🎯 Service context: {service_name} ({project_type}) via {detection_method}")
+        debug_logger.debug(f"Project services: {len(service_context.get('project_structure', {}).get('services', []))}")
 
     if verbose:
         current_service = service_context.get("current_service", {})
@@ -850,10 +879,15 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
     # Create output directory using normalized directory name
     batch_dir = project_root / '.brainworm' / 'state' / subagent_dir_name
     batch_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Chunk transcript
     chunks = chunk_transcript(clean_transcript)
     chunk_count = len(chunks)
+
+    # Debug logging - INFO level
+    if debug_logger:
+        debug_logger.info(f"📦 Created {chunk_count} transcript chunks for subagent")
+
     if verbose:
         print(f"📦 Created {chunk_count} transcript chunks", file=sys.stderr)
     
@@ -906,36 +940,52 @@ def transcript_processor_success_handler(result: Dict[str, Any], verbose: bool =
 def transcript_processor_framework_logic(framework, typed_input):
     """Custom logic for transcript processor using pure framework approach"""
     project_root = framework.project_root
-    
+
     # Handle case where project_root might be None
     if not project_root:
         return  # Exit gracefully if no project root
-    
+
     # Check if running in verbose mode
     verbose = '--verbose' in sys.argv
-    
+
     # Convert typed input to dict format for legacy function
     # For transcript_processor, we need to check raw data as well since it may not have tool_name in BaseHookInput
+    # Use defensive access in case typed_input is a dict fallback
     input_data = {
-        'session_id': typed_input.session_id,
-        'transcript_path': typed_input.transcript_path,
-        'cwd': typed_input.cwd,
-        'hook_event_name': typed_input.hook_event_name,
+        'session_id': typed_input.session_id if hasattr(typed_input, 'session_id') else typed_input.get('session_id'),
+        'transcript_path': typed_input.transcript_path if hasattr(typed_input, 'transcript_path') else typed_input.get('transcript_path'),
+        'cwd': typed_input.cwd if hasattr(typed_input, 'cwd') else typed_input.get('cwd'),
+        'hook_event_name': typed_input.hook_event_name if hasattr(typed_input, 'hook_event_name') else typed_input.get('hook_event_name'),
         'tool_name': getattr(typed_input, 'tool_name', framework.raw_input_data.get('tool_name', '')),
         'tool_input': getattr(typed_input, 'tool_input', framework.raw_input_data.get('tool_input', {}))
     }
-    
-    # Call custom logic
-    result = transcript_processor_logic(input_data, project_root, verbose)
-    
+
+    # Debug logging - INFO level
+    tool_name = input_data.get('tool_name', 'unknown')
+    if framework.debug_logger:
+        framework.debug_logger.info(f"🔄 Transcript processor invoked for tool: {tool_name}")
+
+    # Call custom logic (passing debug_logger for internal logging)
+    result = transcript_processor_logic(input_data, project_root, verbose, framework.debug_logger)
+
+    # Debug logging after processing
+    if framework.debug_logger and result:
+        if result.get("skip", False):
+            reason = result.get("reason", "unknown")
+            framework.debug_logger.debug(f"Transcript processing skipped: {reason}")
+        else:
+            processing_time = result.get("processing_time", 0)
+            chunk_count = result.get("chunk_count", 0)
+            framework.debug_logger.info(f"✅ Transcript processing complete: {chunk_count} chunks in {processing_time:.1f}ms")
+
     # Call success handler if we have a result
     if result:
         transcript_processor_success_handler(result, verbose)
-    
+
     # Skip processing or handle special transcript processor requirements
     if result and result.get("skip", False):
         return
-        
+
     # Framework handles successful exit automatically
 
 

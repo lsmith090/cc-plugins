@@ -359,17 +359,19 @@ def user_prompt_submit_framework_logic(framework, typed_input):
     verbose = '--verbose' in sys.argv
 
     # Convert typed input to dict format for legacy function
+    # Use defensive access in case typed_input is a dict fallback
     input_data = {
-        'session_id': typed_input.session_id,
-        'transcript_path': typed_input.transcript_path,
-        'cwd': typed_input.cwd,
-        'hook_event_name': typed_input.hook_event_name,
-        'prompt': typed_input.prompt
+        'session_id': typed_input.session_id if hasattr(typed_input, 'session_id') else typed_input.get('session_id'),
+        'transcript_path': typed_input.transcript_path if hasattr(typed_input, 'transcript_path') else typed_input.get('transcript_path'),
+        'cwd': typed_input.cwd if hasattr(typed_input, 'cwd') else typed_input.get('cwd'),
+        'hook_event_name': typed_input.hook_event_name if hasattr(typed_input, 'hook_event_name') else typed_input.get('hook_event_name'),
+        'prompt': typed_input.prompt if hasattr(typed_input, 'prompt') else typed_input.get('prompt', '')
     }
 
     # Debug logging - INFO level
     if framework.debug_logger:
-        prompt_len = len(typed_input.prompt)
+        prompt = input_data['prompt']
+        prompt_len = len(prompt) if prompt else 0
         framework.debug_logger.info(f"Processing user prompt ({prompt_len} chars)")
 
     # Call custom logic
