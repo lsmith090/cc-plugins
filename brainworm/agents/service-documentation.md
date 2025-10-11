@@ -13,13 +13,20 @@ You maintain lean, reference-focused documentation that helps developers quickly
 
 ### CRITICAL: Use Automatic Project Structure Detection
 
-**Step 1: Read Service Context** (NEW - Enhanced Detection)
+**Step 1: Determine Project Root**
+First, confirm the project root directory (your current working directory is the project root):
 ```bash
-# Enhanced service context with automatic detection
-cat .brainworm/state/service-documentation/service_context.json
+pwd  # This shows your current directory, which is the project root
 ```
 
-**Step 2: Apply Enhanced Structure-Aware Documentation**
+**Step 2: Read Service Context** (Enhanced Detection)
+```bash
+# Enhanced service context with automatic detection
+# IMPORTANT: Use absolute paths from project root (pwd)
+cat "$(pwd)/.brainworm/state/service-documentation/service_context.json"
+```
+
+**Step 3: Apply Enhanced Structure-Aware Documentation**
 
 The service context provides:
 - `"project_type"`: Automatically detected project structure  

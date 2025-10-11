@@ -832,19 +832,23 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
     subagent_type = extract_subagent_type(list(clean_transcript), input_data)
     if verbose:
         print(f"🤖 Routing to subagent: {subagent_type}", file=sys.stderr)
-    
+
+    # Normalize subagent_type for directory name (strip plugin namespace prefix)
+    # e.g., "brainworm:context-gathering" -> "context-gathering"
+    subagent_dir_name = subagent_type.split(':', 1)[-1] if ':' in subagent_type else subagent_type
+
     # Detect service context for location awareness
     service_context = identify_current_service_context(project_root, input_data)
-    
+
     if verbose:
         current_service = service_context.get("current_service", {})
         service_name = current_service.get("name", "unknown") if current_service else "none"
         detection_method = service_context.get("detection_method", "unknown")
         project_type = service_context.get("project_structure", {}).get("project_type", "unknown")
         print(f"🎯 Service context: {service_name} ({project_type}) via {detection_method}", file=sys.stderr)
-    
-    # Create output directory
-    batch_dir = project_root / '.brainworm' / 'state' / subagent_type
+
+    # Create output directory using normalized directory name
+    batch_dir = project_root / '.brainworm' / 'state' / subagent_dir_name
     batch_dir.mkdir(parents=True, exist_ok=True)
     
     # Chunk transcript
@@ -865,9 +869,10 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
         print("📍 Created service context file for location awareness", file=sys.stderr)
     
     # Create subagent context flag using business controller
+    # Use normalized directory name for consistency
     try:
         subagent_manager = create_subagent_manager(project_root)
-        subagent_manager.set_subagent_context(subagent_type)
+        subagent_manager.set_subagent_context(subagent_dir_name)
     except Exception:
         # Fallback to direct flag creation
         create_subagent_flag(project_root)

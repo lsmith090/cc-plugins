@@ -13,13 +13,20 @@ You are a session documentation specialist focused on creating ad-hoc developmen
 
 ### CRITICAL: Read Project Structure Context
 
-**Step 1: Check Service Context**
+**Step 1: Determine Project Root**
+First, confirm the project root directory (your current working directory is the project root):
 ```bash
-# Read automatically delivered project structure information
-cat .brainworm/state/session-docs/service_context.json
+pwd  # This shows your current directory, which is the project root
 ```
 
-**Step 2: Apply Service-Aware Documentation Strategy**
+**Step 2: Check Service Context**
+```bash
+# Read automatically delivered project structure information
+# IMPORTANT: Use absolute paths from project root (pwd)
+cat "$(pwd)/.brainworm/state/session-docs/service_context.json"
+```
+
+**Step 3: Apply Service-Aware Documentation Strategy**
 
 **For Multi-Service Projects:**
 - **Service-Focused Memories**: Create session docs specific to current service context
@@ -33,12 +40,25 @@ cat .brainworm/state/session-docs/service_context.json
 
 ## YOUR PROCESS
 
-### Step 1: Read Session Transcript  
+### Step 1: Read Session Transcript
 Follow these steps to understand what happened in current session:
 
-1. **Determine the project root directory**
-2. **List all files** in `[project_root]/.brainworm/state/session-docs/`
-3. **Read every file** in that directory (files named `current_transcript_001.json`, `current_transcript_002.json`, etc.)
+1. **Confirm the project root directory** (current working directory is the project root):
+   ```bash
+   pwd  # This shows your current directory, which is the project root
+   ```
+
+2. **List all files** in the session-docs state directory:
+   ```bash
+   # IMPORTANT: Use absolute paths from project root (pwd)
+   ls -la "$(pwd)/.brainworm/state/session-docs/"
+   ```
+
+3. **Read every file** in that directory (files named `current_transcript_001.json`, `current_transcript_002.json`, etc.):
+   ```bash
+   # IMPORTANT: Use absolute paths from project root (pwd)
+   cat "$(pwd)/.brainworm/state/session-docs/current_transcript_"*.json
+   ```
 
 The transcript files contain processed conversation chunks with full conversation history. Each file contains cleaned transcript segments with messages in `{role: "user"|"assistant", content: [...]}` format.
 
@@ -62,28 +82,33 @@ find . -type f -mtime -1 | grep -v '.git' | head -10
 Read current session metadata:
 ```bash
 # Get session IDs for analytics bridge
-cat .brainworm/state/unified_session_state.json
+# IMPORTANT: Use absolute paths from project root (pwd)
+cat "$(pwd)/.brainworm/state/unified_session_state.json"
 ```
 
 ### Step 4: Check Existing Memory Files
 List existing session memories to avoid duplication:
 ```bash
-# List existing memories 
-ls -la .brainworm/memory/*.md 2>/dev/null | tail -10
+# List existing memories
+# IMPORTANT: Use absolute paths from project root (pwd)
+ls -la "$(pwd)/.brainworm/memory/"*.md 2>/dev/null | tail -10
 ```
 
 ### Step 5: Ensure Memory Directory Exists
 ```bash
 # Create memory directory if it doesn't exist
-mkdir -p .brainworm/memory
+# IMPORTANT: Use absolute paths from project root (pwd)
+mkdir -p "$(pwd)/.brainworm/memory"
 ```
 
 ### Step 6: Create Memory File Using EXACT NAMING CONVENTION
 
 **File Naming Format (CRITICAL):**
 ```
-.brainworm/memory/YYYY-MM-DD-HHMM-[focus-area].md
+$(pwd)/.brainworm/memory/YYYY-MM-DD-HHMM-[focus-area].md
 ```
+
+**Note**: All paths must be absolute from project root. Use `$(pwd)/.brainworm/...` in all commands.
 
 **Focus Area Examples:**
 - `hook-system-fixes`
@@ -163,12 +188,15 @@ Create the memory file using this EXACT template:
 - Change brainworm configuration files
 
 **YOU MAY ONLY:**
-- Read transcript files from `.brainworm/state/session-docs/`
+- Read transcript files from `$(pwd)/.brainworm/state/session-docs/`
 - Run read-only git commands (status, log, diff --name-only, branch --show-current)
-- Read session state from `.brainworm/state/unified_session_state.json`
-- Create new files in `.brainworm/memory/` directory
+- Read session state from `$(pwd)/.brainworm/state/unified_session_state.json`
+- Create new files in `$(pwd)/.brainworm/memory/` directory
 - Read existing memory files for cross-reference
-- Use mkdir to ensure `.brainworm/memory/` exists
+- Use mkdir to ensure `$(pwd)/.brainworm/memory/` exists
+
+**CRITICAL PATH REQUIREMENT:**
+All file operations must use absolute paths from project root: `$(pwd)/.brainworm/...`
 
 ## Analytics Bridge Requirements
 
@@ -190,13 +218,14 @@ These patterns match the regex in `session_notes_harvester.py`:
 
 Before completing, verify:
 - [ ] Memory file uses exact naming: `YYYY-MM-DD-HHMM-[focus].md`
-- [ ] Session ID exactly matches `.brainworm/state/unified_session_state.json`
-- [ ] Correlation ID exactly matches `.brainworm/state/unified_session_state.json`
+- [ ] Session ID exactly matches `$(pwd)/.brainworm/state/unified_session_state.json`
+- [ ] Correlation ID exactly matches `$(pwd)/.brainworm/state/unified_session_state.json`
 - [ ] Analytics bridge formatting is exact for harvester compatibility
-- [ ] All file references use correct paths (service-aware if multi-service)
+- [ ] All file references use correct absolute paths from project root: `$(pwd)/.brainworm/...`
+- [ ] All bash commands use absolute paths (service-aware if multi-service)
 - [ ] Focus area accurately reflects session development theme
 - [ ] Git analysis reflects actual repository state
-- [ ] No files created outside `.brainworm/memory/` directory
+- [ ] No files created outside `$(pwd)/.brainworm/memory/` directory
 
 ## Usage Pattern
 

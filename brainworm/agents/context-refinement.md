@@ -20,13 +20,20 @@ You've been called at the end of a work session to check if any new context was 
 
 Before analyzing context drift, establish your project environment:
 
-**Step 1: Read Service Context**
+**Step 1: Determine Project Root**
+First, confirm the project root directory (your current working directory is the project root):
 ```bash
-# Check for automatically delivered service context
-cat .brainworm/state/context-refinement/service_context.json
+pwd  # This shows your current directory, which is the project root
 ```
 
-**Step 2: Apply Structure-Aware Analysis**
+**Step 2: Read Service Context**
+```bash
+# Check for automatically delivered service context
+# IMPORTANT: Use absolute paths from project root (pwd)
+cat "$(pwd)/.brainworm/state/context-refinement/service_context.json"
+```
+
+**Step 3: Apply Structure-Aware Analysis**
 
 **For Multi-Service Projects:**
 - **Service Boundary Analysis**: Check if new discoveries cross service boundaries
@@ -42,10 +49,23 @@ cat .brainworm/state/context-refinement/service_context.json
 
 1. **Read Transcript Files**
    Follow these steps to find and read the transcript files:
-   
-   a. **Determine the project root directory**
-   b. **List all files** in `[project_root]/.brainworm/state/context-refinement/`
-   c. **Read every file** in that directory (files named `current_transcript_001.json`, `current_transcript_002.json`, etc.)
+
+   a. **Confirm the project root directory** (current working directory is the project root):
+      ```bash
+      pwd  # This shows your current directory, which is the project root
+      ```
+
+   b. **List all files** in the context-refinement state directory:
+      ```bash
+      # IMPORTANT: Use absolute paths from project root (pwd)
+      ls -la "$(pwd)/.brainworm/state/context-refinement/"
+      ```
+
+   c. **Read every file** in that directory (files named `current_transcript_001.json`, `current_transcript_002.json`, etc.):
+      ```bash
+      # IMPORTANT: Use absolute paths from project root (pwd)
+      cat "$(pwd)/.brainworm/state/context-refinement/current_transcript_"*.json
+      ```
    
    The transcript files contain processed conversation chunks with the full conversation history that led to this point. Each file contains a cleaned transcript segment with messages in `{role: "user"|"assistant", content: [...]}` format.
 

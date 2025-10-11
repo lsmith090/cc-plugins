@@ -154,21 +154,21 @@ def get_task_display(project_root: Path) -> str:
     
     # Get current task from unified state
     unified_state_file = project_root / ".brainworm" / "state" / "unified_session_state.json"
-    
+
     if unified_state_file.exists():
         try:
             with open(unified_state_file, 'r') as f:
                 data = json.load(f)
                 task_name = data.get('current_task', 'None')
-                if task_name is None:
+                if task_name is None or task_name == '':
                     task_name = 'None'
         except:
             pass
-    
+
     # Always scan filesystem for accurate open task count
     open_count = _count_open_tasks(project_root)
-    
-    return f"{blue}Tasks: {cyan}{task_name}{reset} {blue}[{open_count} open]{reset}"
+
+    return f"{blue}Active Task: {cyan}{task_name}{reset} {blue}[{open_count} open]{reset}"
 
 def _count_open_tasks(project_root: Path) -> int:
     """Count open tasks by scanning filesystem (fallback method)"""

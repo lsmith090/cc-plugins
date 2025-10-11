@@ -18,11 +18,18 @@ You are part of a sessions-based task management system. A new task has just bee
 
 Before analyzing the task, you MUST understand where you are and what kind of project structure you're working in:
 
-**Step 1: Check for Service Context**
+**Step 1: Determine Project Root**
+First, confirm the project root directory (your current working directory is the project root):
+```bash
+pwd  # This shows your current directory, which is the project root
+```
+
+**Step 2: Check for Service Context**
 1. **Read the service context file** (delivered automatically):
    ```bash
    # This file contains detected project structure
-   cat .brainworm/state/context-gathering/service_context.json
+   # IMPORTANT: Use absolute paths from project root (pwd)
+   cat "$(pwd)/.brainworm/state/context-gathering/service_context.json"
    ```
 
 2. **Understand the project structure**:
@@ -31,7 +38,7 @@ Before analyzing the task, you MUST understand where you are and what kind of pr
    - `"all_services"`: Complete list of services in the project
    - `"claude_files"`: All CLAUDE.md files for reference
 
-**Step 2: Apply Service-Aware Context Strategy**
+**Step 3: Apply Service-Aware Context Strategy**
 
 **For Multi-Service Projects:**
 - **Current Service Focus**: Prioritize the `current_service` for task analysis
@@ -44,7 +51,7 @@ Before analyzing the task, you MUST understand where you are and what kind of pr
 - **Unified Context**: Use project root CLAUDE.md as primary reference
 - **Complete Project Scope**: Analyze entire project structure
 
-**Step 3: Location-Aware File Analysis**
+**Step 4: Location-Aware File Analysis**
 - **Use Absolute Paths**: When referencing files across services
 - **Service-Relative Paths**: When working within service boundaries  
 - **Cross-Service References**: Clearly indicate when referencing other services
