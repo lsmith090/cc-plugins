@@ -23,7 +23,7 @@ from dataclasses import dataclass
 # Add hook_types module to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent / "src" / "hooks" / "templates" / "utils"))
 
-from hook_types import (
+from brainworm.utils.hook_types import (
     # Timestamp utilities
     _now_iso, _coerce_iso, get_standard_timestamp, parse_standard_timestamp, format_for_database,
     # Data helper functions

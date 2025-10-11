@@ -19,8 +19,8 @@ from datetime import datetime, timedelta
 import pytest
 
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Python path is configured in pyproject.toml via pythonpath setting
+# brainworm package is available via hatchling build configuration
 
 
 # ============================================================================
@@ -87,9 +87,9 @@ def project_root() -> Path:
 
 
 @pytest.fixture
-def src_dir(project_root) -> Path:
-    """Get the src directory."""
-    return project_root / "src"
+def brainworm_dir(project_root) -> Path:
+    """Get the brainworm plugin directory."""
+    return project_root / "brainworm"
 
 
 @pytest.fixture
@@ -121,10 +121,10 @@ def mock_claude_project(temp_dir) -> Path:
 
 
 @pytest.fixture
-def installed_hooks_project(mock_claude_project, src_dir) -> Path:
+def installed_hooks_project(mock_claude_project, brainworm_dir) -> Path:
     """Create a project with hooks already installed."""
     project_dir = mock_claude_project
-    templates_dir = src_dir / "hooks" / "templates"
+    templates_dir = brainworm_dir / "hooks"
     hooks_dir = project_dir / ".claude" / "hooks"
     
     # Copy hook templates to project
@@ -482,11 +482,8 @@ def cleanup_test_files():
 # PYTEST MARKERS REGISTRATION
 # ============================================================================
 
-# Register custom markers
-pytest_plugins = [
-    "pytest_benchmark",
-    "pytest_mock",
-]
+# Note: pytest_benchmark and pytest_mock are optional dependencies
+# Tests will run without them, but some performance benchmarking features may be unavailable
 
 
 def pytest_runtest_setup(item):

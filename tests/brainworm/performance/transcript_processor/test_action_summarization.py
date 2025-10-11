@@ -19,7 +19,7 @@ import tracemalloc
 # Add src/hooks/templates to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../src/hooks/templates'))
 
-from transcript_processor import (
+from brainworm.utils.transcript_parser import (
     remove_prework_entries,
     clean_transcript_entries,
     get_token_count,

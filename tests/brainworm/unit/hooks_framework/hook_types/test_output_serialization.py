@@ -21,7 +21,7 @@ from typing import Dict, Any
 # Add hook_types module to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent / "src" / "hooks" / "templates" / "utils"))
 
-from hook_types import (
+from brainworm.utils.hook_types import (
     # Output response types
     PreToolUseDecisionOutput, ToolResponse,
     HookSpecificOutput, UserPromptContextResponse,

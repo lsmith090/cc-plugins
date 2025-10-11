@@ -29,8 +29,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "hooks" / "
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "hooks" / "templates" / "utils"))
 
 # Import framework components
-from utils.hook_framework import HookFramework
-from utils.hook_types import (
+from brainworm.utils.hook_framework import HookFramework
+from brainworm.utils.hook_types import (
     PreToolUseInput, PostToolUseInput, UserPromptSubmitInput,
     PreToolUseDecisionOutput, BaseHookInput
 )
