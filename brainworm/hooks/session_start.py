@@ -28,11 +28,36 @@ from rich.console import Console
 
 console = Console(stderr=True)
 
+# Debug logging helper
+def debug_log(project_root: Path, message: str, data: dict = None) -> None:
+    """Write debug information to session_start debug log"""
+    try:
+        debug_file = project_root / '.brainworm' / 'logs' / 'session_start_debug.log'
+        debug_file.parent.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.now(timezone.utc).isoformat()
+        log_entry = f"[{timestamp}] {message}"
+
+        if data:
+            log_entry += f"\n  Data: {json.dumps(data, indent=2)}"
+
+        with open(debug_file, 'a') as f:
+            f.write(log_entry + "\n")
+            f.flush()  # Ensure write is flushed to disk
+    except Exception as e:
+        # Write to stderr so we can see what's failing
+        try:
+            console.print(f"[dim yellow]Debug log failed: {type(e).__name__}: {e}[/dim yellow]", file=sys.stderr)
+            console.print(f"[dim yellow]  Attempted path: {project_root / '.brainworm' / 'logs' / 'session_start_debug.log'}[/dim yellow]", file=sys.stderr)
+        except:
+            pass  # Last resort: don't fail session start
+
 def auto_setup_minimal_brainworm(project_root: Path) -> None:
     """
     Auto-create minimal .brainworm/ structure if needed.
     This runs on every session start to ensure structure exists and plugin_root is current.
     """
+    debug_log(project_root, "auto_setup_minimal_brainworm: Starting")
     try:
         # Try to get plugin root from environment first
         plugin_root_str = os.environ.get('CLAUDE_PLUGIN_ROOT', '')
@@ -49,7 +74,13 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
                 return
 
         plugin_root = Path(plugin_root_str)
+        debug_log(project_root, "auto_setup_minimal_brainworm: Plugin root detected", {
+            "plugin_root": str(plugin_root),
+            "exists": plugin_root.exists()
+        })
+
         if not plugin_root.exists():
+            debug_log(project_root, "auto_setup_minimal_brainworm: Plugin root doesn't exist, exiting")
             return  # Can't auto-setup without valid plugin
 
         brainworm_dir = project_root / '.brainworm'
@@ -57,10 +88,16 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
 
         # Quick check - if state exists with valid plugin_root, just update if needed
         if state_file.exists():
+            debug_log(project_root, "auto_setup_minimal_brainworm: State file exists, updating")
             try:
                 with open(state_file, 'r') as f:
                     state = json.load(f)
                 current_plugin = state.get('plugin_root')
+                debug_log(project_root, "auto_setup_minimal_brainworm: Current plugin_root in state", {
+                    "current": current_plugin,
+                    "new": str(plugin_root),
+                    "needs_update": current_plugin != str(plugin_root)
+                })
 
                 # Update plugin_root if changed (plugin moved/updated)
                 if current_plugin != str(plugin_root):
@@ -85,11 +122,13 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
 
                 # Always ensure CLAUDE.sessions.md exists and is referenced
                 setup_claude_sessions_docs(project_root, plugin_root)
+                debug_log(project_root, "auto_setup_minimal_brainworm: Completed update path")
                 return
             except Exception:
                 pass  # If state file is corrupt, recreate it below
 
         # First-time setup
+        debug_log(project_root, "auto_setup_minimal_brainworm: Starting first-time setup")
         console.print("[dim]⚙️  Initializing brainworm...[/dim]")
 
         # 1. Create minimal directory structure
@@ -170,9 +209,14 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
         setup_claude_sessions_docs(project_root, plugin_root)
 
         console.print("[dim green]✓ Brainworm initialized[/dim green]")
+        debug_log(project_root, "auto_setup_minimal_brainworm: First-time setup completed")
 
     except Exception as e:
         # Don't fail session start if auto-setup fails
+        debug_log(project_root, "auto_setup_minimal_brainworm: Exception occurred", {
+            "error": str(e),
+            "type": type(e).__name__
+        })
         console.print(f"[dim yellow]⚠️  Auto-setup warning: {e}[/dim yellow]")
 
 def init_analytics_database(db_path: Path) -> None:
@@ -484,31 +528,85 @@ def cleanup_session_flags(project_root: Path) -> None:
 
 def session_start_logic(framework, typed_input):
     """Custom logic for session start with auto-setup, user config, and flag cleanup."""
+    project_root = framework.project_root
+
+    debug_log(project_root, "=== SESSION START LOGIC CALLED ===")
+    debug_log(project_root, "session_start_logic: Entry", {
+        "session_id": typed_input.session_id,
+        "project_root": str(project_root),
+        "source": getattr(typed_input, 'source', 'unknown')
+    })
+
     # Auto-setup minimal .brainworm/ structure if needed
-    auto_setup_minimal_brainworm(framework.project_root)
+    auto_setup_minimal_brainworm(project_root)
 
     # Initialize user config and cleanup flags
-    initialize_user_config(framework.project_root)
-    cleanup_session_flags(framework.project_root)
+    initialize_user_config(project_root)
+    cleanup_session_flags(project_root)
+
+    debug_log(project_root, "session_start_logic: Starting session_id update")
 
     # FIX #1: Auto-populate session_id in unified state
     # Update unified state with session_id from Claude Code
     try:
         from utils.daic_state_manager import DAICStateManager
-        state_mgr = DAICStateManager(framework.project_root)
+        state_mgr = DAICStateManager(project_root)
         current_state = state_mgr.get_unified_state()
 
+        current_session_id = current_state.get('session_id')
+        new_session_id = typed_input.session_id
+
+        debug_log(project_root, "session_start_logic: Loaded current state", {
+            "current_session_id": current_session_id,
+            "new_session_id": new_session_id,
+            "are_equal": current_session_id == new_session_id,
+            "will_update": current_session_id != new_session_id
+        })
+
         # Only update if session_id is different (avoid unnecessary writes)
-        if current_state.get('session_id') != typed_input.session_id:
+        if current_session_id != new_session_id:
+            debug_log(project_root, "session_start_logic: Attempting update")
             state_mgr._update_unified_state({
-                'session_id': typed_input.session_id
+                'session_id': new_session_id
             })
-    except Exception:
-        pass  # Don't fail session start if state update fails
+
+            # Verify the update worked
+            verified_state = state_mgr.get_unified_state()
+            final_session_id = verified_state.get('session_id')
+
+            debug_log(project_root, "session_start_logic: Update completed", {
+                "final_session_id": final_session_id,
+                "matches_expected": final_session_id == new_session_id,
+                "update_successful": final_session_id == new_session_id
+            })
+        else:
+            debug_log(project_root, "session_start_logic: Skipping update (session_id already matches)")
+    except Exception as e:
+        # Log error for debugging but don't fail session start
+        debug_log(project_root, "session_start_logic: EXCEPTION in session_id update", {
+            "error": str(e),
+            "type": type(e).__name__
+        })
+
+        try:
+            import traceback
+            error_log = project_root / '.brainworm' / 'session_start_errors.log'
+            with open(error_log, 'a') as f:
+                from datetime import datetime, timezone
+                f.write(f"\n{'='*80}\n")
+                f.write(f"Session Start Error: {datetime.now(timezone.utc).isoformat()}\n")
+                f.write(f"Session ID: {getattr(typed_input, 'session_id', 'N/A')}\n")
+                f.write(f"Error: {str(e)}\n")
+                f.write(traceback.format_exc())
+                f.write(f"{'='*80}\n")
+        except:
+            pass  # Don't fail if logging fails
+
+    debug_log(project_root, "session_start_logic: Completed successfully")
 
     # Create session snapshot
     try:
-        snapshot_script = framework.project_root / ".brainworm" / "scripts" / "snapshot_session.py"
+        snapshot_script = project_root / ".brainworm" / "scripts" / "snapshot_session.py"
         if snapshot_script.exists():
             subprocess.run([
                 str(snapshot_script),
