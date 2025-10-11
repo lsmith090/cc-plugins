@@ -89,7 +89,22 @@ class AnalyticsHookLogger(HookLogger):
         
         # Use correlation manager for workflow-level correlation instead of random IDs
         self.correlation_id = get_workflow_correlation_id(project_root, self.session_id)
-        
+
+        # FIX #2: Auto-populate correlation_id in unified state on first generation
+        # This writes the correlation_id to unified state the first time it's created
+        try:
+            from .daic_state_manager import DAICStateManager
+            state_mgr = DAICStateManager(project_root)
+            current_state = state_mgr.get_unified_state()
+
+            # Only update if correlation_id is currently null (first generation)
+            if current_state.get('correlation_id') is None:
+                state_mgr._update_unified_state({
+                    'correlation_id': self.correlation_id
+                })
+        except Exception:
+            pass  # Don't fail hook execution if state update fails
+
         self.timing_data = {}  # Keep for backward compatibility
         
         # Shared timing storage directory

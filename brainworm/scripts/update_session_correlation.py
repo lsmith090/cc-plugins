@@ -68,15 +68,16 @@ def update_session_correlation(
         
         # Update session correlation atomically
         result = controller.update_correlation(session_id, correlation_id)
-        
-        if result["success"]:
+
+        # FIX #4: result is a CorrelationUpdateResult dataclass, not a dict
+        if result.success:
             console.print(f"✅ [green]Session correlation updated:[/green]")
-            console.print(f"  Session ID: {result['session_id']}")
-            console.print(f"  Correlation ID: {result['correlation_id']}")
+            console.print(f"  Session ID: {result.session_id}")
+            console.print(f"  Correlation ID: {result.correlation_id}")
         else:
-            console.print(f"❌ [red]Failed to update correlation:[/red] {result.get('error')}")
+            console.print(f"❌ [red]Failed to update correlation:[/red] {result.error}")
             sys.exit(1)
-        
+
         return result
         
     except Exception as e:

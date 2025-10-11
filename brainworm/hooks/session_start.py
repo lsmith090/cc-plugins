@@ -491,6 +491,21 @@ def session_start_logic(framework, typed_input):
     initialize_user_config(framework.project_root)
     cleanup_session_flags(framework.project_root)
 
+    # FIX #1: Auto-populate session_id in unified state
+    # Update unified state with session_id from Claude Code
+    try:
+        from utils.daic_state_manager import DAICStateManager
+        state_mgr = DAICStateManager(framework.project_root)
+        current_state = state_mgr.get_unified_state()
+
+        # Only update if session_id is different (avoid unnecessary writes)
+        if current_state.get('session_id') != typed_input.session_id:
+            state_mgr._update_unified_state({
+                'session_id': typed_input.session_id
+            })
+    except Exception:
+        pass  # Don't fail session start if state update fails
+
     # Create session snapshot
     try:
         snapshot_script = framework.project_root / ".brainworm" / "scripts" / "snapshot_session.py"

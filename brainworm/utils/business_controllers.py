@@ -206,8 +206,16 @@ class SessionCorrelationController:
             
             # Update unified state
             success = self.state_manager.update_session_correlation(session_id, correlation_id)
-            
+
+            # FIX #3: Also update .correlation_state file to keep both systems in sync
             if success:
+                try:
+                    from .correlation_manager import CorrelationManager
+                    corr_mgr = CorrelationManager(self.project_root)
+                    corr_mgr._store_session_correlation(session_id, correlation_id)
+                except Exception:
+                    pass  # Don't fail if correlation_state update fails
+
                 return CorrelationUpdateResult.successful_update(session_id, correlation_id)
             else:
                 return CorrelationUpdateResult.failed_update(session_id, correlation_id, "Update operation failed")

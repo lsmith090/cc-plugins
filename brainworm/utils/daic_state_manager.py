@@ -407,15 +407,21 @@ class DAICStateManager:
         # Use shared validator with fixed prefix matching logic
         return validate_bash_command(command, config_dict)
     
-    def log_daic_transition(self, from_mode: str, to_mode: str, trigger: str = None):
-        """Log DAIC mode transitions for analytics"""
+    def log_daic_transition(self, from_mode: str, to_mode: str, trigger: str = None,
+                           session_id: str = None, correlation_id: str = None):
+        """Log DAIC mode transitions for analytics
+
+        FIX #5: Accept session_id and correlation_id as optional parameters.
+        Falls back to unified state if not provided (which should now be populated by Fixes #1 and #2).
+        """
+        unified_state = self.get_unified_state()
         transition_event = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "from_mode": from_mode,
             "to_mode": to_mode,
             "trigger": trigger,
-            "session_id": self.get_unified_state().get("session_id"),
-            "correlation_id": self.get_unified_state().get("correlation_id")
+            "session_id": session_id or unified_state.get("session_id"),
+            "correlation_id": correlation_id or unified_state.get("correlation_id")
         }
         
         # Log to analytics if processor available
