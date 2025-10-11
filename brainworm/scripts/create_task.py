@@ -133,15 +133,14 @@ def create_task(
         task_dir.mkdir(parents=True, exist_ok=True)
 
         # 6. Copy and populate template
-        template_path = project_root / "src" / "hooks" / "templates" / "TEMPLATE.md"
         task_readme = task_dir / "README.md"
 
-        if not template_path.exists():
-            # Fallback to installed template location
-            template_path = project_root / ".brainworm" / "templates" / "TEMPLATE.md"
+        # Template always lives in the plugin directory (not copied locally)
+        template_path = plugin_root / "templates" / "TEMPLATE.md"
 
         if not template_path.exists():
             console.print(f"[red]Error: Template not found at {template_path}[/red]")
+            console.print(f"[yellow]Plugin root: {plugin_root}[/yellow]")
             return False
 
         with open(template_path, 'r') as f:

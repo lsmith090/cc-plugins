@@ -44,6 +44,10 @@ def show_usage() -> None:
     """Show command usage"""
     console.print("\n[bold]Tasks Command - Task State Management[/bold]")
     console.print("Usage:")
+    console.print("  [green]tasks create[/green] [task-name] [options] - Create a new task")
+    console.print("    [dim]--submodule=NAME[/dim]           Target submodule")
+    console.print("    [dim]--services=LIST[/dim]            Comma-separated services")
+    console.print("    [dim]--no-interactive[/dim]           Skip interactive prompts")
     console.print("  [green]tasks status[/green]              - Show current task state")
     console.print("  [green]tasks list[/green] [options]      - List all tasks")
     console.print("    [dim]--status=STATUS[/dim]             Filter by status (completed, pending, in_progress)")
@@ -57,6 +61,8 @@ def show_usage() -> None:
     console.print("  [green]tasks help[/green]                - Show this help")
     console.print()
     console.print("Examples:")
+    console.print("  [dim]tasks create fix-auth-bug[/dim]")
+    console.print("  [dim]tasks create feature-api --services=backend,api[/dim]")
     console.print("  [dim]tasks list[/dim]")
     console.print("  [dim]tasks list --status=completed[/dim]")
     console.print("  [dim]tasks set --task=\"feature-work\" --branch=\"feature/new\"[/dim]")
@@ -81,7 +87,12 @@ def main() -> None:
         command = args[0]
         remaining_args = args[1:]
 
-        if command in ["status", "s"]:
+        if command in ["create", "c", "new"]:
+            # Create new task
+            return_code = run_script(project_root, "create_task.py", remaining_args)
+            sys.exit(return_code)
+
+        elif command in ["status", "s"]:
             # Show current task state
             return_code = run_script(project_root, "update_task_state.py", ["--show-current"])
             sys.exit(return_code)

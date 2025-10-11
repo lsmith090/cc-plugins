@@ -337,20 +337,25 @@ class ClaudeAnalyticsProcessor:
                     )
                 """)
                 
-                # Schema migration: Add developer columns if they don't exist
-                
-                # Add developer attribution columns if they don't exist (migration)
-                try:
-                    conn.execute("ALTER TABLE hook_events ADD COLUMN developer_name TEXT")
-                except sqlite3.OperationalError:
-                    pass  # Column already exists
-                try:
-                    conn.execute("ALTER TABLE hook_events ADD COLUMN developer_email TEXT")
-                except sqlite3.OperationalError:
-                    pass  # Column already exists
-                
+                # Schema migration: Add columns if they don't exist
+                migration_columns = [
+                    ("developer_name", "TEXT"),
+                    ("developer_email", "TEXT"),
+                    ("timestamp", "DATETIME"),
+                    ("tool_name", "TEXT"),
+                    ("file_path", "TEXT"),
+                    ("change_summary", "TEXT"),
+                    ("original_data_size", "INTEGER"),
+                ]
+
+                for column_name, column_type in migration_columns:
+                    try:
+                        conn.execute(f"ALTER TABLE hook_events ADD COLUMN {column_name} {column_type}")
+                    except sqlite3.OperationalError:
+                        pass  # Column already exists
+
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp 
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp
                     ON hook_events(timestamp)
                 """)
                 
@@ -436,16 +441,17 @@ class ClaudeAnalyticsProcessor:
             # Store in database with new schema columns
             with sqlite3.connect(self.db_path, timeout=1.0) as conn:
                 conn.execute("""
-                    INSERT INTO hook_events 
-                    (hook_name, event_type, correlation_id, session_id, 
+                    INSERT INTO hook_events
+                    (hook_name, event_type, correlation_id, session_id,
                      success, duration_ms, data, developer_name, developer_email,
-                     tool_name, file_path, change_summary, original_data_size)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     timestamp, tool_name, file_path, change_summary, original_data_size)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     hook_name, event_type, correlation_id, session_id,
-                    success, duration_ms, json.dumps(event_data), 
+                    success, duration_ms, json.dumps(event_data),
                     developer_info.name if developer_info else None,
                     developer_info.email if developer_info else None,
+                    timestamp,
                     tool_name, file_path, change_summary, original_data_size
                 ))
             

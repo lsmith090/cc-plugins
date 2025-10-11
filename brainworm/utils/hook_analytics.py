@@ -173,44 +173,37 @@ class AnalyticsHookLogger(HookLogger):
             return 'unknown'
     
     def log_event_with_analytics(self, event_data: dict, debug: bool = False) -> bool:
-        """Log event with basic analytics for memory capture"""
+        """Log event to analytics database and backup JSONL"""
         try:
             enriched_data = self.enrich_event_data(event_data)
-            
+
             # Add hook_name to ensure proper typed event parsing
             if 'hook_name' not in enriched_data:
                 enriched_data['hook_name'] = self.hook_name
-            
-            # Use parent class logging method (JSONL logging)
-            jsonl_success = self.log_event(enriched_data)
-            
-            # Also log to analytics database if processor is available
-            db_success = True
+
+            # Log to analytics processor (database + analytics JSONL backup)
             if self.analytics_processor:
                 try:
-                    db_success = self.analytics_processor.log_event(enriched_data)
+                    success = self.analytics_processor.log_event(enriched_data)
+
+                    if debug and success:
+                        schema_version = enriched_data.get('schema_version', '1.0')
+                        print(f"📊 Analytics log (v{schema_version}) [DB+JSONL]: {self.session_id[:8]} in {self.hook_name}", file=sys.stderr)
+
+                    return success
                 except Exception as db_e:
                     if debug:
-                        print(f"Warning: Database logging failed: {db_e}", file=sys.stderr)
-                    db_success = False
-            
-            overall_success = jsonl_success or db_success
-            
-            if debug and overall_success:
-                schema_version = enriched_data.get('schema_version', '1.0')
-                status_parts = []
-                if jsonl_success: status_parts.append("JSONL")
-                if db_success: status_parts.append("DB")
-                status = "/".join(status_parts) if status_parts else "Failed"
-                print(f"📊 Analytics log (v{schema_version}) [{status}]: {self.session_id[:8]} in {self.hook_name}", file=sys.stderr)
-                
-            return overall_success
-            
+                        print(f"Warning: Analytics logging failed: {db_e}", file=sys.stderr)
+                    return False
+            else:
+                if debug:
+                    print(f"Warning: Analytics processor not available", file=sys.stderr)
+                return False
+
         except Exception as e:
             if debug:
                 print(f"Warning: Analytics logging failed: {e}", file=sys.stderr)
-            # Fallback to basic logging
-            return self.log_event(event_data)
+            return False
     
     def log_pre_tool_execution(self, input_data: dict, debug: bool = False) -> bool:
         """Log pre-tool execution with timing"""
