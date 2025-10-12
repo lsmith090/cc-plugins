@@ -288,17 +288,48 @@ class TestDAICCommandParsing:
             result = split_command_respecting_quotes(cmd)
             assert result == expected, f"Split function failed for: '{cmd}' -> got {result}, expected {expected}"
 
+    def test_dev_null_redirections(self, config):
+        """
+        Test that redirections to /dev/null are allowed in discussion mode
+
+        CRITICAL: Agents frequently use 2>/dev/null to suppress error messages
+        in read-only commands. These should be allowed.
+        """
+        test_cases = [
+            # Should be ALLOWED - redirections to /dev/null
+            ("ls 2>/dev/null", True, "stderr to /dev/null"),
+            ("cat file.txt 2>/dev/null", True, "cat stderr to /dev/null"),
+            ("grep pattern file 2>/dev/null", True, "grep stderr to /dev/null"),
+            ("ls -lt .brainworm/timing/*.jsonl 2>/dev/null", True, "ls with path stderr to /dev/null"),
+            ("cat .brainworm/session_start_errors.log 2>/dev/null", True, "cat log file stderr to /dev/null"),
+            ("find . -name '*.py' 2>/dev/null", True, "find stderr to /dev/null"),
+            ("ls 1>/dev/null", True, "stdout to /dev/null"),
+            ("echo test >/dev/null", True, "stdout redirection to /dev/null"),
+            ("ls &>/dev/null", True, "both stdout and stderr to /dev/null"),
+            ("ls 2>&1 >/dev/null", True, "complex redirection with /dev/null"),
+
+            # Should be BLOCKED - actual file writes
+            ("ls > output.txt", False, "stdout to file"),
+            ("ls 2> errors.txt", False, "stderr to file"),
+            ("echo test > file.txt", False, "echo to file"),
+            ("cat file1 > file2", False, "cat to file"),
+        ]
+
+        for cmd, expected, description in test_cases:
+            result = is_read_only_bash_command(cmd, config)
+            assert result == expected, f"DEV_NULL - {description}: '{cmd}' should be {'allowed' if expected else 'blocked'}"
+
     def test_the_exact_original_failing_command(self, config):
         """
         Test the exact command that was failing for the original user report
-        
+
         This is the most important test - validates the main fix works
         """
         failing_command = 'ls -la | grep -E "(task|script)"'
         result = is_read_only_bash_command(failing_command, config)
-        
+
         assert result == True, f"CRITICAL: Original failing command should now work: '{failing_command}'"
-        
+
         # Debug the parsing to show it's working correctly
         parts = split_command_respecting_quotes(failing_command)
         assert parts == ['ls -la', 'grep -E "(task|script)"'], f"Quote parsing should work: {parts}"

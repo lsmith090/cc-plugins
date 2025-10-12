@@ -141,8 +141,8 @@ def is_read_only_bash_command(command: str, config: Dict[str, Any]) -> bool:
 
     # PHASE 1: Check for write patterns (output redirection, file modifications)
     write_patterns = [
-        r'>\s*[^>]',         # Output redirection (but not >>)
-        r'>>',                # Append redirection
+        r'>(?!&)(?!\s*/dev/null)',  # Output redirection (except fd redirects and /dev/null)
+        r'>>',                      # Append redirection
         r'\btee\b',           # tee command (writes to files)
         r'\bmv\b',            # move/rename
         r'\bcp\b',            # copy
