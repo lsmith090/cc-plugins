@@ -57,9 +57,7 @@ class HookEventStore:
         self.events_dir.mkdir(parents=True, exist_ok=True)
 
         self.db_path = self.events_dir / "hooks.db"
-        self.logs_dir = self.events_dir / "logs"
-        self.logs_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Load configuration
         self.config = self._load_config()
         
