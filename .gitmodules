@@ -1,3 +1,0 @@
-[submodule "test-submodule-plugin"]
-	path = test-submodule-plugin
-	url = /tmp/test-submodule-plugin-temp

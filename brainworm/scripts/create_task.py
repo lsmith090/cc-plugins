@@ -258,10 +258,16 @@ def create_task(
         # 8. Update DAIC state with submodule branch tracking
         console.print(f"\n[cyan]Updating DAIC state...[/cyan]")
         state_mgr = DAICStateManager(project_root)
+
+        # Get current state to preserve session/correlation IDs
+        current_unified = state_mgr.get_unified_state()
+
         state_mgr.set_task_state(
             task=task_name,
             branch=main_branch,  # Main repo's actual branch
             services=services or [],
+            correlation_id=current_unified.get("correlation_id"),
+            session_id=current_unified.get("session_id"),
             active_submodule_branches=active_submodule_branches
         )
         console.print("[green]✓ DAIC state updated[/green]")
