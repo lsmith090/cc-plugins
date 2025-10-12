@@ -270,7 +270,7 @@ This architecture enables Brainworm to provide both structured workflow enforcem
 - **Task Hook**: Enables transcript processing and context delivery to subagents
 - **DAIC Hook**: Enforces workflow discipline and tool blocking
 
-**Installation**: The `./install` script automatically configures all required hooks and handles upgrades intelligently.
+**Installation**: Brainworm is installed via the Claude Code plugin marketplace. All hooks are configured automatically on first session.
 
 **Validation**: Run `uv run src/hooks/verify_installation.py` to verify proper setup.
 

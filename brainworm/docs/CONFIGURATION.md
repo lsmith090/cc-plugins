@@ -325,11 +325,11 @@ blocked_tools = ["Edit", "Write"]
 
 ### Upgrading Existing Installations ✅ IMPLEMENTED
 
-**Simple Upgrade Process** - Enhanced installer handles intelligent merging:
+**Simple Upgrade Process** - Plugin marketplace handles intelligent updates:
 
 ```bash
-# Upgrade any existing installation with latest features
-./install
+# Upgrade to latest version
+/plugin upgrade brainworm
 ```
 
 The enhanced installer automatically:

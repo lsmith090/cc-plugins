@@ -311,9 +311,9 @@ This diagram illustrates the installation and configuration process:
 
 ```mermaid
 graph TD
-    A[./install Command] --> B[install_hooks.py]
-    
-    B --> C[Load Governance Manifest]
+    A[Plugin Install Command] --> B[Claude Code Plugin System]
+
+    B --> C[Copy Plugin Files]
     C --> D[Detect Installation Mode]
     
     D --> E{Existing Installation?}

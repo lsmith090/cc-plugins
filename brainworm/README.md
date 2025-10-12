@@ -259,7 +259,6 @@ pattern_learning = true
 - [CONFIGURATION.md](docs/CONFIGURATION.md) - Complete configuration reference
 - [NAUTILOID_INTEGRATION.md](docs/NAUTILOID_INTEGRATION.md) - Multi-project analytics
 - [END_USER_GUIDE.md](docs/END_USER_GUIDE.md) - Detailed user guide
-- [GOVERNANCE.md](docs/GOVERNANCE.md) - File integrity and governance
 
 ## Troubleshooting
 

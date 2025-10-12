@@ -47,7 +47,7 @@ except ImportError as e:
     print(f"Tried utils path: {utils_path}")
     print(f"Tried parent path: {utils_path.parent}")
     print("Make sure you're running create_task.py from an installed brainworm system")
-    print("Run './install' to set up brainworm first")
+    print("Install brainworm via: /plugin install brainworm@<marketplace>")
     sys.exit(1)
 
 

@@ -18,7 +18,7 @@ Verify your installation is working:
 
 ```bash
 ./daic status              # Should show current mode
-./install                  # If anything seems broken
+/plugin reinstall brainworm # If anything seems broken
 ```
 
 **Understanding the Statusline:**
@@ -381,7 +381,7 @@ I'd like to implement this change, but I'm currently in discussion mode...
 1. Are you using the right trigger phrases?
 2. Run `./daic status` to see current state
 3. Try manual mode switch: `./daic implementation`
-4. Check if hooks are properly installed: `./install`
+4. Check if hooks are properly installed: `/plugin reinstall brainworm`
 
 ## "Claude Keeps Suggesting More Discussion"
 

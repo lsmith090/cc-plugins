@@ -17,7 +17,7 @@ from collections import deque
 import tracemalloc
 
 
-from brainworm.utils.transcript_parser import (
+from brainworm.hooks.transcript_processor import (
     remove_prework_entries,
     clean_transcript_entries,
     get_token_count,
