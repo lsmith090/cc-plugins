@@ -132,197 +132,37 @@ class HookEventStore:
         # Default to 0 if no duration data found
         return 0.0
     
-    
-    def _extract_tool_name(self, event_data: Dict[str, Any]) -> Optional[str]:
-        """Extract tool name from event data"""
-        # Check direct tool_name field first
-        if 'tool_name' in event_data:
-            return event_data['tool_name']
-        
-        # Check in tool_input structure
-        if 'tool_input' in event_data:
-            return event_data.get('tool_input', {}).get('tool_name')
-        
-        return None
-    
-    def _extract_file_path(self, event_data: Dict[str, Any]) -> Optional[str]:
-        """Extract file path from tool operations with improved parsing"""
-        tool_input = event_data.get('tool_input', {})
-        
-        # For Edit/MultiEdit/Write tools
-        if 'file_path' in tool_input:
-            return tool_input['file_path']
-        
-        # For Bash commands, try to extract file operations
-        if event_data.get('tool_name') == 'Bash' and 'command' in tool_input:
-            command = tool_input['command']
-            import re
-            
-            # Improved patterns that handle flags and find file paths (including quoted)
-            file_patterns = [
-                # File operations - handle quoted strings and skip flags
-                r'(?:edit|vim|nano|cat|head|tail|grep|less|more)\s+(?:-[^\s]*\s+)*(?!-|<<)([\'"][^\'"|<>]+[\'"]|[^\s|<>]+)(?:\s|$|\|)',
-                r'(?:touch|rm|mv|cp|chmod|chown)\s+(?:-[^\s]*\s+)*(?!-)([\'"][^\'"|<>]+[\'"]|[^\s|<>]+)(?:\s|$|\|)',
-                # Redirection - exclude /dev/null and heredocs, handle quoted paths
-                r'>\s*(?!/dev/null|<<)([\'"][^\'"|<>]+[\'"]|[^\s|<>]+)(?:\s|$|\|)',
-                r'<\s*(?!<<)([\'"][^\'"|<>]+[\'"]|[^\s|<>]+)(?:\s|$|\|)'
-            ]
-            
-            for pattern in file_patterns:
-                match = re.search(pattern, command)
-                if match:
-                    potential_path = match.group(1).strip('"\'')  # Remove quotes
-                    if self._is_valid_file_path(potential_path):
-                        return potential_path
-        
-        # For Read tool (duplicate check removed - already handled above)
-        return None
-    
-    def _is_valid_file_path(self, path: str) -> bool:
-        """Validate that a string looks like a real file path"""
-        if not path or len(path) == 0:
-            return False
-        
-        # Exclude obvious non-paths
-        if path.startswith('-'):  # Command flags
-            return False
-        if path.startswith('<<'):  # Heredoc markers
-            return False
-        if path in ['EOF', 'EOL']:  # Common heredoc delimiters
-            return False
-        if path.isdigit():  # Pure numbers (from flags like -20)
-            return False
-        if path in ['/dev/null', '/dev/zero']:  # Special devices
-            return False
-        
-        # Must look like a path - contain / or . or be a simple filename
-        if '/' in path or '.' in path or path.isalnum():
-            return True
-            
-        return False
-    
-    def _extract_change_summary(self, event_data: Dict[str, Any]) -> Optional[str]:
-        """Generate change summary based on tool operation"""
-        tool_name = event_data.get('tool_name')
-        tool_input = event_data.get('tool_input', {})
-        
-        if tool_name == 'Edit':
-            old_str = tool_input.get('old_string', '')[:50]  # First 50 chars
-            new_str = tool_input.get('new_string', '')[:50]
-            if old_str and new_str:
-                return f"Edit: '{old_str}...' → '{new_str}...'"
-        
-        elif tool_name == 'Write':
-            file_path = tool_input.get('file_path', '')
-            content_size = len(tool_input.get('content', ''))
-            if file_path:
-                return f"Write: {content_size} chars to {Path(file_path).name}"
-        
-        elif tool_name == 'MultiEdit':
-            edits_count = len(tool_input.get('edits', []))
-            file_path = tool_input.get('file_path', '')
-            if file_path:
-                return f"MultiEdit: {edits_count} changes to {Path(file_path).name}"
-        
-        elif tool_name == 'Bash':
-            command = tool_input.get('command', '')[:100]  # First 100 chars
-            if command:
-                return f"Bash: {command}"
-        
-        elif tool_name == 'Read':
-            file_path = tool_input.get('file_path', '')
-            if file_path:
-                return f"Read: {Path(file_path).name}"
-        
-        elif tool_name == 'Task':
-            subagent_type = tool_input.get('subagent_type', '')
-            description = tool_input.get('description', '')
-            if subagent_type:
-                return f"Task: {subagent_type} - {description[:50]}..."
-        
-        return None
-    
-    def _calculate_original_data_size(self, event_data: Dict[str, Any]) -> Optional[int]:
-        """Calculate original data size before any processing"""
-        total_size = 0
-        
-        # Size of the entire event data structure
-        event_json = json.dumps(event_data, default=str)
-        total_size = len(event_json.encode('utf-8'))
-        
-        # Add sizes of specific large content fields
-        tool_input = event_data.get('tool_input', {})
-        if isinstance(tool_input, dict):
-            # For Write operations, count content size
-            if 'content' in tool_input:
-                content_size = len(str(tool_input['content']).encode('utf-8'))
-                total_size += content_size
-            
-            # For Edit operations, count old_string and new_string
-            if 'old_string' in tool_input:
-                old_size = len(str(tool_input['old_string']).encode('utf-8'))
-                total_size += old_size
-            if 'new_string' in tool_input:
-                new_size = len(str(tool_input['new_string']).encode('utf-8'))
-                total_size += new_size
-        
-        # Tool response data (for post_tool_use events)
-        if 'tool_response' in event_data or 'tool_result' in event_data:
-            tool_result = event_data.get('tool_response') or event_data.get('tool_result')
-            if tool_result:
-                result_json = json.dumps(tool_result, default=str)
-                result_size = len(result_json.encode('utf-8'))
-                total_size += result_size
-        
-        return total_size if total_size > 0 else None
-    
     def _init_database(self):
-        """Initialize SQLite database for event storage"""
+        """Initialize SQLite database for event storage with minimal schema"""
         try:
             with sqlite3.connect(self.db_path) as conn:
+                # Simplified schema: minimal indexed columns + rich JSON
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS hook_events (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         hook_name TEXT NOT NULL,
-                        event_type TEXT NOT NULL,
                         correlation_id TEXT,
                         session_id TEXT,
-                        success BOOLEAN,
-                        duration_ms REAL,
-                        data TEXT,
-                        developer_name TEXT,
-                        developer_email TEXT,
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                        execution_id TEXT,
+                        timestamp DATETIME NOT NULL,
+                        event_data TEXT NOT NULL
                     )
                 """)
-                
-                # Schema migration: Add columns if they don't exist
-                migration_columns = [
-                    ("developer_name", "TEXT"),
-                    ("developer_email", "TEXT"),
-                    ("timestamp", "DATETIME"),
-                    ("tool_name", "TEXT"),
-                    ("file_path", "TEXT"),
-                    ("change_summary", "TEXT"),
-                    ("original_data_size", "INTEGER"),
-                    ("execution_id", "TEXT"),
-                    ("hook_script", "TEXT"),
-                ]
 
-                for column_name, column_type in migration_columns:
-                    try:
-                        conn.execute(f"ALTER TABLE hook_events ADD COLUMN {column_name} {column_type}")
-                    except sqlite3.OperationalError:
-                        pass  # Column already exists
-
+                # Indexes for efficient querying
                 conn.execute("""
                     CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp
                     ON hook_events(timestamp)
                 """)
-                
+
                 conn.execute("""
                     CREATE INDEX IF NOT EXISTS idx_hook_events_correlation
                     ON hook_events(correlation_id)
+                """)
+
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_session
+                    ON hook_events(session_id)
                 """)
 
                 conn.execute("""
@@ -330,7 +170,7 @@ class HookEventStore:
                     ON hook_events(execution_id)
                 """)
         except Exception:
-            # Analytics is optional - continue if database init fails
+            # Event storage is optional - continue if database init fails
             pass
     
     def log_event(self, event_data: Dict[str, Any]) -> bool:
@@ -379,62 +219,21 @@ class HookEventStore:
                 raw_timestamp = event_data.get('timestamp')
                 timestamp = format_for_database(str(raw_timestamp)) if raw_timestamp else get_standard_timestamp()
             
-            # Get developer information from DAIC state manager
-            developer_info = DeveloperInfo() if DeveloperInfo else None
-            try:
-                from .daic_state_manager import DAICStateManager
-                state_manager = DAICStateManager(self.brainworm_dir.parent)  # Pass project root
-                developer_info = state_manager.get_developer_info()
-            except (ImportError, FileNotFoundError, KeyError, AttributeError) as e:
-                # Continue with fallback developer info if unavailable
-                if DeveloperInfo:
-                    developer_info = DeveloperInfo()
-                else:
-                    developer_info = None
-            
-            # Extract metadata for new schema columns
-            tool_name = self._extract_tool_name(event_data)
-            file_path = self._extract_file_path(event_data)
-            change_summary = self._extract_change_summary(event_data)
-            original_data_size = self._calculate_original_data_size(event_data)
+            # Extract minimal indexed fields
             execution_id = event_data.get('execution_id', None)
-            hook_script = event_data.get('hook_script', None)
-            
-            # Store in database with new schema columns
+
+            # Store in database with simplified schema: minimal columns + rich JSON
             with sqlite3.connect(self.db_path, timeout=1.0) as conn:
                 conn.execute("""
                     INSERT INTO hook_events
-                    (hook_name, event_type, correlation_id, session_id,
-                     success, duration_ms, data, developer_name, developer_email,
-                     timestamp, tool_name, file_path, change_summary, original_data_size, execution_id, hook_script)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (hook_name, correlation_id, session_id, execution_id,
+                     timestamp, event_data)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 """, (
-                    hook_name, event_type, correlation_id, session_id,
-                    success, duration_ms, json.dumps(event_data),
-                    developer_info.name if developer_info else None,
-                    developer_info.email if developer_info else None,
-                    timestamp,
-                    tool_name, file_path, change_summary, original_data_size, execution_id, hook_script
+                    hook_name, correlation_id, session_id, execution_id,
+                    timestamp, json.dumps(event_data)
                 ))
-            
-            # Also write to JSONL log file for backup
-            log_file = self.logs_dir / f"{datetime.now().strftime('%Y-%m-%d')}_hooks.jsonl"
-            with open(log_file, 'a', encoding='utf-8') as f:
-                json.dump({
-                    'execution_id': execution_id,
-                    'created_at': timestamp,  # Already in ISO format
-                    'hook_name': hook_name,
-                    'event_type': event_type,
-                    'correlation_id': correlation_id,
-                    'session_id': session_id,
-                    'success': success,
-                    'duration_ms': duration_ms,
-                    'developer_name': developer_info.name if developer_info else None,
-                    'developer_email': developer_info.email if developer_info else None,
-                    **event_data
-                }, f, separators=(',', ':'))
-                f.write('\n')
-            
+
             return True
             
         except Exception as e:
@@ -468,34 +267,27 @@ class HookEventStore:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.execute("""
-                    SELECT 
+                    SELECT
                         COUNT(*) as total_events,
-                        AVG(duration_ms) as avg_duration,
-                        SUM(CASE WHEN success THEN 1 ELSE 0 END) as successful_events,
                         COUNT(DISTINCT session_id) as unique_sessions,
                         COUNT(DISTINCT correlation_id) as unique_correlations
                     FROM hook_events
                     WHERE datetime(timestamp) > datetime('now', '-1 day')
                 """)  # Last 24 hours using SQLite datetime functions
-                
+
                 row = cursor.fetchone()
                 if row:
-                    total = row[0]
                     return {
-                        'total_events': total,
-                        'avg_duration_ms': round(row[1] or 0, 2),
-                        'success_rate': round((row[2] / total * 100) if total > 0 else 0, 1),
-                        'unique_sessions': row[3],
-                        'unique_correlations': row[4],
+                        'total_events': row[0],
+                        'unique_sessions': row[1],
+                        'unique_correlations': row[2],
                         'period': '24h'
                     }
         except Exception:
             pass
-        
+
         return {
             'total_events': 0,
-            'avg_duration_ms': 0,
-            'success_rate': 0,
             'unique_sessions': 0,
             'unique_correlations': 0,
             'period': '24h'
