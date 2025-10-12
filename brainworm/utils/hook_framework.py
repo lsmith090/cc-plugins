@@ -464,15 +464,15 @@ class HookFramework:
                 self.debug_logger.debug(f"Typed input available: {self.typed_input is not None and not isinstance(self.typed_input, dict)}", execution_id=self.execution_id)
 
             # 3. Execute custom logic if provided
-            # Pass typed input if available, otherwise pass raw input for backward compatibility
+            # ARCHITECTURE: Custom logic always receives dict (raw_input_data)
+            # Typed input is used for validation at boundary, but business logic uses dicts for flexibility
             if self.custom_logic_fn:
                 try:
                     if self.debug_logger:
                         self.debug_logger.debug(f"Executing custom logic for {self.hook_name}", execution_id=self.execution_id)
 
-                    # Use typed input if available, otherwise fall back to raw input
-                    input_to_pass = self.typed_input if self.typed_input else self.raw_input_data
-                    self.custom_logic_fn(self, input_to_pass)
+                    # Always pass raw dict to custom logic - typed input is for validation only
+                    self.custom_logic_fn(self, self.raw_input_data)
 
                     if self.debug_logger:
                         self.debug_logger.debug(f"Custom logic completed successfully", execution_id=self.execution_id)

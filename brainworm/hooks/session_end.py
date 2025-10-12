@@ -17,17 +17,18 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import subprocess
+from typing import Dict, Any
 from utils.hook_framework import HookFramework
 
-def session_end_logic(framework, typed_input):
-    """Custom logic for session end with snapshot creation."""
-    # Handle both typed input and raw dict for graceful degradation
-    if hasattr(typed_input, 'session_id'):
-        session_id = typed_input.session_id
-    elif isinstance(typed_input, dict):
-        session_id = typed_input.get('session_id', 'unknown')
-    else:
-        session_id = 'unknown'
+def session_end_logic(framework, input_data: Dict[str, Any]):
+    """Custom logic for session end with snapshot creation.
+
+    Args:
+        framework: HookFramework instance
+        input_data: Raw input dict (always dict, typed input used for validation only)
+    """
+    # Extract data from dict - simple and direct
+    session_id = input_data.get('session_id', 'unknown')
 
     # Debug logging - INFO level
     if framework.debug_logger:
@@ -57,20 +58,9 @@ def session_end_logic(framework, typed_input):
 
 def session_end_success_message(framework):
     """Custom success message for session end hook."""
-    # Handle both typed input and raw dict for graceful degradation
-    if hasattr(framework, 'typed_input') and framework.typed_input:
-        typed_input = framework.typed_input
-        if hasattr(typed_input, 'session_id'):
-            session_id = typed_input.session_id
-        elif isinstance(typed_input, dict):
-            session_id = typed_input.get('session_id', 'unknown')
-        else:
-            session_id = 'unknown'
-        reason = framework.raw_input_data.get('reason', 'unknown')
-    else:
-        session_id = framework.raw_input_data.get('session_id', 'unknown')
-        reason = framework.raw_input_data.get('reason', 'unknown')
-
+    # Direct dict access - simple and clear
+    session_id = framework.raw_input_data.get('session_id', 'unknown')
+    reason = framework.raw_input_data.get('reason', 'unknown')
     session_short = session_id[:8] if len(session_id) >= 8 else session_id
     print(f"✅ Session ended ({reason}): {session_short}", file=sys.stderr)
 

@@ -23,20 +23,21 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from typing import Dict, Any
 from utils.hook_framework import HookFramework
 
-def notification_logic(framework, typed_input):
-    """Logic for notification processing."""
+def notification_logic(framework, input_data: Dict[str, Any]):
+    """Logic for notification processing.
+
+    Args:
+        framework: HookFramework instance
+        input_data: Raw input dict (always dict, typed input used for validation only)
+    """
+    # Extract data from dict - simple and direct
+    message = input_data.get('message', 'Unknown notification')
+
     # Log notification via debug_logger
     if framework.debug_logger:
-        # Access message from typed input if available, fallback to raw data
-        if hasattr(typed_input, 'message'):
-            message = typed_input.message
-        elif isinstance(typed_input, dict):
-            message = typed_input.get('message', 'Unknown notification')
-        else:
-            message = framework.raw_input_data.get('message', 'Unknown notification')
-
         framework.debug_logger.info(f"📢 Notification received: {message}")
 
 def custom_notification_display(framework):

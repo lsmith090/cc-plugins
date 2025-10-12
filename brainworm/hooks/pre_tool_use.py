@@ -189,8 +189,13 @@ def extract_metadata(raw_input_data: Dict[str, Any]) -> Dict[str, Any]:
     return metadata
 
 
-def pre_tool_use_framework_logic(framework, typed_input):
-    """Custom logic for pre-tool use using pure framework approach"""
+def pre_tool_use_framework_logic(framework, input_data: Dict[str, Any]):
+    """Custom logic for pre-tool use using pure framework approach.
+
+    Args:
+        framework: HookFramework instance
+        input_data: Raw input dict (always dict, typed input used for validation only)
+    """
     project_root = framework.project_root
 
     # Handle case where project_root might be None
@@ -203,19 +208,10 @@ def pre_tool_use_framework_logic(framework, typed_input):
     config = load_config(project_root)
     daic_state = get_daic_state(project_root)
 
-    # Handle both typed input and raw dict for graceful degradation
-    if hasattr(typed_input, 'session_id'):
-        session_id = typed_input.session_id
-        tool_name = typed_input.tool_name
-        tool_input = typed_input.tool_input
-    elif isinstance(typed_input, dict):
-        session_id = typed_input.get('session_id', 'unknown')
-        tool_name = typed_input.get('tool_name', 'unknown')
-        tool_input = typed_input.get('tool_input', {})
-    else:
-        session_id = 'unknown'
-        tool_name = 'unknown'
-        tool_input = {}
+    # Extract data from dict - simple and direct
+    session_id = input_data.get('session_id', 'unknown')
+    tool_name = input_data.get('tool_name', 'unknown')
+    tool_input = input_data.get('tool_input', {})
 
     # Debug logging - INFO level
     if framework.debug_logger:

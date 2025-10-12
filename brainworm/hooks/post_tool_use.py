@@ -46,21 +46,16 @@ def determine_tool_success(tool_response: Dict[str, Any]) -> bool:
 
     return True
 
-def post_tool_use_logic(framework, typed_input):
-    """Custom logic for post-tool use processing."""
-    # Handle both typed input and raw dict for graceful degradation
-    if hasattr(typed_input, 'tool_name'):
-        tool_name = typed_input.tool_name
-        tool_response = typed_input.tool_response
-        tool_input = typed_input.tool_input
-    elif isinstance(typed_input, dict):
-        tool_name = typed_input.get('tool_name', 'unknown')
-        tool_response = typed_input.get('tool_response')
-        tool_input = typed_input.get('tool_input')
-    else:
-        tool_name = 'unknown'
-        tool_response = None
-        tool_input = None
+def post_tool_use_logic(framework, input_data: Dict[str, Any]):
+    """Custom logic for post-tool use processing.
+
+    Args:
+        framework: HookFramework instance
+        input_data: Raw input dict (always dict, typed input used for validation only)
+    """
+    # Extract data from dict - simple and direct
+    tool_name = input_data.get('tool_name', 'unknown')
+    tool_response = input_data.get('tool_response', {})
 
     # Clean up subagent flag if Task tool completed
     subagent_manager = create_subagent_manager(framework.project_root)
@@ -69,9 +64,8 @@ def post_tool_use_logic(framework, typed_input):
     if framework.debug_logger and cleanup_performed:
         framework.debug_logger.info(f"Subagent context cleanup performed for {tool_name}")
 
-    # Analyze tool success
-    tool_response_dict = tool_response.to_dict() if tool_response and hasattr(tool_response, 'to_dict') else (tool_response if isinstance(tool_response, dict) else {})
-    success = determine_tool_success(tool_response_dict)
+    # Analyze tool success - tool_response is already a dict
+    success = determine_tool_success(tool_response)
 
     # Store success for the success message handler
     framework.tool_success = success
@@ -86,22 +80,9 @@ def post_tool_use_logic(framework, typed_input):
 
 def post_tool_use_success_message(framework):
     """Custom success message for post-tool use hook."""
-    # Handle both typed input and raw dict for graceful degradation
-    if hasattr(framework, 'typed_input') and framework.typed_input:
-        typed_input = framework.typed_input
-        if hasattr(typed_input, 'tool_name'):
-            tool_name = typed_input.tool_name
-            session_id = typed_input.session_id
-        elif isinstance(typed_input, dict):
-            tool_name = typed_input.get('tool_name', 'unknown')
-            session_id = typed_input.get('session_id', 'unknown')
-        else:
-            tool_name = 'unknown'
-            session_id = 'unknown'
-    else:
-        tool_name = framework.raw_input_data.get('tool_name', 'unknown')
-        session_id = framework.raw_input_data.get('session_id', 'unknown')
-
+    # Direct dict access - simple and clear
+    tool_name = framework.raw_input_data.get('tool_name', 'unknown')
+    session_id = framework.raw_input_data.get('session_id', 'unknown')
     session_short = session_id[:8] if len(session_id) >= 8 else session_id
 
     # Get success status
