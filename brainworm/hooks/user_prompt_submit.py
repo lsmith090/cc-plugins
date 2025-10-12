@@ -377,7 +377,7 @@ def user_prompt_submit_framework_logic(framework, typed_input):
 def main() -> None:
     """Main entry point for user prompt submit hook - Pure Framework Approach"""
     try:
-        HookFramework("user_prompt_submit", enable_analytics=True, enable_logging=True) \
+        HookFramework("user_prompt_submit", enable_analytics=True) \
             .with_custom_logic(user_prompt_submit_framework_logic) \
             .execute()
         

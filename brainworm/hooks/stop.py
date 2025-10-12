@@ -66,7 +66,7 @@ def stop_success_message(framework):
     print(f"✅ Session stopped: {session_short}", file=sys.stderr)
 
 if __name__ == "__main__":
-    HookFramework("stop", enable_analytics=True, enable_logging=True) \
+    HookFramework("stop", enable_analytics=True) \
         .with_custom_logic(stop_session_logic) \
         .with_success_handler(stop_success_message) \
         .execute()

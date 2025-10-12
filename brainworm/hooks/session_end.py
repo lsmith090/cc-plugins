@@ -75,7 +75,7 @@ def session_end_success_message(framework):
     print(f"✅ Session ended ({reason}): {session_short}", file=sys.stderr)
 
 if __name__ == "__main__":
-    HookFramework("session_end", enable_analytics=True, enable_logging=True) \
+    HookFramework("session_end", enable_analytics=True) \
         .with_custom_logic(session_end_logic) \
         .with_success_handler(session_end_success_message) \
         .execute()
