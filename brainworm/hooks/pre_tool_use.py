@@ -127,8 +127,15 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
             return ToolBlockingResult.allow_tool("Brainworm system command allowed")
         
         # Block other daic commands in discussion mode (they should be handled by user-messages hook)
-        if is_discussion_mode and 'daic' in command:
-            return ToolBlockingResult.command_block(command, "The 'daic' command is not allowed in discussion mode. You're already in discussion mode.")
+        # Only check the actual command, not arguments/file paths
+        if is_discussion_mode:
+            command_parts = split_command_respecting_quotes(command)
+            if command_parts:
+                # Get the first part of the first command (before any pipes)
+                first_command = command_parts[0].strip().split()[0] if command_parts[0].strip() else ""
+                # Check if the command itself is 'daic' or './daic'
+                if first_command in ('daic', './daic'):
+                    return ToolBlockingResult.command_block(command, "The 'daic' command is not allowed in discussion mode. You're already in discussion mode.")
         
         # Check if command is read-only in discussion mode
         if is_discussion_mode and not is_read_only_bash_command(command, config):

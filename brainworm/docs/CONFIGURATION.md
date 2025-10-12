@@ -69,6 +69,13 @@ docker = ["docker ps", "docker images", "docker logs"]
 package_managers = ["npm list", "npm ls", "pip list", "pip show", "yarn list"]
 network = ["curl", "wget", "ping", "nslookup", "dig"]
 text_processing = ["jq", "awk", "sed -n"]
+testing = [
+    "pytest", "python -m pytest", "python -m unittest", "uv run pytest",
+    "npm test", "npm run test", "yarn test", "yarn run test",
+    "npx jest", "npx vitest", "pnpm test",
+    "cargo test", "go test", "mvn test", "gradle test",
+    "rake test", "mix test", "dotnet test", "rspec", "make test"
+]
 
 ```
 
@@ -116,6 +123,7 @@ docker = ["docker ps", "docker images"]
 - `package_managers` - Package manager listing commands
 - `network` - Network diagnostic commands
 - `text_processing` - Text processing utilities
+- `testing` - Test execution commands (pytest, npm test, cargo test, etc.)
 
 ### Debug Logging Configuration (`[debug]`) ✅ IMPLEMENTED
 

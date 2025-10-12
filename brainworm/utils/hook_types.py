@@ -856,7 +856,14 @@ class ReadOnlyCommandsConfig:
     text_processing: List[str] = field(default_factory=lambda: [
         "jq", "awk", "sed -n"
     ])
-    
+    testing: List[str] = field(default_factory=lambda: [
+        "pytest", "python -m pytest", "python -m unittest", "uv run pytest",
+        "npm test", "npm run test", "yarn test", "yarn run test",
+        "npx jest", "npx vitest", "pnpm test", "pnpm run test",
+        "cargo test", "go test", "mvn test", "gradle test",
+        "rake test", "mix test", "dotnet test", "rspec", "make test"
+    ])
+
     def to_dict(self) -> Dict[str, List[str]]:
         return {
             "basic": self.basic,
@@ -864,9 +871,10 @@ class ReadOnlyCommandsConfig:
             "docker": self.docker,
             "package_managers": self.package_managers,
             "network": self.network,
-            "text_processing": self.text_processing
+            "text_processing": self.text_processing,
+            "testing": self.testing
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ReadOnlyCommandsConfig':
         return cls(
@@ -875,7 +883,8 @@ class ReadOnlyCommandsConfig:
             docker=data.get("docker", []),
             package_managers=data.get("package_managers", []),
             network=data.get("network", []),
-            text_processing=data.get("text_processing", [])
+            text_processing=data.get("text_processing", []),
+            testing=data.get("testing", [])
         )
 
 

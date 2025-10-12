@@ -52,6 +52,13 @@ def get_canonical_default_config() -> Dict[str, Any]:
                 ],
                 "text_processing": [
                     "jq", "awk", "sed -n"
+                ],
+                "testing": [
+                    "pytest", "python -m pytest", "python -m unittest", "uv run pytest",
+                    "npm test", "npm run test", "yarn test", "yarn run test",
+                    "npx jest", "npx vitest", "pnpm test", "pnpm run test",
+                    "cargo test", "go test", "mvn test", "gradle test",
+                    "rake test", "mix test", "dotnet test", "rspec", "make test"
                 ]
             }
         },

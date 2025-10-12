@@ -30,22 +30,29 @@ class TestDAICCommandParsing:
             "daic": {
                 "read_only_bash_commands": {
                     "basic": [
-                        "ls", "ll", "pwd", "cd", "echo", "cat", "head", "tail", 
-                        "less", "more", "grep", "rg", "find", "fd", "which", 
+                        "ls", "ll", "pwd", "cd", "echo", "cat", "head", "tail",
+                        "less", "more", "grep", "rg", "find", "fd", "which",
                         "whereis", "type", "file", "stat", "du", "df", "tree",
-                        "basename", "dirname", "realpath", "readlink", "whoami", 
-                        "env", "printenv", "date", "cal", "uptime", "wc", "cut", 
+                        "basename", "dirname", "realpath", "readlink", "whoami",
+                        "env", "printenv", "date", "cal", "uptime", "wc", "cut",
                         "sort", "uniq", "comm", "diff", "cmp", "md5sum", "sha256sum"
                     ],
                     "git": [
-                        "git status", "git log", "git diff", "git show", 
-                        "git branch", "git remote", "git fetch", "git describe", 
+                        "git status", "git log", "git diff", "git show",
+                        "git branch", "git remote", "git fetch", "git describe",
                         "git rev-parse", "git blame"
                     ],
                     "network": ["curl", "wget", "ping", "nslookup", "dig"],
                     "text_processing": ["jq", "awk", "sed -n"],
                     "docker": ["docker ps", "docker images", "docker logs"],
-                    "package_managers": ["npm list", "npm ls", "pip list", "pip show", "yarn list"]
+                    "package_managers": ["npm list", "npm ls", "pip list", "pip show", "yarn list"],
+                    "testing": [
+                        "pytest", "python -m pytest", "python -m unittest", "uv run pytest",
+                        "npm test", "npm run test", "yarn test", "yarn run test",
+                        "npx jest", "npx vitest", "pnpm test", "pnpm run test",
+                        "cargo test", "go test", "mvn test", "gradle test",
+                        "rake test", "mix test", "dotnet test", "rspec", "make test"
+                    ]
                 }
             }
         }
@@ -334,6 +341,111 @@ class TestDAICCommandParsing:
         parts = split_command_respecting_quotes(failing_command)
         assert parts == ['ls -la', 'grep -E "(task|script)"'], f"Quote parsing should work: {parts}"
 
+    def test_testing_commands_allowed(self, config):
+        """
+        Test that test execution commands are allowed in discussion mode
+
+        CRITICAL: Tests are read-only exploration that inform planning decisions.
+        They should be allowed in discussion mode for understanding codebase behavior.
+        """
+        test_cases = [
+            # Python testing
+            ("pytest", True, "Basic pytest"),
+            ("pytest -v", True, "pytest with verbose flag"),
+            ("pytest tests/", True, "pytest with path"),
+            ("pytest tests/unit/test_foo.py", True, "pytest specific file"),
+            ("pytest -v -s --cov=brainworm", True, "pytest with coverage"),
+            ("python -m pytest", True, "pytest via python -m"),
+            ("python -m pytest tests/", True, "pytest via python -m with path"),
+            ("python -m unittest", True, "unittest via python -m"),
+            ("python -m unittest discover", True, "unittest discover"),
+            ("uv run pytest", True, "pytest via uv run"),
+            ("uv run pytest tests/brainworm/", True, "pytest via uv run with path"),
+            ("uv run pytest --cov=brainworm --cov-report=term-missing tests/", True, "pytest via uv with coverage"),
+
+            # JavaScript/TypeScript testing
+            ("npm test", True, "npm test"),
+            ("npm run test", True, "npm run test"),
+            ("npm test -- --verbose", True, "npm test with args"),
+            ("yarn test", True, "yarn test"),
+            ("yarn run test", True, "yarn run test"),
+            ("yarn test --coverage", True, "yarn test with coverage"),
+            ("npx jest", True, "jest via npx"),
+            ("npx jest tests/", True, "jest with path"),
+            ("npx jest --coverage", True, "jest with coverage"),
+            ("npx vitest", True, "vitest via npx"),
+            ("npx vitest run", True, "vitest run"),
+            ("pnpm test", True, "pnpm test"),
+            ("pnpm run test", True, "pnpm run test"),
+
+            # Other language testing
+            ("cargo test", True, "Rust cargo test"),
+            ("cargo test --lib", True, "cargo test with flags"),
+            ("go test", True, "Go test"),
+            ("go test ./...", True, "Go test all packages"),
+            ("go test -v", True, "Go test verbose"),
+            ("mvn test", True, "Maven test"),
+            ("mvn test -Dtest=FooTest", True, "Maven specific test"),
+            ("gradle test", True, "Gradle test"),
+            ("gradle test --tests FooTest", True, "Gradle specific test"),
+            ("rake test", True, "Ruby rake test"),
+            ("mix test", True, "Elixir mix test"),
+            ("mix test --trace", True, "Elixir mix test with trace"),
+            ("dotnet test", True, "dotnet test"),
+            ("dotnet test --verbosity normal", True, "dotnet test with verbosity"),
+            ("rspec", True, "RSpec"),
+            ("rspec spec/", True, "RSpec with path"),
+            ("rspec --format documentation", True, "RSpec with format"),
+            ("make test", True, "Make test"),
+
+            # Test commands with output redirection should be blocked
+            ("pytest > test_output.txt", False, "pytest with output redirect"),
+            ("npm test > results.txt", False, "npm test with output redirect"),
+            ("cargo test >> log.txt", False, "cargo test with append redirect"),
+
+            # Test commands in chains - only all-safe chains allowed
+            ("pytest && echo 'done'", True, "pytest with echo chain"),
+            ("npm test && npm run build", False, "test then build (build may write)"),
+            ("pytest || echo 'failed'", True, "pytest with echo fallback"),
+
+            # Edge cases
+            ("pytest tests/ 2>/dev/null", True, "pytest with stderr to /dev/null"),
+            ("npm test 2>&1", True, "npm test with stderr redirect to stdout"),
+            ("uv run pytest tests/ --verbose", True, "uv pytest with multiple flags"),
+        ]
+
+        for cmd, expected, description in test_cases:
+            result = is_read_only_bash_command(cmd, config)
+            assert result == expected, f"TESTING COMMANDS - {description}: '{cmd}' should be {'allowed' if expected else 'blocked'}"
+
+    def test_testing_commands_prefix_matching(self, config):
+        """
+        Test that test commands use exact matching, not prefix matching
+
+        Validates that 'pytest-foo' doesn't match 'pytest'
+        """
+        test_cases = [
+            # Should be ALLOWED - exact matches or with args
+            ("pytest", True, "Exact pytest"),
+            ("pytest tests/", True, "pytest with path"),
+            ("pytest --verbose", True, "pytest with flag"),
+            ("npm test", True, "Exact npm test"),
+            ("npm test -- --coverage", True, "npm test with args"),
+            ("cargo test", True, "Exact cargo test"),
+            ("cargo test --lib", True, "cargo test with flag"),
+
+            # Should be BLOCKED - fake commands
+            ("pytest-foo", False, "Fake pytest command"),
+            ("pytest_bar", False, "Fake pytest command with underscore"),
+            ("pytestify", False, "Fake command starting with pytest"),
+            ("npm testify", False, "npm with non-test command"),
+            ("cargo testing", False, "cargo with non-test command"),
+        ]
+
+        for cmd, expected, description in test_cases:
+            result = is_read_only_bash_command(cmd, config)
+            assert result == expected, f"TEST PREFIX - {description}: '{cmd}' should be {'allowed' if expected else 'blocked'}"
+
     def test_performance_with_complex_commands(self, config):
         """Test that parsing performance is reasonable for complex commands"""
         complex_commands = [
@@ -341,13 +453,13 @@ class TestDAICCommandParsing:
             "git log --oneline --since='1 week ago' | grep 'feat\\|fix\\|refactor' | head -20",
             "ls -la | grep '.py' | cut -d' ' -f9 | sort | uniq"
         ]
-        
+
         import time
         for cmd in complex_commands:
             start = time.time()
             result = is_read_only_bash_command(cmd, config)
             duration = time.time() - start
-            
+
             # Should complete in reasonable time (< 10ms)
             assert duration < 0.01, f"Command parsing too slow: {duration:.3f}s for '{cmd[:50]}...'"
             assert result == True, f"Complex safe command should be allowed: '{cmd[:50]}...'"

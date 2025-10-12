@@ -21,6 +21,7 @@ DAIC transforms the typical "ask → implement immediately" pattern into a delib
 **What You Can Do**:
 - File exploration (`ls`, `cat`, `grep`, `rg`, `find`)
 - Git inspection (`git status`, `git log`, `git diff`)
+- Test execution (`pytest`, `npm test`, `cargo test`, etc.)
 - Code analysis and investigation
 - Research existing patterns and conventions
 - Use specialized subagents for complex analysis
