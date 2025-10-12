@@ -42,7 +42,6 @@ try:
         PreToolUseDecisionOutput, parse_log_event, get_standard_timestamp
     )
     from .event_logger import SessionEventLogger, create_event_logger
-    from .hook_logging import HookLogger, create_logger
     from .debug_logger import DebugLogger, DebugConfig, create_debug_logger
     from .config import load_config
 except ImportError:
@@ -60,8 +59,6 @@ except ImportError:
     get_standard_timestamp = lambda: datetime.now(timezone.utc).isoformat()
     SessionEventLogger = None
     create_event_logger = None
-    HookLogger = None
-    create_logger = None
     DebugLogger = None
     DebugConfig = None
     create_debug_logger = None
@@ -84,14 +81,13 @@ class HookFramework:
     Reduces individual hook files from 60-80 lines to 5-10 lines.
     """
     
-    def __init__(self, hook_name: str, enable_analytics: bool = True, enable_logging: bool = True, security_critical: bool = False):
+    def __init__(self, hook_name: str, enable_analytics: bool = True, security_critical: bool = False):
         """
-        Initialize framework for a specific hook with sophisticated infrastructure.
+        Initialize framework for a specific hook.
 
         Args:
             hook_name: Name of the hook (e.g., "notification", "session_start")
-            enable_analytics: Whether to enable event storage (parameter name kept for compatibility)
-            enable_logging: Whether to use structured logging infrastructure (deprecated)
+            enable_analytics: Whether to enable event storage
             security_critical: Whether event logging failures should cause hook failure
         """
         self.hook_name = hook_name
@@ -122,11 +118,9 @@ class HookFramework:
         self.exit_message: str = ""
         
         # Infrastructure systems
-        self.enable_event_logging = enable_analytics  # TODO: Rename parameter in next phase
-        self.enable_logging = enable_logging
+        self.enable_event_logging = enable_analytics
         self.security_critical = security_critical
         self.event_logger: Optional[SessionEventLogger] = None
-        self.structured_logger: Optional[HookLogger] = None
         self.debug_logger: Optional[DebugLogger] = None
 
         self._setup_environment()
@@ -237,10 +231,6 @@ class HookFramework:
                     check_verbose_flag=True
                 )
 
-            # Initialize structured logger
-            if self.enable_logging and create_logger:
-                self.structured_logger = create_logger(self.project_root, self.hook_name)
-
             # Initialize event logger with Claude Code session correlation
             if self.enable_event_logging and create_event_logger:
                 event_logging_enabled = '--analytics' in sys.argv  # TODO: Update flag name
@@ -289,38 +279,6 @@ class HookFramework:
                 raise RuntimeError("Security-critical event logging failure")
             else:
                 error_msg += ", continuing without event logging"
-                print(error_msg, file=sys.stderr)
-                return False
-    
-    def _process_structured_logging(self) -> bool:
-        """Process event using structured logging infrastructure."""
-        if not self.structured_logger:
-            return True  # Skip if logging not available
-
-        try:
-            debug_mode = self.debug_logger.is_enabled() if self.debug_logger else False
-
-            # Use hook-specific logging methods based on hook type
-            if self.hook_name in ['pre_tool_use', 'post_tool_use']:
-                success = self.structured_logger.log_tool_use(self.raw_input_data, debug=debug_mode)
-            elif self.hook_name in ['stop', 'subagent_stop']:
-                agent_type = 'subagent' if self.hook_name == 'subagent_stop' else 'main'
-                success = self.structured_logger.log_stop_event(self.raw_input_data, agent_type=agent_type, debug=debug_mode)
-            else:
-                # General event logging with structured enrichment
-                success = self.structured_logger.log_event(self.raw_input_data, debug=debug_mode)
-
-            return success
-
-        except Exception as e:
-            # Sanitize error message to prevent information disclosure
-            error_msg = "Warning: Structured logging failed"
-            if self.security_critical:
-                error_msg += " - SECURITY CRITICAL FAILURE"
-                print(error_msg, file=sys.stderr)
-                raise RuntimeError("Security-critical logging failure")
-            else:
-                error_msg += ", continuing without logging"
                 print(error_msg, file=sys.stderr)
                 return False
     
@@ -502,17 +460,16 @@ class HookFramework:
     
     def execute(self) -> None:
         """
-        Execute the complete hook lifecycle with sophisticated infrastructure systems.
+        Execute the complete hook lifecycle.
 
-        Enhanced Lifecycle:
+        Lifecycle:
         1. Read and parse JSON input from stdin with type-safe processing
         2. Discover project root and initialize infrastructure systems
         3. Execute custom business logic (if provided)
-        4. Process advanced analytics with DAIC awareness
-        5. Process structured logging with enrichment
-        6. Output decision (for pre_tool_use hooks)
-        7. Display success message (if --verbose flag present)
-        8. Handle errors gracefully
+        4. Process event logging with session correlation
+        5. Output decision (for pre_tool_use hooks) or JSON response
+        6. Display success message (if debug enabled)
+        7. Handle errors gracefully
         """
         try:
             # 1. Read input with type-safe parsing (eliminates 10+ lines per hook)
@@ -551,11 +508,8 @@ class HookFramework:
 
             # 4. Process event logging with session correlation (eliminates 40+ lines per hook)
             self._process_event_logging()
-            
-            # 5. DISABLED: Process structured logging with enrichment - causes duplicate entries
-            # self._process_structured_logging()  # Disabled to prevent duplicate log entries
-            
-            # 6. Output decision or JSON response
+
+            # 5. Output decision or JSON response
             self._output_decision()
             self._output_json_response()
             
