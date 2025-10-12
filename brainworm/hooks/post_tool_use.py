@@ -17,8 +17,34 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from typing import Dict, Any
+
 from utils.hook_framework import HookFramework
-from utils.business_controllers import create_subagent_manager, create_tool_analyzer
+from utils.business_controllers import create_subagent_manager
+
+def determine_tool_success(tool_response: Dict[str, Any]) -> bool:
+    """Determine if tool execution was successful based on response indicators."""
+    if not tool_response:
+        return False
+
+    # Check explicit success field
+    if "success" in tool_response:
+        return bool(tool_response["success"])
+
+    # Check for error indicators
+    if tool_response.get("is_error", False):
+        return False
+
+    if "error" in tool_response:
+        return False
+
+    # Check for common failure indicators in response text
+    failure_indicators = ["failed", "error", "exception", "timeout"]
+    response_text = str(tool_response).lower()
+    if any(indicator in response_text for indicator in failure_indicators):
+        return False
+
+    return True
 
 def post_tool_use_logic(framework, typed_input):
     """Custom logic for post-tool use processing."""
@@ -44,9 +70,8 @@ def post_tool_use_logic(framework, typed_input):
         framework.debug_logger.info(f"Subagent context cleanup performed for {tool_name}")
 
     # Analyze tool success
-    tool_analyzer = create_tool_analyzer()
     tool_response_dict = tool_response.to_dict() if tool_response and hasattr(tool_response, 'to_dict') else (tool_response if isinstance(tool_response, dict) else {})
-    success = tool_analyzer.determine_success(tool_response_dict)
+    success = determine_tool_success(tool_response_dict)
 
     # Store success for the success message handler
     framework.tool_success = success
