@@ -95,7 +95,7 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
 
         # 1. Create minimal directory structure
         (brainworm_dir / 'state').mkdir(parents=True, exist_ok=True)
-        (brainworm_dir / 'analytics').mkdir(parents=True, exist_ok=True)
+        (brainworm_dir / 'events').mkdir(parents=True, exist_ok=True)
         (brainworm_dir / 'tasks').mkdir(parents=True, exist_ok=True)
         (brainworm_dir / 'timing').mkdir(parents=True, exist_ok=True)
         (brainworm_dir / 'protocols').mkdir(parents=True, exist_ok=True)
@@ -155,8 +155,8 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
         with AtomicFileWriter(state_file) as f:
             json.dump(initial_state, f, indent=2)
 
-        # 4. Initialize analytics database with schema
-        init_analytics_database(brainworm_dir / 'analytics' / 'hooks.db')
+        # 4. Initialize event store database with schema
+        init_event_database(brainworm_dir / 'events' / 'hooks.db')
 
         # 5. Generate wrapper scripts
         generate_wrappers(project_root, plugin_root)
@@ -176,8 +176,8 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
         # Don't fail session start if auto-setup fails
         console.print(f"[dim yellow]⚠️  Auto-setup warning: {e}[/dim yellow]")
 
-def init_analytics_database(db_path: Path) -> None:
-    """Initialize analytics database with schema"""
+def init_event_database(db_path: Path) -> None:
+    """Initialize event store database with simplified schema"""
     if db_path.exists():
         return  # Don't overwrite existing database
 
@@ -185,48 +185,24 @@ def init_analytics_database(db_path: Path) -> None:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
-        # Create hook_events table with enhanced schema
+        # Create hook_events table with simplified schema (minimal columns + rich JSON)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS hook_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 hook_name TEXT NOT NULL,
-                event_type TEXT NOT NULL,
                 correlation_id TEXT,
                 session_id TEXT,
-                success BOOLEAN,
-                duration_ms REAL,
-                data TEXT,
-                developer_name TEXT,
-                developer_email TEXT,
-                tool_name TEXT,
-                file_path TEXT,
-                change_summary TEXT,
-                original_data_size INTEGER,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                execution_id TEXT,
+                timestamp DATETIME NOT NULL,
+                event_data TEXT NOT NULL
             )
         ''')
 
-        # Create indexes for performance
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_hook_events_created_at ON hook_events(created_at)')
+        # Create indexes for efficient querying
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp ON hook_events(timestamp)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_hook_events_correlation ON hook_events(correlation_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_hook_events_tool_name ON hook_events(tool_name)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_hook_events_file_path ON hook_events(file_path)')
-
-        # Create tool_outputs table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS tool_outputs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                hook_event_id INTEGER NOT NULL,
-                tool_name TEXT,
-                input_data TEXT,
-                output_data TEXT,
-                full_content TEXT,
-                is_compressed BOOLEAN DEFAULT 0,
-                content_size INTEGER,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (hook_event_id) REFERENCES hook_events(id)
-            )
-        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_hook_events_session ON hook_events(session_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_hook_events_execution_id ON hook_events(execution_id)')
 
         conn.commit()
         conn.close()

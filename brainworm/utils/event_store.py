@@ -53,11 +53,11 @@ class HookEventStore:
     def __init__(self, brainworm_dir: Path):
         """Initialize event store with .brainworm directory"""
         self.brainworm_dir = Path(brainworm_dir)
-        self.analytics_dir = self.brainworm_dir / "analytics"
-        self.analytics_dir.mkdir(parents=True, exist_ok=True)
-        
-        self.db_path = self.analytics_dir / "hooks.db"
-        self.logs_dir = self.analytics_dir / "logs"
+        self.events_dir = self.brainworm_dir / "events"
+        self.events_dir.mkdir(parents=True, exist_ok=True)
+
+        self.db_path = self.events_dir / "hooks.db"
+        self.logs_dir = self.events_dir / "logs"
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         
         # Load configuration

@@ -19,7 +19,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.hook_framework import HookFramework
 from utils.business_controllers import create_subagent_manager, create_tool_analyzer
-from utils.analysis_utils import create_file_path_extractor, create_command_extractor
 
 def post_tool_use_logic(framework, typed_input):
     """Custom logic for post-tool use processing."""
@@ -49,34 +48,13 @@ def post_tool_use_logic(framework, typed_input):
     tool_response_dict = tool_response.to_dict() if tool_response and hasattr(tool_response, 'to_dict') else (tool_response if isinstance(tool_response, dict) else {})
     success = tool_analyzer.determine_success(tool_response_dict)
 
+    # Store success for the success message handler
+    framework.tool_success = success
+
     # Debug logging - INFO level
     if framework.debug_logger:
         status_icon = "✅" if success else "❌"
         framework.debug_logger.info(f"{status_icon} Tool completed: {tool_name} (success={success})")
-
-    # Extract file paths and commands for event data
-    file_extractor = create_file_path_extractor()
-    command_extractor = create_command_extractor()
-
-    tool_input_dict = tool_input.to_dict() if tool_input and hasattr(tool_input, 'to_dict') else (tool_input if isinstance(tool_input, dict) else {})
-    file_paths = file_extractor.extract_from_tool_input(tool_input_dict)
-    command_info = command_extractor.extract_command_info(tool_input_dict)
-
-    # Debug logging - DEBUG level with details
-    if framework.debug_logger:
-        if file_paths:
-            framework.debug_logger.debug(f"File paths: {', '.join(file_paths[:3])}" + (" ..." if len(file_paths) > 3 else ""))
-        if command_info:
-            cmd = command_info.get('command', '')
-            if cmd:
-                framework.debug_logger.debug(f"Command: {cmd[:80]}" + ("..." if len(cmd) > 80 else ""))
-
-    # Store extracted data for event logging
-    framework.extracted_data = {
-        'tool_success': success,
-        'file_paths': file_paths,
-        'command_info': command_info
-    }
 
     # No decision output needed for post-tool-use hooks
     # (they observe what happened, don't control execution)
@@ -102,7 +80,7 @@ def post_tool_use_success_message(framework):
     session_short = session_id[:8] if len(session_id) >= 8 else session_id
 
     # Get success status
-    success = getattr(framework, 'extracted_data', {}).get('tool_success', True)
+    success = getattr(framework, 'tool_success', True)
     success_status = "✅" if success else "❌"
 
     print(f"{success_status} Tool completed: {tool_name} (Session: {session_short})", file=sys.stderr)

@@ -47,22 +47,22 @@ class DAICStateManager:
         self.project_root = project_root
         # Use .brainworm for all brainworm functionality
         self.state_dir = self.project_root / ".brainworm" / "state"
-        self.analytics_dir = self.project_root / ".brainworm" / "analytics"
-        
+        self.events_dir = self.project_root / ".brainworm" / "events"
+
         # State files
         self.unified_state_file = self.state_dir / "unified_session_state.json"
-        
-        # Config files  
+
+        # Config files
         self.config_file = self.project_root / ".brainworm" / "config.toml"
         self.user_config_file = self.project_root / ".brainworm" / "user-config.json"
-        
+
         # Ensure directories exist
         self._ensure_directories()
-    
+
     def _ensure_directories(self):
         """Ensure all required directories exist"""
         self.state_dir.mkdir(parents=True, exist_ok=True)
-        self.analytics_dir.mkdir(parents=True, exist_ok=True)
+        self.events_dir.mkdir(parents=True, exist_ok=True)
     
     def load_config(self) -> Dict[str, Any]:
         """Load brainworm configuration using shared canonical config"""
