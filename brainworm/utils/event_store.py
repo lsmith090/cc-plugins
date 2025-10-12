@@ -132,47 +132,6 @@ class HookEventStore:
         # Default to 0 if no duration data found
         return 0.0
     
-    def _extract_typed_metadata(self, typed_event) -> Dict[str, Any]:
-        """Extract rich metadata from typed events for enhanced analytics using type-safe processing"""
-        metadata = {}
-        
-        # Type-safe processing instead of duck typing
-        if PreToolUseLogEvent and isinstance(typed_event, PreToolUseLogEvent):
-            # PreToolUseLogEvent specific data
-            if typed_event.tool_name:
-                metadata['tool_name'] = typed_event.tool_name
-            if typed_event.blocked is not None:
-                metadata['blocked'] = typed_event.blocked
-            if typed_event.validation_issues:
-                metadata['validation_issues_count'] = len(typed_event.validation_issues)
-                metadata['has_validation_issues'] = True
-                
-        elif PostToolUseLogEvent and isinstance(typed_event, PostToolUseLogEvent):
-            # PostToolUseLogEvent specific data
-            if typed_event.tool_name:
-                metadata['tool_name'] = typed_event.tool_name
-            # Could extract tool_response metadata here in the future
-                
-        elif UserPromptSubmitLogEvent and isinstance(typed_event, UserPromptSubmitLogEvent):
-            # UserPromptSubmitLogEvent specific data
-            if typed_event.context_injected is not None:
-                metadata['context_injected'] = typed_event.context_injected
-            if typed_event.context_length is not None:
-                metadata['context_length'] = typed_event.context_length
-            if typed_event.intent_analysis:
-                metadata['has_intent_analysis'] = True
-                if 'primary_intent' in typed_event.intent_analysis:
-                    metadata['primary_intent'] = typed_event.intent_analysis['primary_intent']
-                if 'confidence' in typed_event.intent_analysis:
-                    metadata['intent_confidence'] = typed_event.intent_analysis['confidence']
-        
-        # Common BaseLogEvent fields (all events have these) - check without isinstance for compatibility
-        if hasattr(typed_event, 'workflow_phase') and typed_event.workflow_phase:
-            metadata['workflow_phase'] = typed_event.workflow_phase
-        if hasattr(typed_event, 'schema_version') and typed_event.schema_version:
-            metadata['schema_version'] = typed_event.schema_version
-                
-        return metadata
     
     def _extract_tool_name(self, event_data: Dict[str, Any]) -> Optional[str]:
         """Extract tool name from event data"""
@@ -388,10 +347,7 @@ class HookEventStore:
                     success = True  # Default for typed events
                     duration_ms = self._extract_duration_ms(event_data)  # Extract from timing data
                     timestamp = get_standard_timestamp()  # Use standard ISO format
-                    
-                    # Extract rich metadata from typed event
-                    typed_metadata = self._extract_typed_metadata(typed_event)
-                    
+
                     # Override with any direct fields from event_data
                     if 'event_type' in event_data:
                         event_type = event_data['event_type']
@@ -401,9 +357,6 @@ class HookEventStore:
                     duration_ms = self._extract_duration_ms(event_data)
                     if 'timestamp' in event_data:
                         timestamp = format_for_database(str(event_data['timestamp']))
-                    
-                    # Merge typed metadata into event_data for enhanced database storage
-                    event_data = {**event_data, **typed_metadata}
                         
                 except Exception:
                     # Fallback to untyped parsing
