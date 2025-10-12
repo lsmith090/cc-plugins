@@ -614,7 +614,7 @@ def session_start_success_message(framework):
     print(f"✅ Session started: {session_short}", file=sys.stderr)
 
 if __name__ == "__main__":
-    HookFramework("session_start", enable_analytics=True) \
+    HookFramework("session_start", enable_event_logging=True) \
         .with_custom_logic(session_start_logic) \
         .with_success_handler(session_start_success_message) \
         .execute()

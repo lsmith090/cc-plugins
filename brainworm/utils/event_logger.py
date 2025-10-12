@@ -82,9 +82,9 @@ console = Console()
 class SessionEventLogger(HookLogger):
     """Event logger with session correlation for enriching hook events before storage"""
 
-    def __init__(self, project_root: Path, hook_name: str, enable_analytics: bool = False, session_id: str = None):
+    def __init__(self, project_root: Path, hook_name: str, enable_event_logging: bool = False, session_id: str = None):
         super().__init__(project_root, hook_name)
-        self.enable_event_logging = enable_analytics  # Parameter name kept for compatibility
+        self.enable_event_logging = enable_event_logging
         self.session_id = session_id or self._get_fallback_session_id()
         
         # Use correlation manager for workflow-level correlation instead of random IDs
@@ -368,6 +368,6 @@ class SessionEventLogger(HookLogger):
         }
 
 
-def create_event_logger(project_root: Path, hook_name: str, enable_analytics: bool = False, session_id: str = None) -> SessionEventLogger:
+def create_event_logger(project_root: Path, hook_name: str, enable_event_logging: bool = False, session_id: str = None) -> SessionEventLogger:
     """Factory function for session event logger"""
-    return SessionEventLogger(project_root, hook_name, enable_analytics, session_id)
+    return SessionEventLogger(project_root, hook_name, enable_event_logging, session_id)

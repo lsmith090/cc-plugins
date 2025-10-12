@@ -985,7 +985,7 @@ def transcript_processor_framework_logic(framework, typed_input):
 def main() -> None:
     """Main transcript processor entry point - Pure Framework Approach"""
     try:
-        HookFramework("transcript_processor", enable_analytics=True) \
+        HookFramework("transcript_processor", enable_event_logging=True) \
             .with_custom_logic(transcript_processor_framework_logic) \
             .execute()
             

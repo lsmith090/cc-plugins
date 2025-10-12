@@ -66,7 +66,7 @@ def subagent_stop_success_message(framework):
 
 def main() -> None:
     """Main entry point for subagent stop hook"""
-    HookFramework("subagent_stop", enable_analytics=True) \
+    HookFramework("subagent_stop", enable_event_logging=True) \
         .with_custom_logic(subagent_stop_logic) \
         .with_success_handler(subagent_stop_success_message) \
         .execute()

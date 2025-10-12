@@ -81,13 +81,13 @@ class HookFramework:
     Reduces individual hook files from 60-80 lines to 5-10 lines.
     """
     
-    def __init__(self, hook_name: str, enable_analytics: bool = True, security_critical: bool = False):
+    def __init__(self, hook_name: str, enable_event_logging: bool = True, security_critical: bool = False):
         """
         Initialize framework for a specific hook.
 
         Args:
             hook_name: Name of the hook (e.g., "notification", "session_start")
-            enable_analytics: Whether to enable event storage
+            enable_event_logging: Whether to enable event storage
             security_critical: Whether event logging failures should cause hook failure
         """
         self.hook_name = hook_name
@@ -118,7 +118,7 @@ class HookFramework:
         self.exit_message: str = ""
         
         # Infrastructure systems
-        self.enable_event_logging = enable_analytics
+        self.enable_event_logging = enable_event_logging
         self.security_critical = security_critical
         self.event_logger: Optional[SessionEventLogger] = None
         self.debug_logger: Optional[DebugLogger] = None
@@ -236,7 +236,7 @@ class HookFramework:
                 event_logging_enabled = '--analytics' in sys.argv  # TODO: Update flag name
                 self.event_logger = create_event_logger(
                     self.project_root, self.hook_name,
-                    enable_analytics=event_logging_enabled,  # TODO: Update parameter name
+                    enable_event_logging=event_logging_enabled,
                     session_id=self.session_id
                 )
         except Exception as e:

@@ -262,7 +262,7 @@ def pre_tool_use_framework_logic(framework, typed_input):
 def main() -> None:
     """Main entry point for pre-tool use hook - Pure Framework Approach"""
     try:
-        HookFramework("daic_pre_tool_use", enable_analytics=True, security_critical=True) \
+        HookFramework("daic_pre_tool_use", enable_event_logging=True, security_critical=True) \
             .with_custom_logic(pre_tool_use_framework_logic) \
             .execute()
 
