@@ -3,6 +3,7 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "rich>=13.0.0",
+#     "typer>=0.9.0",
 # ]
 # ///
 
@@ -23,9 +24,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import subprocess
 from typing import List, Optional
 from rich.console import Console
+import typer
 from utils.project import find_project_root
 
 console = Console()
+app = typer.Typer(
+    name="tasks",
+    help="Task State Management - Track and manage development tasks",
+    no_args_is_help=True,
+    add_completion=False,
+)
 
 
 def run_script(project_root: Path, script_name: str, args: List[str]) -> int:
@@ -40,100 +48,119 @@ def run_script(project_root: Path, script_name: str, args: List[str]) -> int:
         return 1
 
 
-def show_usage() -> None:
-    """Show command usage"""
-    console.print("\n[bold]Tasks Command - Task State Management[/bold]")
-    console.print("Usage:")
-    console.print("  [green]tasks create[/green] [task-name] [options] - Create a new task")
-    console.print("    [dim]--submodule=NAME[/dim]           Target submodule")
-    console.print("    [dim]--services=LIST[/dim]            Comma-separated services")
-    console.print("    [dim]--no-interactive[/dim]           Skip interactive prompts")
-    console.print("  [green]tasks status[/green]              - Show current task state")
-    console.print("  [green]tasks list[/green] [options]      - List all tasks")
-    console.print("    [dim]--status=STATUS[/dim]             Filter by status (completed, pending, in_progress)")
-    console.print("    [dim]--all[/dim]                       Show all columns")
-    console.print("  [green]tasks switch[/green] [task-name]  - Switch to an existing task")
-    console.print("  [green]tasks set[/green] [options]       - Update task state")
-    console.print("    [dim]--task=NAME[/dim]                 Set task name")
-    console.print("    [dim]--branch=BRANCH[/dim]             Set git branch")
-    console.print("    [dim]--services=LIST[/dim]             Set comma-separated services")
-    console.print("  [green]tasks clear[/green]               - Clear current task")
-    console.print("  [green]tasks session[/green]             - Show session correlation info")
-    console.print("  [green]tasks help[/green]                - Show this help")
-    console.print()
-    console.print("Examples:")
-    console.print("  [dim]tasks create fix-auth-bug[/dim]")
-    console.print("  [dim]tasks create feature-api --services=backend,api[/dim]")
-    console.print("  [dim]tasks list[/dim]")
-    console.print("  [dim]tasks list --status=completed[/dim]")
-    console.print("  [dim]tasks switch protocol-alignment-review[/dim]")
-    console.print("  [dim]tasks set --task=\"feature-work\" --branch=\"feature/new\"[/dim]")
-    console.print("  [dim]tasks set --services=\"hooks,analytics\"[/dim]")
-    console.print("  [dim]tasks status[/dim]")
-    console.print("  [dim]tasks clear[/dim]")
-    console.print()
+@app.command(name="create", help="Create a new task")
+def create(
+    task_name: Optional[str] = typer.Argument(None, help="Name of the task to create"),
+    submodule: Optional[str] = typer.Option(None, "--submodule", help="Target submodule"),
+    services: Optional[str] = typer.Option(None, "--services", help="Comma-separated services"),
+    no_interactive: bool = typer.Option(False, "--no-interactive", help="Skip interactive prompts"),
+) -> None:
+    """Create a new task"""
+    project_root = find_project_root()
+    args = []
+    if task_name:
+        args.append(task_name)
+    if submodule:
+        args.append(f"--submodule={submodule}")
+    if services:
+        args.append(f"--services={services}")
+    if no_interactive:
+        args.append("--no-interactive")
+
+    return_code = run_script(project_root, "create_task.py", args)
+    raise typer.Exit(code=return_code)
+
+
+@app.command(name="status", help="Show current task state")
+def status() -> None:
+    """Show current task state"""
+    project_root = find_project_root()
+    return_code = run_script(project_root, "update_task_state.py", ["--show-current"])
+    raise typer.Exit(code=return_code)
+
+
+@app.command(name="list", help="List all tasks")
+def list_tasks(
+    status_filter: Optional[str] = typer.Option(None, "--status", help="Filter by status (completed, pending, in_progress)"),
+    show_all: bool = typer.Option(False, "--all", help="Show all columns"),
+) -> None:
+    """List all tasks"""
+    project_root = find_project_root()
+    args = []
+    if status_filter:
+        args.append(f"--status={status_filter}")
+    if show_all:
+        args.append("--all")
+
+    return_code = run_script(project_root, "list_tasks.py", args)
+    raise typer.Exit(code=return_code)
+
+
+@app.command(name="switch", help="Switch to an existing task")
+def switch(
+    task_name: Optional[str] = typer.Argument(None, help="Name of the task to switch to"),
+) -> None:
+    """Switch to a different task"""
+    project_root = find_project_root()
+    args = [task_name] if task_name else []
+    return_code = run_script(project_root, "switch_task.py", args)
+    raise typer.Exit(code=return_code)
+
+
+@app.command(name="set", help="Update task state")
+def set_state(
+    task: Optional[str] = typer.Option(None, "--task", help="Set task name"),
+    branch: Optional[str] = typer.Option(None, "--branch", help="Set git branch"),
+    services: Optional[str] = typer.Option(None, "--services", help="Set comma-separated services"),
+) -> None:
+    """Update task state with provided arguments"""
+    project_root = find_project_root()
+    args = []
+    if task:
+        args.append(f"--task={task}")
+    if branch:
+        args.append(f"--branch={branch}")
+    if services:
+        args.append(f"--services={services}")
+
+    return_code = run_script(project_root, "update_task_state.py", args)
+    raise typer.Exit(code=return_code)
+
+
+@app.command(name="clear", help="Clear current task")
+def clear() -> None:
+    """Clear current task"""
+    project_root = find_project_root()
+    return_code = run_script(project_root, "update_task_state.py", ["--clear-task"])
+    raise typer.Exit(code=return_code)
+
+
+@app.command(name="session", help="Show or set session correlation info")
+def session(
+    subcommand: Optional[str] = typer.Argument(None, help="Subcommand: 'set' to update session"),
+    session_id: Optional[str] = typer.Option(None, "--session-id", help="Session ID to set"),
+    correlation_id: Optional[str] = typer.Option(None, "--correlation-id", help="Correlation ID to set"),
+) -> None:
+    """Show or set session correlation info"""
+    project_root = find_project_root()
+
+    if subcommand == "set":
+        args = ["set"]
+        if session_id:
+            args.append(f"--session-id={session_id}")
+        if correlation_id:
+            args.append(f"--correlation-id={correlation_id}")
+        return_code = run_script(project_root, "update_session_correlation.py", args)
+    else:
+        return_code = run_script(project_root, "update_session_correlation.py", ["--show-current"])
+
+    raise typer.Exit(code=return_code)
 
 
 def main() -> None:
     """Tasks command main entry point"""
     try:
-        project_root = find_project_root()
-        
-        # Parse command line arguments
-        args = sys.argv[1:] if len(sys.argv) > 1 else []
-        
-        if not args or args[0] in ["help", "h", "--help", "-h"]:
-            show_usage()
-            return
-            
-        command = args[0]
-        remaining_args = args[1:]
-
-        if command in ["create", "c", "new"]:
-            # Create new task
-            return_code = run_script(project_root, "create_task.py", remaining_args)
-            sys.exit(return_code)
-
-        elif command in ["status", "s"]:
-            # Show current task state
-            return_code = run_script(project_root, "update_task_state.py", ["--show-current"])
-            sys.exit(return_code)
-
-        elif command in ["list", "ls", "l"]:
-            # List all tasks
-            return_code = run_script(project_root, "list_tasks.py", remaining_args)
-            sys.exit(return_code)
-
-        elif command in ["switch", "sw"]:
-            # Switch to a different task
-            return_code = run_script(project_root, "switch_task.py", remaining_args)
-            sys.exit(return_code)
-
-        elif command in ["set", "update"]:
-            # Update task state with provided arguments
-            return_code = run_script(project_root, "update_task_state.py", remaining_args)
-            sys.exit(return_code)
-
-        elif command in ["clear", "c"]:
-            # Clear current task
-            return_code = run_script(project_root, "update_task_state.py", ["--clear-task"])
-            sys.exit(return_code)
-
-        elif command in ["session", "sess"]:
-            # Show session correlation info
-            if remaining_args and remaining_args[0] == "set":
-                # Set session correlation
-                return_code = run_script(project_root, "update_session_correlation.py", remaining_args[1:])
-            else:
-                # Show current session correlation
-                return_code = run_script(project_root, "update_session_correlation.py", ["--show-current"])
-            sys.exit(return_code)
-            
-        else:
-            console.print(f"[red]Unknown command: {command}[/red]")
-            console.print("Run [green]tasks help[/green] for available commands.")
-            sys.exit(1)
-    
+        app()
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         sys.exit(1)
