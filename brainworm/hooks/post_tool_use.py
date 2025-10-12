@@ -139,4 +139,4 @@ def post_tool_use_success_message(framework):
     print(f"{success_status} Tool completed: {tool_name} (Session: {session_short})", file=sys.stderr)
 
 if __name__ == "__main__":
-    HookFramework("post_tool_use").with_custom_logic(post_tool_use_logic).with_extractor(post_tool_use_analytics_extractor).with_success_handler(post_tool_use_success_message).execute()
+    HookFramework("post_tool_use", enable_analytics=True, enable_logging=True).with_custom_logic(post_tool_use_logic).with_extractor(post_tool_use_analytics_extractor).with_success_handler(post_tool_use_success_message).execute()

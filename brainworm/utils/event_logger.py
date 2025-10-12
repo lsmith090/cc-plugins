@@ -50,16 +50,16 @@ except ImportError:
             def log_event(self, event_data):
                 return True
 
-# Import analytics processor for database logging
+# Import event store for database logging
 try:
-    from .analytics_processor import ClaudeAnalyticsProcessor
+    from .event_store import HookEventStore
 except ImportError:
     try:
-        from claude_analytics_processor import ClaudeAnalyticsProcessor
+        from event_store import HookEventStore
     except ImportError:
-        # Fallback when analytics processor not available
-        class ClaudeAnalyticsProcessor:
-            def __init__(self, analytics_dir):
+        # Fallback when event store not available
+        class HookEventStore:
+            def __init__(self, brainworm_dir):
                 pass
             def log_event(self, event_data):
                 return False
@@ -111,12 +111,12 @@ class AnalyticsHookLogger(HookLogger):
         self.timing_dir = project_root / '.brainworm' / 'timing'
         self.timing_dir.mkdir(parents=True, exist_ok=True)
         
-        # Initialize analytics processor for database logging
+        # Initialize event store for database logging
         try:
-            self.analytics_processor = ClaudeAnalyticsProcessor(project_root / '.brainworm')
+            self.event_store = HookEventStore(project_root / '.brainworm')
         except Exception:
-            # Graceful fallback if processor initialization fails
-            self.analytics_processor = None
+            # Graceful fallback if event store initialization fails
+            self.event_store = None
         
     def _get_fallback_session_id(self) -> str:
         """Generate fallback session ID if not provided by Claude Code"""
@@ -133,8 +133,11 @@ class AnalyticsHookLogger(HookLogger):
         """Add basic metadata to event data for memory capture"""
         if not self.enable_analytics:
             return event_data
-            
+
         enriched = event_data.copy()
+
+        # Preserve execution_id if present
+        execution_id = event_data.get('execution_id')
         
         # Use typed event parsing if available for better metadata extraction
         if parse_log_event:
@@ -142,6 +145,7 @@ class AnalyticsHookLogger(HookLogger):
                 typed_event = parse_log_event(event_data)
                 # Extract typed metadata
                 enriched.update({
+                    'execution_id': execution_id,  # Preserve execution_id
                     'schema_version': '2.1',  # Updated for typed events
                     'session_id': typed_event.session_id or self.session_id,
                     'correlation_id': typed_event.correlation_id or self.correlation_id,
@@ -154,6 +158,7 @@ class AnalyticsHookLogger(HookLogger):
             except Exception:
                 # Fallback to basic enrichment
                 enriched.update({
+                    'execution_id': execution_id,  # Preserve execution_id
                     'schema_version': '2.0',
                     'session_id': self.session_id,
                     'correlation_id': self.correlation_id,
@@ -164,6 +169,7 @@ class AnalyticsHookLogger(HookLogger):
         else:
             # Fallback when types are not available
             enriched.update({
+                'execution_id': execution_id,  # Preserve execution_id
                 'schema_version': '2.0',
                 'session_id': self.session_id,
                 'correlation_id': self.correlation_id,
@@ -196,23 +202,23 @@ class AnalyticsHookLogger(HookLogger):
             if 'hook_name' not in enriched_data:
                 enriched_data['hook_name'] = self.hook_name
 
-            # Log to analytics processor (database + analytics JSONL backup)
-            if self.analytics_processor:
+            # Log to event store (database + backup)
+            if self.event_store:
                 try:
-                    success = self.analytics_processor.log_event(enriched_data)
+                    success = self.event_store.log_event(enriched_data)
 
                     if debug and success:
                         schema_version = enriched_data.get('schema_version', '1.0')
-                        print(f"📊 Analytics log (v{schema_version}) [DB+JSONL]: {self.session_id[:8]} in {self.hook_name}", file=sys.stderr)
+                        print(f"📊 Event logged (v{schema_version}) [DB]: {self.session_id[:8]} in {self.hook_name}", file=sys.stderr)
 
                     return success
                 except Exception as db_e:
                     if debug:
-                        print(f"Warning: Analytics logging failed: {db_e}", file=sys.stderr)
+                        print(f"Warning: Event logging failed: {db_e}", file=sys.stderr)
                     return False
             else:
                 if debug:
-                    print(f"Warning: Analytics processor not available", file=sys.stderr)
+                    print(f"Warning: Event store not available", file=sys.stderr)
                 return False
 
         except Exception as e:

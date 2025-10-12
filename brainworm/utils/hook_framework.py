@@ -28,6 +28,7 @@ Usage Examples:
 
 import json
 import sys
+import uuid
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Callable, Union
@@ -40,7 +41,7 @@ try:
         SessionStartInput, SessionEndInput, StopInput, NotificationInput,
         PreToolUseDecisionOutput, parse_log_event, get_standard_timestamp
     )
-    from .hook_analytics import AnalyticsHookLogger, create_analytics_logger
+    from .event_logger import SessionEventLogger, create_event_logger
     from .hook_logging import HookLogger, create_logger
     from .debug_logger import DebugLogger, DebugConfig, create_debug_logger
     from .config import load_config
@@ -57,8 +58,8 @@ except ImportError:
     PreToolUseDecisionOutput = None
     parse_log_event = None
     get_standard_timestamp = lambda: datetime.now(timezone.utc).isoformat()
-    AnalyticsHookLogger = None
-    create_analytics_logger = None
+    SessionEventLogger = None
+    create_event_logger = None
     HookLogger = None
     create_logger = None
     DebugLogger = None
@@ -86,15 +87,26 @@ class HookFramework:
     def __init__(self, hook_name: str, enable_analytics: bool = True, enable_logging: bool = True, security_critical: bool = False):
         """
         Initialize framework for a specific hook with sophisticated infrastructure.
-        
+
         Args:
             hook_name: Name of the hook (e.g., "notification", "session_start")
-            enable_analytics: Whether to use advanced analytics infrastructure
-            enable_logging: Whether to use structured logging infrastructure
-            security_critical: Whether logging/analytics failures should cause hook failure
+            enable_analytics: Whether to enable event storage (parameter name kept for compatibility)
+            enable_logging: Whether to use structured logging infrastructure (deprecated)
+            security_critical: Whether event logging failures should cause hook failure
         """
         self.hook_name = hook_name
         self.console = Console()
+        self.execution_id: str = uuid.uuid4().hex[:12]  # Unique execution identifier
+
+        # Capture which hook script file invoked the framework
+        import inspect
+        frame = inspect.currentframe()
+        if frame and frame.f_back:
+            caller_file = frame.f_back.f_code.co_filename
+            self.hook_script = Path(caller_file).name
+        else:
+            self.hook_script = "unknown"
+
         self.raw_input_data: Dict[str, Any] = {}
         self.typed_input: Optional[Union[BaseHookInput, PreToolUseInput, PostToolUseInput, UserPromptSubmitInput]] = None
         self.project_root: Optional[Path] = None
@@ -110,10 +122,10 @@ class HookFramework:
         self.exit_message: str = ""
         
         # Infrastructure systems
-        self.enable_analytics = enable_analytics
+        self.enable_event_logging = enable_analytics  # TODO: Rename parameter in next phase
         self.enable_logging = enable_logging
         self.security_critical = security_critical
-        self.analytics_logger: Optional[AnalyticsHookLogger] = None
+        self.event_logger: Optional[SessionEventLogger] = None
         self.structured_logger: Optional[HookLogger] = None
         self.debug_logger: Optional[DebugLogger] = None
 
@@ -229,54 +241,54 @@ class HookFramework:
             if self.enable_logging and create_logger:
                 self.structured_logger = create_logger(self.project_root, self.hook_name)
 
-            # Initialize analytics logger with Claude Code session correlation
-            if self.enable_analytics and create_analytics_logger:
-                analytics_enabled = '--analytics' in sys.argv
-                self.analytics_logger = create_analytics_logger(
+            # Initialize event logger with Claude Code session correlation
+            if self.enable_event_logging and create_event_logger:
+                event_logging_enabled = '--analytics' in sys.argv  # TODO: Update flag name
+                self.event_logger = create_event_logger(
                     self.project_root, self.hook_name,
-                    enable_analytics=analytics_enabled,
+                    enable_analytics=event_logging_enabled,  # TODO: Update parameter name
                     session_id=self.session_id
                 )
         except Exception as e:
             # Sanitize error message to prevent information disclosure
             print("Warning: Infrastructure initialization failed, using fallback systems", file=sys.stderr)
     
-    def _process_analytics(self) -> bool:
-        """Process analytics using sophisticated DAIC-aware infrastructure."""
-        if not self.analytics_logger:
-            return True  # Skip if analytics not available
+    def _process_event_logging(self) -> bool:
+        """Process event logging with session correlation."""
+        if not self.event_logger:
+            return True  # Skip if event logger not available
 
         try:
             debug_mode = self.debug_logger.is_enabled() if self.debug_logger else False
 
-            # Use hook-specific analytics logging methods based on hook type
+            # Use hook-specific event logging methods based on hook type
             if self.hook_name in ('pre_tool_use', 'daic_pre_tool_use'):
-                success = self.analytics_logger.log_pre_tool_execution(self.raw_input_data, debug=debug_mode)
+                success = self.event_logger.log_pre_tool_execution(self.raw_input_data, debug=debug_mode)
             elif self.hook_name == 'post_tool_use':
-                success = self.analytics_logger.log_post_tool_execution(self.raw_input_data, debug=debug_mode)
+                success = self.event_logger.log_post_tool_execution(self.raw_input_data, debug=debug_mode)
             elif self.hook_name == 'user_prompt_submit':
-                success = self.analytics_logger.log_user_prompt(self.raw_input_data, debug=debug_mode)
+                success = self.event_logger.log_user_prompt(self.raw_input_data, debug=debug_mode)
             else:
-                # General event logging with advanced metadata enrichment
-                success = self.analytics_logger.log_event_with_analytics(self.raw_input_data, debug=debug_mode)
+                # General event logging with session context
+                success = self.event_logger.log_event_with_analytics(self.raw_input_data, debug=debug_mode)
 
             if self.debug_logger:
                 if success:
-                    self.debug_logger.debug("Advanced analytics processed")
+                    self.debug_logger.debug("Event logging processed", execution_id=self.execution_id)
                 else:
-                    self.debug_logger.warning("Advanced analytics failed")
+                    self.debug_logger.warning("Event logging failed", execution_id=self.execution_id)
 
             return success
 
         except Exception as e:
             # Sanitize error message to prevent information disclosure
-            error_msg = "Warning: Advanced analytics processing failed"
+            error_msg = "Warning: Event logging failed"
             if self.security_critical:
                 error_msg += " - SECURITY CRITICAL FAILURE"
                 print(error_msg, file=sys.stderr)
-                raise RuntimeError("Security-critical analytics failure")
+                raise RuntimeError("Security-critical event logging failure")
             else:
-                error_msg += ", continuing without analytics"
+                error_msg += ", continuing without event logging"
                 print(error_msg, file=sys.stderr)
                 return False
     
@@ -476,7 +488,7 @@ class HookFramework:
                 # Use centralized debug logger for framework output (if configured)
                 if self.debug_logger and self.debug_logger.debug_config.outputs.framework:
                     json_str = json.dumps(self.json_response)
-                    self.debug_logger.trace(f"JSON TO STDOUT: {json_str}")
+                    self.debug_logger.trace(f"JSON TO STDOUT: {json_str}", execution_id=self.execution_id)
 
                 # Secure JSON output with ASCII encoding to prevent injection
                 print(json.dumps(self.json_response, ensure_ascii=True, separators=(',', ':')))
@@ -486,7 +498,7 @@ class HookFramework:
                 fallback_response = {"context": ""}
                 print(json.dumps(fallback_response))
                 if self.debug_logger and self.debug_logger.is_enabled():
-                    self.debug_logger.warning(f"JSON response formatting failed: {e}")
+                    self.debug_logger.warning(f"JSON response formatting failed: {e}", execution_id=self.execution_id)
     
     def execute(self) -> None:
         """
@@ -509,32 +521,36 @@ class HookFramework:
             # 2. Discover project root and initialize infrastructure (eliminates 20+ lines per hook)
             self._discover_project_root()
 
+            # Add execution_id and hook_script to raw_input_data for downstream systems
+            self.raw_input_data['execution_id'] = self.execution_id
+            self.raw_input_data['hook_script'] = self.hook_script
+
             if self.debug_logger:
-                self.debug_logger.info(f"Hook {self.hook_name} executing (session: {self.session_id[:8]})")
-                self.debug_logger.debug(f"Typed input available: {self.typed_input is not None and not isinstance(self.typed_input, dict)}")
+                self.debug_logger.info(f"Hook {self.hook_name} [{self.hook_script}] executing (session: {self.session_id[:8]})", execution_id=self.execution_id)
+                self.debug_logger.debug(f"Typed input available: {self.typed_input is not None and not isinstance(self.typed_input, dict)}", execution_id=self.execution_id)
 
             # 3. Execute custom logic if provided
             # Pass typed input if available, otherwise pass raw input for backward compatibility
             if self.custom_logic_fn:
                 try:
                     if self.debug_logger:
-                        self.debug_logger.debug(f"Executing custom logic for {self.hook_name}")
+                        self.debug_logger.debug(f"Executing custom logic for {self.hook_name}", execution_id=self.execution_id)
 
                     # Use typed input if available, otherwise fall back to raw input
                     input_to_pass = self.typed_input if self.typed_input else self.raw_input_data
                     self.custom_logic_fn(self, input_to_pass)
 
                     if self.debug_logger:
-                        self.debug_logger.debug(f"Custom logic completed successfully")
+                        self.debug_logger.debug(f"Custom logic completed successfully", execution_id=self.execution_id)
                 except Exception as e:
                     if self.debug_logger:
-                        self.debug_logger.error(f"Custom logic failed: {type(e).__name__}: {str(e)}")
+                        self.debug_logger.error(f"Custom logic failed: {type(e).__name__}: {str(e)}", execution_id=self.execution_id)
                     # Sanitize error message to prevent information disclosure
                     print(f"Error: Custom logic failed for {self.hook_name}: {str(e)}", file=sys.stderr)
                     sys.exit(1)
 
-            # 4. Process advanced analytics with DAIC awareness (eliminates 40+ lines per hook)
-            self._process_analytics()
+            # 4. Process event logging with session correlation (eliminates 40+ lines per hook)
+            self._process_event_logging()
             
             # 5. DISABLED: Process structured logging with enrichment - causes duplicate entries
             # self._process_structured_logging()  # Disabled to prevent duplicate log entries

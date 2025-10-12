@@ -136,19 +136,21 @@ class DebugLogger:
         requested_level = DEBUG_LEVELS.get(level.upper(), 2)
         return requested_level <= current_level
 
-    def log(self, message: str, level: str = "INFO") -> None:
+    def log(self, message: str, level: str = "INFO", execution_id: Optional[str] = None) -> None:
         """
         Log a debug message according to configuration.
 
         Args:
             message: Message to log
             level: Debug level (ERROR, WARNING, INFO, DEBUG, TRACE)
+            execution_id: Optional unique execution identifier
         """
         if not self.should_output_level(level):
             return
 
         timestamp = datetime.now(timezone.utc).isoformat()
-        formatted = f"[{timestamp}] [{level.upper()}] {self.hook_name}: {message}"
+        exec_id_str = f" [exec:{execution_id}]" if execution_id else ""
+        formatted = f"[{timestamp}] [{level.upper()}]{exec_id_str} {self.hook_name}: {message}"
 
         # Output to stderr if configured
         if self.debug_config.outputs.stderr:
@@ -186,25 +188,25 @@ class DebugLogger:
             # Don't fail hook on debug logging errors
             pass
 
-    def error(self, message: str) -> None:
+    def error(self, message: str, execution_id: Optional[str] = None) -> None:
         """Log an error message."""
-        self.log(message, level='ERROR')
+        self.log(message, level='ERROR', execution_id=execution_id)
 
-    def warning(self, message: str) -> None:
+    def warning(self, message: str, execution_id: Optional[str] = None) -> None:
         """Log a warning message."""
-        self.log(message, level='WARNING')
+        self.log(message, level='WARNING', execution_id=execution_id)
 
-    def info(self, message: str) -> None:
+    def info(self, message: str, execution_id: Optional[str] = None) -> None:
         """Log an info message."""
-        self.log(message, level='INFO')
+        self.log(message, level='INFO', execution_id=execution_id)
 
-    def debug(self, message: str) -> None:
+    def debug(self, message: str, execution_id: Optional[str] = None) -> None:
         """Log a debug message."""
-        self.log(message, level='DEBUG')
+        self.log(message, level='DEBUG', execution_id=execution_id)
 
-    def trace(self, message: str) -> None:
+    def trace(self, message: str, execution_id: Optional[str] = None) -> None:
         """Log a trace message."""
-        self.log(message, level='TRACE')
+        self.log(message, level='TRACE', execution_id=execution_id)
 
 
 def get_default_debug_config() -> DebugConfig:

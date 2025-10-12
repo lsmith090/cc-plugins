@@ -346,6 +346,8 @@ class ClaudeAnalyticsProcessor:
                     ("file_path", "TEXT"),
                     ("change_summary", "TEXT"),
                     ("original_data_size", "INTEGER"),
+                    ("execution_id", "TEXT"),
+                    ("hook_script", "TEXT"),
                 ]
 
                 for column_name, column_type in migration_columns:
@@ -360,8 +362,13 @@ class ClaudeAnalyticsProcessor:
                 """)
                 
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_hook_events_correlation 
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_correlation
                     ON hook_events(correlation_id)
+                """)
+
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_execution_id
+                    ON hook_events(execution_id)
                 """)
         except Exception:
             # Analytics is optional - continue if database init fails
@@ -437,6 +444,8 @@ class ClaudeAnalyticsProcessor:
             file_path = self._extract_file_path(event_data)
             change_summary = self._extract_change_summary(event_data)
             original_data_size = self._calculate_original_data_size(event_data)
+            execution_id = event_data.get('execution_id', None)
+            hook_script = event_data.get('hook_script', None)
             
             # Store in database with new schema columns
             with sqlite3.connect(self.db_path, timeout=1.0) as conn:
@@ -444,21 +453,22 @@ class ClaudeAnalyticsProcessor:
                     INSERT INTO hook_events
                     (hook_name, event_type, correlation_id, session_id,
                      success, duration_ms, data, developer_name, developer_email,
-                     timestamp, tool_name, file_path, change_summary, original_data_size)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     timestamp, tool_name, file_path, change_summary, original_data_size, execution_id, hook_script)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     hook_name, event_type, correlation_id, session_id,
                     success, duration_ms, json.dumps(event_data),
                     developer_info.name if developer_info else None,
                     developer_info.email if developer_info else None,
                     timestamp,
-                    tool_name, file_path, change_summary, original_data_size
+                    tool_name, file_path, change_summary, original_data_size, execution_id, hook_script
                 ))
             
             # Also write to JSONL log file for backup
             log_file = self.logs_dir / f"{datetime.now().strftime('%Y-%m-%d')}_hooks.jsonl"
             with open(log_file, 'a', encoding='utf-8') as f:
                 json.dump({
+                    'execution_id': execution_id,
                     'created_at': timestamp,  # Already in ISO format
                     'hook_name': hook_name,
                     'event_type': event_type,
