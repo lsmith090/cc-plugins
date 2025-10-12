@@ -64,19 +64,9 @@ This protocol guides the creation of structured, well-defined tasks in the DAIC-
 - Initializes analytics correlation tracking
 - Runs in non-interactive mode for automation compatibility
 
-**Manual fallback (if wrapper unavailable):**
+**Verify creation:**
 ```bash
-# Create directory
-mkdir -p .brainworm/tasks/[task-name]
-
-# Copy and customize template
-cp .brainworm/templates/TEMPLATE.md .brainworm/tasks/[task-name]/README.md
-
-# Then manually update the template with:
-# - Task name and description
-# - Priority and status
-# - Success criteria
-# - Affected services/components
+./tasks status    # Shows the newly created task as current
 ```
 
 ### Step 4: Customize Task Details
@@ -88,21 +78,20 @@ cp .brainworm/templates/TEMPLATE.md .brainworm/tasks/[task-name]/README.md
 - List integration points and dependencies
 - Document any special considerations
 
-### Step 5: Configure DAIC State
+**The wrapper already populated:**
+- Basic metadata (task name, branch, date)
+- Template structure
+- Status tracking fields
+- DAIC state in unified_session_state.json
+- Analytics correlation tracking
 
-**If using manual method, update DAIC state:**
-```json
-{
-  "current_task": "[task-name]",
-  "current_branch": "[feature/fix/refactor]/[task-name]",
-  "task_services": ["service1", "service2"],
-  "updated": "[current-date]",
-  "correlation_id": "[generated-correlation-id]",
-  "session_id": "[current-session-id]"
-}
+### Step 5: Verify Task Creation
+
+**Check task state:**
+```bash
+./tasks status     # Shows current task, branch, services
+./daic status      # Verify DAIC mode (should be discussion)
 ```
-
-**Note:** The automated wrapper handles this automatically.
 
 **Verify DAIC mode:**
 - Tasks start in discussion mode by default
@@ -110,6 +99,7 @@ cp .brainworm/templates/TEMPLATE.md .brainworm/tasks/[task-name]/README.md
 - Use trigger phrases to switch to implementation mode when ready
 
 ### Step 6: Invoke Context-Gathering Agent
+
 **Use the context-gathering agent to:**
 - Research all relevant components and dependencies
 - Create a comprehensive context manifest
@@ -118,38 +108,15 @@ cp .brainworm/templates/TEMPLATE.md .brainworm/tasks/[task-name]/README.md
 
 **Agent invocation:**
 ```
-Use the context-gathering agent to analyze the requirements for [task-name] 
+Use the context-gathering agent to analyze the requirements for [task-name]
 and create a comprehensive context manifest. The task file is at .brainworm/tasks/[task-name]/README.md
 ```
 
-### Step 7: Verify Branch Setup
-
-**Check branch creation:**
-```bash
-git branch --show-current  # Should show your new task branch
-./daic status              # Verify task and branch are registered
-```
-
-**If using manual method:**
-- Create branch: `git checkout -b [feature/fix/refactor]/[task-name]`
-- Branch naming should match task naming convention
-- Use prefixes: `feature/`, `fix/`, `refactor/`, etc.
-- Ensure branch name matches what's in task state
-
-**Note:** The automated wrapper handles branch creation automatically, including submodule-aware branching for super-repo projects.
-
-### Step 8: Verify Analytics Integration
-
-**The automated wrapper initializes:**
-- Task creation event in brainworm analytics
-- Association with current session and correlation ID
-- Task type and complexity estimates
-- Success pattern matching for similar tasks
-
-**Manual verification:**
-```bash
-uv run .brainworm/hooks/view_analytics.py  # Check task is tracked
-```
+**The agent will:**
+- Read the task description and goals
+- Research related code and systems
+- Create detailed context manifest
+- Update task file directly with findings
 
 ## Task Priority Guidelines
 
@@ -239,3 +206,29 @@ Good task creation:
 - Creates institutional knowledge for future similar work
 
 The effort invested in proper task creation pays dividends throughout the development process.
+
+---
+
+## Reference: Manual Task Creation
+
+**Understanding how `./tasks create` works internally:**
+
+The create command performs these operations:
+1. Detects project structure (monorepo vs single-service)
+2. Creates `.brainworm/tasks/[task-name]/` directory
+3. Copies and customizes TEMPLATE.md with task metadata
+4. Creates git branch with appropriate prefix (feature/, fix/, etc.)
+5. Handles submodule-aware branching for monorepos
+6. Updates unified_session_state.json via DAICStateManager
+7. Initializes analytics correlation tracking
+8. Provides next steps guidance
+
+**If wrapper is unavailable, manual process:**
+1. Create directory: `mkdir -p .brainworm/tasks/[task-name]`
+2. Copy template: `cp .brainworm/templates/TEMPLATE.md .brainworm/tasks/[task-name]/README.md`
+3. Edit template with task details
+4. Create branch: `git checkout -b feature/[task-name]`
+5. Update state: `./tasks set --task=[task-name] --branch=feature/[task-name]`
+6. Verify: `./tasks status`
+
+**Note:** Manual process is time-consuming and error-prone. Use `./tasks create` whenever possible.
