@@ -97,6 +97,22 @@ Brainworm is a comprehensive Claude Code enhancement system that transforms basi
 - Understands brainworm project structures
 - Pattern-based documentation updates
 
+**Transcript Delivery System**:
+- **`wait_for_transcripts.py`** - Synchronization script for transcript file availability
+- Solves race condition between hook execution and file system writes
+- Implements exponential backoff polling (50ms → 1600ms, 5s timeout)
+- Verifies file stability before returning to subagent
+- Required step in all subagent transcript reading workflows
+
+**Subagent Transcript Access Pattern**:
+```bash
+# Step 1: Wait for files to be ready
+.brainworm/plugin-launcher scripts/wait_for_transcripts.py <subagent-type>
+
+# Step 2: Read transcript chunks
+cat "$(pwd)/.brainworm/state/<subagent-type>/current_transcript_"*.json
+```
+
 ### 3. Protocol System
 
 **Task Creation Protocol** (`.brainworm/protocols/task-creation.md`):

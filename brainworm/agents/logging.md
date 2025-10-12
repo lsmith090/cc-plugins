@@ -98,13 +98,18 @@ Follow these steps to find and read the transcript files:
    pwd  # This shows your current directory, which is the project root
    ```
 
-2. **List all files** in the logging state directory:
+2. **Wait for transcript files to be ready**:
+   ```bash
+   .brainworm/plugin-launcher scripts/wait_for_transcripts.py logging
+   ```
+
+3. **List all files** in the logging state directory:
    ```bash
    # IMPORTANT: Use absolute paths from project root (pwd)
    ls -la "$(pwd)/.brainworm/state/logging/"
    ```
 
-3. **Read every file** in that directory (files named `current_transcript_001.json`, `current_transcript_002.json`, etc.):
+4. **Read every file** in that directory (files named `current_transcript_001.json`, `current_transcript_002.json`, etc.):
    ```bash
    # IMPORTANT: Use absolute paths from project root (pwd)
    cat "$(pwd)/.brainworm/state/logging/current_transcript_"*.json
