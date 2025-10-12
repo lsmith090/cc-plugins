@@ -17,17 +17,18 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from typing import Dict, Any
 from utils.hook_framework import HookFramework
 
-def stop_session_logic(framework, typed_input):
-    """Custom logic for session stop with correlation cleanup."""
-    # Handle both typed input and raw dict for graceful degradation
-    if hasattr(typed_input, 'session_id'):
-        session_id = typed_input.session_id
-    elif isinstance(typed_input, dict):
-        session_id = typed_input.get('session_id', 'unknown')
-    else:
-        session_id = 'unknown'
+def stop_session_logic(framework, input_data: Dict[str, Any]):
+    """Custom logic for session stop with correlation cleanup.
+
+    Args:
+        framework: HookFramework instance
+        input_data: Raw input dict (always dict, typed input used for validation only)
+    """
+    # Extract data from dict - simple and direct
+    session_id = input_data.get('session_id', 'unknown')
 
     # Debug logging - INFO level
     if framework.debug_logger:
@@ -51,17 +52,8 @@ def stop_session_logic(framework, typed_input):
 
 def stop_success_message(framework):
     """Custom success message for stop hook."""
-    # Handle both typed input and raw dict for graceful degradation
-    if hasattr(framework, 'typed_input') and framework.typed_input:
-        typed_input = framework.typed_input
-        if hasattr(typed_input, 'session_id'):
-            session_id = typed_input.session_id
-        elif isinstance(typed_input, dict):
-            session_id = typed_input.get('session_id', 'unknown')
-        else:
-            session_id = 'unknown'
-    else:
-        session_id = framework.raw_input_data.get('session_id', 'unknown')
+    # Direct dict access - simple and clear
+    session_id = framework.raw_input_data.get('session_id', 'unknown')
     session_short = session_id[:8] if len(session_id) >= 8 else session_id
     print(f"✅ Session stopped: {session_short}", file=sys.stderr)
 

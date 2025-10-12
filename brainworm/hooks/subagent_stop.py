@@ -21,17 +21,18 @@ from typing import Dict, Any
 from utils.hook_framework import HookFramework
 
 
-def subagent_stop_logic(framework, typed_input):
-    """Custom logic for subagent stop processing"""
+def subagent_stop_logic(framework, input_data: Dict[str, Any]):
+    """Custom logic for subagent stop processing.
+
+    Args:
+        framework: HookFramework instance
+        input_data: Raw input dict (always dict, typed input used for validation only)
+    """
+    # Extract data from dict - simple and direct
+    session_id = input_data.get('session_id', 'unknown')
 
     # Debug logging - INFO level
     if framework.debug_logger:
-        if hasattr(typed_input, 'session_id'):
-            session_id = typed_input.session_id
-        elif isinstance(typed_input, dict):
-            session_id = typed_input.get('session_id', 'unknown')
-        else:
-            session_id = 'unknown'
         session_short = session_id[:8] if len(session_id) >= 8 else session_id
         framework.debug_logger.info(f"🤖 Subagent stopped: {session_short}")
         framework.debug_logger.debug("Event marked as subagent context")
@@ -42,17 +43,8 @@ def subagent_stop_logic(framework, typed_input):
 
 def subagent_stop_success_message(framework):
     """Generate success message for subagent stop"""
-    # Handle both typed input and raw dict for graceful degradation
-    if hasattr(framework, 'typed_input') and framework.typed_input:
-        typed_input = framework.typed_input
-        if hasattr(typed_input, 'session_id'):
-            session_id = typed_input.session_id
-        elif isinstance(typed_input, dict):
-            session_id = typed_input.get('session_id', 'unknown')
-        else:
-            session_id = 'unknown'
-    else:
-        session_id = framework.raw_input_data.get('session_id', 'unknown')
+    # Direct dict access - simple and clear
+    session_id = framework.raw_input_data.get('session_id', 'unknown')
     session_short = session_id[:8] if len(session_id) >= 8 else session_id
     print(f"✅ Subagent stopped: {session_short}", file=sys.stderr)
 

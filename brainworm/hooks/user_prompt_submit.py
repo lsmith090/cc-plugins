@@ -327,8 +327,13 @@ Ask the user if they'd like you to create a task for this work.
     }
 
 
-def user_prompt_submit_framework_logic(framework, typed_input):
-    """Custom logic for user prompt submit using pure framework approach"""
+def user_prompt_submit_framework_logic(framework, input_data: Dict[str, Any]):
+    """Custom logic for user prompt submit using pure framework approach.
+
+    Args:
+        framework: HookFramework instance
+        input_data: Raw input dict (always dict, typed input used for validation only)
+    """
     project_root = framework.project_root
 
     # Handle case where project_root might be None
@@ -339,16 +344,6 @@ def user_prompt_submit_framework_logic(framework, typed_input):
     # Load configuration
     from utils.config import load_config
     config = load_config(project_root)
-
-    # Convert typed input to dict format for legacy function
-    # Use defensive access in case typed_input is a dict fallback
-    input_data = {
-        'session_id': typed_input.session_id if hasattr(typed_input, 'session_id') else typed_input.get('session_id'),
-        'transcript_path': typed_input.transcript_path if hasattr(typed_input, 'transcript_path') else typed_input.get('transcript_path'),
-        'cwd': typed_input.cwd if hasattr(typed_input, 'cwd') else typed_input.get('cwd'),
-        'hook_event_name': typed_input.hook_event_name if hasattr(typed_input, 'hook_event_name') else typed_input.get('hook_event_name'),
-        'prompt': typed_input.prompt if hasattr(typed_input, 'prompt') else typed_input.get('prompt', '')
-    }
 
     # Debug logging - INFO level
     if framework.debug_logger:
