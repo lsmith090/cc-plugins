@@ -749,12 +749,12 @@ def create_subagent_flag(project_root: Path) -> None:
 
 def log_analytics_event(project_root: Path, event_data: Dict[str, Any]) -> None:
     """
-    Log transcript processing event to brainworm analytics with comprehensive metrics.
+    Log transcript processing event to brainworm event store with comprehensive metrics.
     """
     try:
         sys.path.insert(0, str(Path(__file__).parent.parent))  # Add plugin root for utils access
-        from utils.analytics_processor import ClaudeAnalyticsProcessor
-        
+        from utils.event_store import HookEventStore
+
         # Enhance event data with additional brainworm-specific fields
         enhanced_event = {
             **event_data,
@@ -763,15 +763,15 @@ def log_analytics_event(project_root: Path, event_data: Dict[str, Any]) -> None:
             'correlation_id': event_data.get('correlation_id', 'unknown'),
             'logged_at': datetime.now(timezone.utc).isoformat()
         }
-        
-        processor = ClaudeAnalyticsProcessor(project_root / '.brainworm')
-        success = processor.log_event(enhanced_event)
+
+        event_store = HookEventStore(project_root / '.brainworm')
+        success = event_store.log_event(enhanced_event)
         
         if not success:
-            print("Warning: Analytics event logging returned false", file=sys.stderr)
-            
+            print("Warning: Event logging returned false", file=sys.stderr)
+
     except Exception as e:
-        print(f"Warning: Analytics logging failed: {e}", file=sys.stderr)
+        print(f"Warning: Event logging failed: {e}", file=sys.stderr)
 
 def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, verbose: bool = False, debug_logger=None) -> Dict[str, Any]:
     """Custom logic for transcript processing"""

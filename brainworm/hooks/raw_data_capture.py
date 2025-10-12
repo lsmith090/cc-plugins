@@ -37,14 +37,14 @@ def read_raw_input() -> Dict[str, Any]:
 
 
 def log_raw_event(hook_name: str, raw_input_data: Dict[str, Any], extra_data: Dict[str, Any] = None) -> bool:
-    """Log raw event data using analytics processor"""
+    """Log raw event data using event store"""
     try:
-        # Import analytics processor
+        # Import event store
         sys.path.insert(0, str(Path(__file__).parent.parent))  # Add plugin root for utils access
-        from utils.analytics_processor import ClaudeAnalyticsProcessor
-        
-        # Initialize processor
-        processor = ClaudeAnalyticsProcessor(Path(__file__).parent.parent)
+        from utils.event_store import HookEventStore
+
+        # Initialize event store
+        event_store = HookEventStore(Path(__file__).parent.parent)
         
         # Find project root
         project_root = find_project_root()
@@ -66,10 +66,10 @@ def log_raw_event(hook_name: str, raw_input_data: Dict[str, Any], extra_data: Di
             raw_event.update(extra_data)
         
         # Log the event
-        return processor.log_event(raw_event)
-        
+        return event_store.log_event(raw_event)
+
     except Exception as e:
-        print(f"Warning: Analytics processing failed: {e}", file=sys.stderr)
+        print(f"Warning: Event logging failed: {e}", file=sys.stderr)
         return False
 
 

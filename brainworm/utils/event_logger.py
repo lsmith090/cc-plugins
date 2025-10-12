@@ -8,10 +8,10 @@
 # ///
 
 """
-Hook Analytics with DAIC Integration
+Event Logger with Session Correlation
 
-Basic hook logging with session correlation tracking,
-memory capture, and DAIC workflow discipline support.
+Event logging with session correlation tracking for Claude Code hooks.
+Enriches events with session context before storage.
 """
 
 import json
@@ -79,12 +79,12 @@ except ImportError:
 console = Console()
 
 
-class AnalyticsHookLogger(HookLogger):
-    """Basic logger with Claude Code session correlation and memory capture"""
-    
+class SessionEventLogger(HookLogger):
+    """Event logger with session correlation for enriching hook events before storage"""
+
     def __init__(self, project_root: Path, hook_name: str, enable_analytics: bool = False, session_id: str = None):
         super().__init__(project_root, hook_name)
-        self.enable_analytics = enable_analytics
+        self.enable_event_logging = enable_analytics  # Parameter name kept for compatibility
         self.session_id = session_id or self._get_fallback_session_id()
         
         # Use correlation manager for workflow-level correlation instead of random IDs
@@ -130,8 +130,8 @@ class AnalyticsHookLogger(HookLogger):
     
     
     def enrich_event_data(self, event_data: dict) -> dict:
-        """Add basic metadata to event data for memory capture"""
-        if not self.enable_analytics:
+        """Add session correlation metadata to event data"""
+        if not self.enable_event_logging:
             return event_data
 
         enriched = event_data.copy()
@@ -321,7 +321,7 @@ class AnalyticsHookLogger(HookLogger):
             'session_id': prompt_data.get('session_id'),
         }
         
-        if self.enable_analytics:
+        if self.enable_event_logging:
             event_data['intent_analysis'] = self._analyze_intent(prompt_data.get('prompt', ''))
         
         return self.log_event_with_analytics(event_data, debug)
@@ -368,6 +368,6 @@ class AnalyticsHookLogger(HookLogger):
         }
 
 
-def create_analytics_logger(project_root: Path, hook_name: str, enable_analytics: bool = False, session_id: str = None) -> AnalyticsHookLogger:
-    """Factory function for basic analytics logger with Claude Code session correlation"""
-    return AnalyticsHookLogger(project_root, hook_name, enable_analytics, session_id)
+def create_event_logger(project_root: Path, hook_name: str, enable_analytics: bool = False, session_id: str = None) -> SessionEventLogger:
+    """Factory function for session event logger"""
+    return SessionEventLogger(project_root, hook_name, enable_analytics, session_id)

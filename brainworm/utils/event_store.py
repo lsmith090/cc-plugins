@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Analytics Processor for Claude Code Hooks
+Event Store for Claude Code Hooks
 
-Lightweight analytics processing for hook events with SQLite storage.
+Event storage system with session correlation and SQLite persistence.
 """
 
 import json
@@ -47,11 +47,11 @@ try:
 except ImportError:
     TOML_AVAILABLE = False
 
-class ClaudeAnalyticsProcessor:
-    """Lightweight analytics processor for Claude Code hooks"""
+class HookEventStore:
+    """Event storage system for Claude Code hooks with session correlation"""
 
     def __init__(self, brainworm_dir: Path):
-        """Initialize processor with .brainworm directory"""
+        """Initialize event store with .brainworm directory"""
         self.brainworm_dir = Path(brainworm_dir)
         self.analytics_dir = self.brainworm_dir / "analytics"
         self.analytics_dir.mkdir(parents=True, exist_ok=True)
@@ -318,7 +318,7 @@ class ClaudeAnalyticsProcessor:
         return total_size if total_size > 0 else None
     
     def _init_database(self):
-        """Initialize SQLite database for analytics"""
+        """Initialize SQLite database for event storage"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute("""
@@ -375,7 +375,7 @@ class ClaudeAnalyticsProcessor:
             pass
     
     def log_event(self, event_data: Dict[str, Any]) -> bool:
-        """Log a hook event to the analytics system"""
+        """Store a hook event to the database"""
         try:
             # Use typed event parsing if available
             if parse_log_event:
@@ -548,9 +548,6 @@ class ClaudeAnalyticsProcessor:
             'period': '24h'
         }
 
-# Compatibility aliases for existing hook code
-StreamProcessor = ClaudeAnalyticsProcessor
-
-def create_analytics_processor(brainworm_dir: Path) -> ClaudeAnalyticsProcessor:
-    """Create an analytics processor instance"""
-    return ClaudeAnalyticsProcessor(brainworm_dir)
+def create_event_store(brainworm_dir: Path) -> HookEventStore:
+    """Create an event store instance"""
+    return HookEventStore(brainworm_dir)
