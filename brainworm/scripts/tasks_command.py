@@ -52,6 +52,7 @@ def show_usage() -> None:
     console.print("  [green]tasks list[/green] [options]      - List all tasks")
     console.print("    [dim]--status=STATUS[/dim]             Filter by status (completed, pending, in_progress)")
     console.print("    [dim]--all[/dim]                       Show all columns")
+    console.print("  [green]tasks switch[/green] [task-name]  - Switch to an existing task")
     console.print("  [green]tasks set[/green] [options]       - Update task state")
     console.print("    [dim]--task=NAME[/dim]                 Set task name")
     console.print("    [dim]--branch=BRANCH[/dim]             Set git branch")
@@ -65,6 +66,7 @@ def show_usage() -> None:
     console.print("  [dim]tasks create feature-api --services=backend,api[/dim]")
     console.print("  [dim]tasks list[/dim]")
     console.print("  [dim]tasks list --status=completed[/dim]")
+    console.print("  [dim]tasks switch protocol-alignment-review[/dim]")
     console.print("  [dim]tasks set --task=\"feature-work\" --branch=\"feature/new\"[/dim]")
     console.print("  [dim]tasks set --services=\"hooks,analytics\"[/dim]")
     console.print("  [dim]tasks status[/dim]")
@@ -100,6 +102,11 @@ def main() -> None:
         elif command in ["list", "ls", "l"]:
             # List all tasks
             return_code = run_script(project_root, "list_tasks.py", remaining_args)
+            sys.exit(return_code)
+
+        elif command in ["switch", "sw"]:
+            # Switch to a different task
+            return_code = run_script(project_root, "switch_task.py", remaining_args)
             sys.exit(return_code)
 
         elif command in ["set", "update"]:
