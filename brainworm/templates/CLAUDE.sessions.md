@@ -20,28 +20,43 @@ This file provides collaborative guidance and philosophy when using the Brainwor
 
 ### Quick State Checks
 ```bash
-./tasks status                                              # Shows current task
-git branch --show-current                                   # Current branch/task
-./daic status                                               # DAIC workflow mode
+./tasks status                    # Shows current task, branch, services
+./tasks list                      # All tasks with status
+./daic status                     # DAIC workflow mode
+```
+
+### Task Commands
+
+**Creating tasks:**
+```bash
+./tasks create [task-name]                      # Create new task
+./tasks create [task-name] --services=svc1,svc2 # With services
+```
+
+**Switching tasks:**
+```bash
+./tasks switch [task-name]        # Atomic task switching (git + state)
+```
+
+**Managing state:**
+```bash
+./tasks set --task=X --branch=Y   # Manual state update (rare)
+./tasks clear                     # Clear current task
 ```
 
 ### State Management
 
 **CRITICAL: Never edit state files directly**
 - All state is managed through unified state API
-- Use state update hooks for programmatic control
+- Use wrapper commands for all state operations
 - State files are consolidated into `unified_session_state.json`
 
-**State Update Commands:**
+**DAIC Mode Commands:**
 ```bash
-# Update task state
-./tasks set --task="task-name" --branch="feature/xyz"
-
-# Update DAIC mode
-./daic discussion
-
-# Update session correlation
-./tasks session set --session-id="abc123"
+./daic discussion       # Switch to discussion mode
+./daic implementation   # Switch to implementation mode
+./daic status           # Check current mode
+./daic toggle           # Toggle between modes
 ```
 
 ## Using Specialized Agents
@@ -143,21 +158,28 @@ Specifically, avoid long prompts when invoking the logging or context-refinement
 These protocols guide specific workflows:
 
 1. **.brainworm/protocols/task-creation.md** - Creating new tasks
-   - **Automated script available**: `./tasks create [task-name]`
+   - **Wrapper command**: `./tasks create [task-name]`
    - EXPLICIT: "create a new task", "let's make a task for X"
    - VAGUE: "we should track this", "might need a task for that"
+   - Wrapper handles: directory creation, template, branch, DAIC state, analytics
 
-2. **.brainworm/protocols/task-startup.md** - Beginning work on existing tasks  
-   - EXPLICIT: "switch to task X", "let's work on task Y"
+2. **.brainworm/protocols/task-startup.md** - Beginning work on existing tasks
+   - **Wrapper command**: `./tasks switch [task-name]`
+   - EXPLICIT: "switch to task X", "let's work on task Y", "start working on Z"
    - VAGUE: "maybe we should look at the other thing"
+   - Wrapper handles: git checkout, state update, context verification
 
 3. **.brainworm/protocols/task-completion.md** - Completing and closing tasks
+   - **Wrapper commands**: `./tasks clear`, `./daic discussion`
    - EXPLICIT: "complete the task", "finish this task", "mark it done"
    - VAGUE: "I think we're done", "this might be finished"
+   - Wrappers handle: state cleanup, mode reset
 
 4. **.brainworm/protocols/context-compaction.md** - Managing context window limits
+   - **Wrapper commands**: `./daic status`, `./tasks switch` (if switching)
    - EXPLICIT: "let's compact", "run context compaction", "compact and restart"
    - VAGUE: "context is getting full", "we're using a lot of tokens"
+   - Wrappers preserve: state, analytics, session correlation
 
 ### Behavioral Examples
 
@@ -200,26 +222,67 @@ Based on brainworm analytics, successful [task-type] tasks typically:
 ## Enhanced Task Lifecycle
 
 ### 1. Task Creation
-- **Preferred**: Use automated wrapper: `./tasks create [task-name]`
-- **Alternative**: Follow task-creation protocol for manual structured setup
-- Wrapper automatically handles: directory creation, branch management, DAIC state, analytics initialization
-- Leverage brainworm analytics for similar task patterns
-- Establish proper branch and DAIC mode from start
+**Use the wrapper:**
+```bash
+./tasks create [task-name]                      # Basic creation
+./tasks create [task-name] --services=svc1,svc2 # With services
+```
 
-### 2. Task Execution  
+**Wrapper automatically handles:**
+- Directory creation in `.brainworm/tasks/`
+- Template population with metadata
+- Git branch creation (feature/, fix/, etc.)
+- DAIC state initialization
+- Analytics correlation setup
+
+**Then:**
+- Edit task file for specific requirements
+- Invoke context-gathering agent for comprehensive context
+
+### 2. Task Startup
+**Use the wrapper:**
+```bash
+./tasks list                  # Find available tasks
+./tasks switch [task-name]    # Atomic task switching
+```
+
+**Wrapper automatically handles:**
+- Git checkout to task branch
+- DAIC state update
+- Context verification warnings
+
+**Then:**
+- Read task file for context
+- Verify DAIC mode with `./daic status`
+- Begin work in discussion mode
+
+### 3. Task Execution
 - Follow DAIC workflow with intelligent timing
 - Apply learned success patterns from analytics
 - Use specialized agents for complex operations
+- Update work logs as progress is made
 
-### 3. Task Completion
-- Run task-completion protocol with analytics integration
-- Update service documentation with discovered patterns
-- Preserve learnings for future similar tasks
+### 4. Task Completion
+**Follow protocol with wrappers:**
+- Run logging agent for work log cleanup
+- Run service-documentation agent for updates
+- Clean up git branches manually
+- Use wrappers for state cleanup:
+  ```bash
+  ./tasks clear         # Clear current task
+  ./daic discussion     # Reset to discussion mode
+  ```
 
-### 4. Context Management
-- Use context-compaction protocol when approaching limits
-- Preserve analytics correlation across sessions
-- Maintain task continuity with state management
+### 5. Context Management
+**Use wrappers for state operations:**
+```bash
+./daic status                     # Check mode before compaction
+./tasks status                    # Verify task state
+./tasks switch [task-name]        # Switch tasks if needed
+./daic discussion                 # Set mode for resumption
+```
+
+**State persists automatically across compaction**
 
 ## Quality Integration Features
 

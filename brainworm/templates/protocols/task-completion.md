@@ -122,15 +122,22 @@ git push origin --delete feature/[task-name]
 
 ### Step 7: Task State Cleanup
 
-**Update DAIC state:**
-- Clear current task from unified state (`.brainworm/state/unified_session_state.json`)
-- Return DAIC mode to discussion for next task
-- Update unified state with completion status
+**Use wrappers to clean up state:**
+```bash
+./tasks clear         # Clears current task from state
+./daic discussion     # Reset to discussion mode for next task
+```
+
+**Verify clean state:**
+```bash
+./tasks status    # Should show "No active task"
+./daic status     # Should show "Discussion mode"
+```
 
 **Archive task artifacts:**
-- Move completed task to archive if using task archival system
-- Ensure task file remains accessible for future reference
-- Preserve analytics correlation data for learning
+- Task file remains in `.brainworm/tasks/[task-name]/` for reference
+- Analytics correlation data is preserved automatically
+- Branch cleanup is optional (keep for reference or delete)
 
 ### Step 8: Team Communication
 
@@ -252,3 +259,32 @@ Proper task completion:
 - Demonstrates professional development practices
 
 The completion process is as important as the implementation - it's where individual work becomes team knowledge and organizational capability.
+
+---
+
+## Reference: State Management
+
+**Understanding how `./tasks clear` works:**
+
+The clear command:
+1. Reads current unified_session_state.json
+2. Clears current_task field
+3. Preserves session and correlation IDs for analytics
+4. Maintains task completion metadata
+5. Returns success confirmation
+
+**Manual alternative** (if wrapper unavailable):
+```bash
+# Update state file directly (not recommended)
+./tasks set --task="" --branch="" --services=""
+```
+
+**Understanding how `./daic discussion` works:**
+
+The mode command:
+1. Updates DAIC mode in unified_session_state.json
+2. Triggers statusline update
+3. Resets tool blocking rules
+4. Preserves all other state
+
+**Note:** Wrappers ensure atomic state updates. Manual JSON editing can cause inconsistencies.

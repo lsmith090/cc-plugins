@@ -51,19 +51,19 @@ Task file: .brainworm/tasks/[current-task-name]/README.md
 - Decisions made that aren't yet reflected in code
 - Next immediate steps to continue work
 
-### Step 3: Analytics and Correlation Preservation
+### Step 3: Verify Current State
 
-**Record session analytics:**
-- Capture current session metrics and insights
-- Preserve correlation IDs and session tracking data
-- Document any success patterns observed
-- Note workflow effectiveness data for learning
+**Check DAIC mode before compaction:**
+```bash
+./daic status    # Note current mode and task
+./tasks status   # Verify task state
+```
 
-**Update unified state:**
-- Ensure DAIC state reflects current reality
-- Preserve task correlation and session data
-- Update success prediction models with progress data
-- Record any session success pattern insights
+**State is automatically preserved:**
+- Session correlation continues across compaction
+- Analytics data is maintained automatically
+- Task association persists in unified_session_state.json
+- No manual state updates needed
 
 ### Step 4: Knowledge Extraction and Storage
 
@@ -111,20 +111,24 @@ with any significant patterns or insights discovered during this session.
 
 ### Step 5: Coordinate Transition
 
-**If switching tasks:**
-- Update unified state with new task information
-- Ensure proper branch state for task switching  
-- Verify new task has adequate context manifest
+**If switching tasks after compaction:**
+```bash
+./tasks switch [new-task-name]    # Atomic task switch
+./daic discussion                  # Reset to discussion mode
+```
 
 **If continuing same task:**
 - Ensure task file contains all necessary context for resumption
 - Verify implementation state is clearly documented
 - Check that analytics correlation will continue properly
+- Current task remains active in state automatically
 
-**DAIC mode management:**
-- Set appropriate mode for task state (discussion vs implementation)
-- Document any pending decisions or alignments needed
-- Ensure trigger phrases will work correctly when resuming
+**Manage DAIC mode for resumption:**
+```bash
+./daic discussion       # If resuming needs planning
+./daic implementation   # If continuing focused work
+./daic status           # Verify mode is correct
+```
 
 ### Step 6: Final Validation
 
@@ -248,3 +252,29 @@ Effective context compaction:
 - Contributes to organizational learning about optimal work patterns
 
 Context compaction is not just about managing technical limitations - it's an opportunity to consolidate learning and improve future work effectiveness.
+
+---
+
+## Reference: State Management During Compaction
+
+**What wrappers preserve automatically:**
+
+State files remain intact across compaction:
+- `unified_session_state.json` preserves task, branch, services
+- Session and correlation IDs persist
+- DAIC mode settings maintained
+- Analytics tracking continues seamlessly
+
+**Manual state inspection** (for understanding):
+```bash
+# View current state
+cat .brainworm/state/unified_session_state.json | jq
+
+# Check task status
+./tasks status
+
+# Verify DAIC mode
+./daic status
+```
+
+**Note:** Compaction is a context window operation, not a state operation. State persists automatically.
