@@ -30,8 +30,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import subprocess
 from typing import Dict, Optional, List
 from rich.console import Console
+from utils.git_submodule_manager import SubmoduleManager
+from utils.debug_logger import create_debug_logger, get_default_debug_config
 
 console = Console()
+debug_logger = None  # Will be initialized in switch_task()
 
 
 def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
@@ -60,6 +63,10 @@ def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
             key, value = line.split(':', 1)
             key = key.strip()
             value = value.strip()
+
+            # Strip YAML comments (everything after #)
+            if '#' in value and not (value.startswith('[') and value.endswith(']')):
+                value = value.split('#')[0].strip()
 
             # Handle lists [item1, item2]
             if value.startswith('[') and value.endswith(']'):
@@ -99,8 +106,18 @@ def switch_task(task_name: str) -> bool:
     try:
         from utils.project import find_project_root
         from utils.daic_state_manager import DAICStateManager
+        from utils.config import load_config
 
         project_root = find_project_root()
+
+        # Initialize debug logger
+        from utils.debug_logger import DebugConfig
+        config = load_config(project_root)
+        debug_dict = config.get('debug', {})
+        debug_config = DebugConfig.from_dict(debug_dict) if debug_dict else get_default_debug_config()
+        debug_logger = create_debug_logger('switch_task', project_root, debug_config)
+
+        debug_logger.info(f"Task switch initiated: {task_name}")
 
         # 1. Validate task exists
         task_dir = project_root / ".brainworm" / "tasks" / task_name
@@ -128,7 +145,6 @@ def switch_task(task_name: str) -> bool:
             return False
 
         # 2. Parse task metadata
-        console.print(f"[cyan]Switching to task: {task_name}[/cyan]")
         metadata = parse_task_frontmatter(task_readme)
 
         if not metadata:
@@ -152,6 +168,14 @@ def switch_task(task_name: str) -> bool:
         else:
             services = []
 
+        # Extract submodule field
+        submodule = metadata.get('submodule', 'none')
+        # Normalize values
+        if submodule in ['none', 'N/A', '', 'null']:
+            submodule = None
+
+        debug_logger.debug(f"Task metadata: branch={branch}, submodule={submodule}, services={services}")
+
         if branch == 'N/A' or not branch or branch == 'none':
             console.print("[yellow]Warning: No branch specified in task metadata[/yellow]")
             console.print("[yellow]Will update state but not checkout git branch[/yellow]")
@@ -159,44 +183,161 @@ def switch_task(task_name: str) -> bool:
         else:
             branch_checkout = True
 
-        # 3. Check out git branch
+        # 3. Check out git branch(es)
         if branch_checkout:
-            console.print(f"[yellow]Checking out branch: {branch}[/yellow]")
-            try:
-                result = subprocess.run(
-                    ['git', 'checkout', branch],
-                    cwd=project_root,
-                    capture_output=True,
-                    text=True,
-                    check=False
-                )
+            # Determine if this is a submodule-scoped task
+            if submodule:
+                # Single submodule task
+                debug_logger.info(f"Detected submodule-scoped task: submodule='{submodule}', branch='{branch}'")
+                console.print(f"[yellow]Switching submodule '{submodule}' to branch: {branch}[/yellow]")
 
-                if result.returncode != 0:
-                    console.print(f"[red]Error: Git checkout failed[/red]")
-                    console.print(f"[red]{result.stderr.strip()}[/red]")
+                sm = SubmoduleManager(project_root)
+
+                # Validate submodule exists
+                if not sm.validate_submodule(submodule):
+                    console.print(f"[red]Error: Submodule '{submodule}' not found[/red]")
+                    available = sm.list_submodules()
+                    if available:
+                        console.print(f"[yellow]Available submodules: {', '.join(available)}[/yellow]")
                     return False
 
-                console.print(f"[green]✓ Checked out branch: {branch}[/green]")
-            except Exception as e:
-                console.print(f"[red]Error executing git checkout: {e}[/red]")
-                return False
+                submodule_path = sm.get_submodule_path(submodule)
+
+                # Check and fix detached HEAD state
+                if not sm._ensure_submodule_on_branch(submodule_path):
+                    console.print(f"[red]Error: Submodule '{submodule}' is in detached HEAD state[/red]")
+                    console.print("[red]Could not checkout to a default branch (tried: main, master, develop)[/red]")
+                    return False
+
+                # Checkout branch in submodule
+                try:
+                    debug_logger.debug(f"Executing git checkout in submodule: cwd={submodule_path}, branch={branch}")
+                    result = subprocess.run(
+                        ['git', 'checkout', branch],
+                        cwd=submodule_path,  # ← This is the fix!
+                        capture_output=True,
+                        text=True,
+                        check=False
+                    )
+
+                    if result.returncode != 0:
+                        debug_logger.error(f"Git checkout failed in submodule '{submodule}': {result.stderr.strip()}")
+                        console.print(f"[red]Error: Git checkout failed in submodule '{submodule}'[/red]")
+                        console.print(f"[red]{result.stderr.strip()}[/red]")
+                        return False
+
+                    debug_logger.info(f"Successfully checked out branch '{branch}' in submodule '{submodule}'")
+                    console.print(f"[green]✓ Checked out branch '{branch}' in submodule '{submodule}'[/green]")
+
+                    # Verify the checkout succeeded
+                    actual_branch = sm.get_current_branch(submodule)
+                    debug_logger.debug(f"Verification: expected_branch='{branch}', actual_branch='{actual_branch}'")
+                    if actual_branch != branch:
+                        debug_logger.warning(f"Branch mismatch after checkout: expected '{branch}', got '{actual_branch}'")
+                        console.print(f"[yellow]Warning: Expected branch '{branch}', but submodule is on '{actual_branch}'[/yellow]")
+
+                except Exception as e:
+                    console.print(f"[red]Error executing git checkout: {e}[/red]")
+                    return False
+
+            elif services:
+                # Multi-service task - checkout branches in multiple submodules
+                debug_logger.info(f"Detected multi-service task: services={services}")
+                console.print(f"[yellow]Switching multiple services to their task branches...[/yellow]")
+
+                sm = SubmoduleManager(project_root)
+                state_mgr_temp = DAICStateManager(project_root)
+                current_unified = state_mgr_temp.get_unified_state()
+                active_branches = current_unified.get('active_submodule_branches', {})
+
+                if not active_branches:
+                    debug_logger.warning("No active_submodule_branches in state, skipping submodule checkout")
+                else:
+                    for service, service_branch in active_branches.items():
+                        console.print(f"[cyan]  • {service} → {service_branch}[/cyan]")
+
+                        if not sm.validate_submodule(service):
+                            console.print(f"[yellow]    Warning: Submodule '{service}' not found, skipping[/yellow]")
+                            continue
+
+                        submodule_path = sm.get_submodule_path(service)
+
+                        # Fix detached HEAD if needed
+                        sm._ensure_submodule_on_branch(submodule_path)
+
+                        # Checkout branch
+                        result = subprocess.run(
+                            ['git', 'checkout', service_branch],
+                            cwd=submodule_path,
+                            capture_output=True,
+                            text=True,
+                            check=False
+                        )
+
+                        if result.returncode != 0:
+                            console.print(f"[red]    Error: Failed to checkout '{service_branch}' in '{service}'[/red]")
+                            console.print(f"[red]    {result.stderr.strip()}[/red]")
+                            return False
+                        else:
+                            console.print(f"[green]    ✓ Checked out '{service_branch}'[/green]")
+            else:
+                # Main repo task - original behavior
+                debug_logger.info(f"Detected main repo task: branch='{branch}'")
+                console.print(f"[yellow]Checking out branch: {branch}[/yellow]")
+                try:
+                    debug_logger.debug(f"Executing git checkout in main repo: cwd={project_root}, branch={branch}")
+                    result = subprocess.run(
+                        ['git', 'checkout', branch],
+                        cwd=project_root,
+                        capture_output=True,
+                        text=True,
+                        check=False
+                    )
+
+                    if result.returncode != 0:
+                        debug_logger.error(f"Git checkout failed in main repo: {result.stderr.strip()}")
+                        console.print(f"[red]Error: Git checkout failed[/red]")
+                        console.print(f"[red]{result.stderr.strip()}[/red]")
+                        return False
+
+                    debug_logger.info(f"Successfully checked out branch '{branch}' in main repo")
+                    console.print(f"[green]✓ Checked out branch: {branch}[/green]")
+                except Exception as e:
+                    debug_logger.error(f"Exception during git checkout: {e}")
+                    console.print(f"[red]Error executing git checkout: {e}[/red]")
+                    return False
 
         # 4. Update DAIC state
-        console.print("[cyan]Updating DAIC state...[/cyan]")
+        debug_logger.debug("Updating DAIC state")
         state_mgr = DAICStateManager(project_root)
 
         # Get current state for session/correlation IDs
         current_unified = state_mgr.get_unified_state()
+
+        # Build active_submodule_branches mapping based on task type
+        active_submodule_branches = {}
+        if submodule and branch_checkout:
+            # Single submodule task: map submodule to its branch
+            active_submodule_branches = {submodule: branch}
+            debug_logger.debug(f"Built active_submodule_branches for single submodule: {active_submodule_branches}")
+        elif services and branch_checkout:
+            # Multi-service task: preserve existing mapping from state
+            active_submodule_branches = current_unified.get('active_submodule_branches', {})
+            debug_logger.debug(f"Preserved active_submodule_branches for multi-service task: {active_submodule_branches}")
+        else:
+            # Main repo task: no submodule branches
+            debug_logger.debug("Main repo task: active_submodule_branches empty")
 
         state_mgr.set_task_state(
             task=task_name,
             branch=branch if branch_checkout else None,
             services=services,
             correlation_id=current_unified.get("correlation_id"),
-            session_id=current_unified.get("session_id")
+            session_id=current_unified.get("session_id"),
+            active_submodule_branches=active_submodule_branches
         )
 
-        console.print("[green]✓ DAIC state updated[/green]")
+        debug_logger.debug("DAIC state updated successfully")
 
         # 5. Display task summary
         console.print(f"\n[bold green]✓ Switched to task: {task_name}[/bold green]\n")
@@ -204,7 +345,24 @@ def switch_task(task_name: str) -> bool:
         console.print("[cyan]Task Details:[/cyan]")
         console.print(f"  • Task file: .brainworm/tasks/{task_name}/README.md")
         if branch_checkout:
-            console.print(f"  • Branch: {branch}")
+            if submodule:
+                console.print(f"  • Submodule: {submodule}")
+                console.print(f"  • Branch: {branch} (in submodule)")
+                # Show main repo stayed on its branch
+                main_result = subprocess.run(
+                    ['git', 'branch', '--show-current'],
+                    cwd=project_root,
+                    capture_output=True,
+                    text=True
+                )
+                main_branch = main_result.stdout.strip()
+                if main_branch:
+                    console.print(f"  • Main repo: {main_branch} (unchanged)")
+            elif services:
+                console.print(f"  • Services switched: {', '.join(services)}")
+                console.print(f"  • Branch: {branch}")
+            else:
+                console.print(f"  • Branch: {branch}")
         if services:
             console.print(f"  • Services: {', '.join(services)}")
 
@@ -222,6 +380,7 @@ def switch_task(task_name: str) -> bool:
             console.print("     [dim]Use Task tool with context-gathering agent, provide task file path[/dim]")
         console.print("  3. Begin work (currently in discussion mode)")
 
+        debug_logger.info(f"Task switch completed successfully: {task_name}")
         return True
 
     except Exception as e:
