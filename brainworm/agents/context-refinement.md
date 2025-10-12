@@ -55,13 +55,18 @@ cat "$(pwd)/.brainworm/state/context-refinement/service_context.json"
       pwd  # This shows your current directory, which is the project root
       ```
 
-   b. **List all files** in the context-refinement state directory:
+   b. **Wait for transcript files to be ready**:
+      ```bash
+      .brainworm/plugin-launcher scripts/wait_for_transcripts.py context-refinement
+      ```
+
+   c. **List all files** in the context-refinement state directory:
       ```bash
       # IMPORTANT: Use absolute paths from project root (pwd)
       ls -la "$(pwd)/.brainworm/state/context-refinement/"
       ```
 
-   c. **Read every file** in that directory (files named `current_transcript_001.json`, `current_transcript_002.json`, etc.):
+   d. **Read every file** in that directory (files named `current_transcript_001.json`, `current_transcript_002.json`, etc.):
       ```bash
       # IMPORTANT: Use absolute paths from project root (pwd)
       cat "$(pwd)/.brainworm/state/context-refinement/current_transcript_"*.json

@@ -48,13 +48,18 @@ Follow these steps to understand what happened in current session:
    pwd  # This shows your current directory, which is the project root
    ```
 
-2. **List all files** in the session-docs state directory:
+2. **Wait for transcript files to be ready**:
+   ```bash
+   .brainworm/plugin-launcher scripts/wait_for_transcripts.py session-docs
+   ```
+
+3. **List all files** in the session-docs state directory:
    ```bash
    # IMPORTANT: Use absolute paths from project root (pwd)
    ls -la "$(pwd)/.brainworm/state/session-docs/"
    ```
 
-3. **Read every file** in that directory (files named `current_transcript_001.json`, `current_transcript_002.json`, etc.):
+4. **Read every file** in that directory (files named `current_transcript_001.json`, `current_transcript_002.json`, etc.):
    ```bash
    # IMPORTANT: Use absolute paths from project root (pwd)
    cat "$(pwd)/.brainworm/state/session-docs/current_transcript_"*.json
