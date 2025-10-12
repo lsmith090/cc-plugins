@@ -9,7 +9,7 @@
 """
 Subagent Stop Hook - Hooks Framework
 
-Captures subagent stop events with specialized analytics marking.
+Captures subagent stop events with specialized event logging.
 """
 
 # Add plugin root to sys.path before any utils imports
@@ -34,17 +34,10 @@ def subagent_stop_logic(framework, typed_input):
             session_id = 'unknown'
         session_short = session_id[:8] if len(session_id) >= 8 else session_id
         framework.debug_logger.info(f"🤖 Subagent stopped: {session_short}")
-        framework.debug_logger.debug("Analytics config: agent_type=subagent")
+        framework.debug_logger.debug("Event marked as subagent context")
 
-    # Configure analytics for subagent context
-    analytics_config = {
-        'agent_type': 'subagent',  # Mark as subagent for filtering
-        'hook_name': 'subagent_stop',
-        'event_type': 'raw_execution'
-    }
-
-    # Process subagent-specific analytics using typed input
-    return framework.process_analytics(framework.raw_input_data, analytics_config)
+    # Event data will be automatically logged by framework with agent_type metadata
+    # No additional processing needed - hook just observes the subagent stop
 
 
 def subagent_stop_success_message(framework):

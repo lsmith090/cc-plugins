@@ -9,7 +9,7 @@
 """
 Post-Tool Use Hook - Framework Implementation
 
-Captures tool execution results with analytics and subagent cleanup.
+Captures tool execution results with event logging and subagent cleanup.
 """
 
 # Add plugin root to sys.path before any utils imports
@@ -54,7 +54,7 @@ def post_tool_use_logic(framework, typed_input):
         status_icon = "✅" if success else "❌"
         framework.debug_logger.info(f"{status_icon} Tool completed: {tool_name} (success={success})")
 
-    # Extract file paths and commands for analytics
+    # Extract file paths and commands for event data
     file_extractor = create_file_path_extractor()
     command_extractor = create_command_extractor()
 
@@ -71,7 +71,7 @@ def post_tool_use_logic(framework, typed_input):
             if cmd:
                 framework.debug_logger.debug(f"Command: {cmd[:80]}" + ("..." if len(cmd) > 80 else ""))
 
-    # Store extracted data for analytics
+    # Store extracted data for event logging
     framework.extracted_data = {
         'tool_success': success,
         'file_paths': file_paths,
@@ -80,37 +80,6 @@ def post_tool_use_logic(framework, typed_input):
 
     # No decision output needed for post-tool-use hooks
     # (they observe what happened, don't control execution)
-
-def post_tool_use_analytics_extractor(raw_input_data):
-    """Custom analytics extractor for post-tool use events."""
-    extra_data = {}
-    
-    # Extract tool information
-    tool_name = raw_input_data.get('tool_name', 'unknown')
-    extra_data['tool_name'] = tool_name
-    
-    # Extract file path if it's a file operation
-    tool_input = raw_input_data.get('tool_input', {})
-    if 'file_path' in tool_input:
-        extra_data['file_path'] = tool_input['file_path']
-    
-    # Extract command if it's a Bash operation
-    if 'command' in tool_input:
-        extra_data['command'] = tool_input['command']
-    
-    # Determine success
-    tool_response = raw_input_data.get('tool_response', {})
-    if isinstance(tool_response, dict):
-        if tool_response.get('is_error', False):
-            extra_data['success'] = False
-        elif 'success' in tool_response:
-            extra_data['success'] = tool_response['success']
-        else:
-            extra_data['success'] = True
-    else:
-        extra_data['success'] = True
-    
-    return extra_data
 
 def post_tool_use_success_message(framework):
     """Custom success message for post-tool use hook."""
@@ -139,4 +108,4 @@ def post_tool_use_success_message(framework):
     print(f"{success_status} Tool completed: {tool_name} (Session: {session_short})", file=sys.stderr)
 
 if __name__ == "__main__":
-    HookFramework("post_tool_use", enable_event_logging=True).with_custom_logic(post_tool_use_logic).with_extractor(post_tool_use_analytics_extractor).with_success_handler(post_tool_use_success_message).execute()
+    HookFramework("post_tool_use", enable_event_logging=True).with_custom_logic(post_tool_use_logic).with_success_handler(post_tool_use_success_message).execute()

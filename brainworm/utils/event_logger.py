@@ -193,8 +193,8 @@ class SessionEventLogger(HookLogger):
         else:
             return 'unknown'
     
-    def log_event_with_analytics(self, event_data: dict, debug: bool = False) -> bool:
-        """Log event to analytics database and backup JSONL"""
+    def log_event(self, event_data: dict, debug: bool = False) -> bool:
+        """Log enriched event to event store database"""
         try:
             enriched_data = self.enrich_event_data(event_data)
 
@@ -255,7 +255,7 @@ class SessionEventLogger(HookLogger):
             'timing': timing_info  # Include timing data in logged event
         }
         
-        return self.log_event_with_analytics(event_data, debug)
+        return self.log_event(event_data, debug)
     
     def log_post_tool_execution(self, input_data: dict, debug: bool = False) -> bool:
         """Log post-tool execution with duration"""
@@ -311,7 +311,7 @@ class SessionEventLogger(HookLogger):
             'timing': timing_info
         }
         
-        return self.log_event_with_analytics(event_data, debug)
+        return self.log_event(event_data, debug)
     
     def log_user_prompt(self, prompt_data: dict, debug: bool = False) -> bool:
         """Log user prompt with intent analysis"""
@@ -324,7 +324,7 @@ class SessionEventLogger(HookLogger):
         if self.enable_event_logging:
             event_data['intent_analysis'] = self._analyze_intent(prompt_data.get('prompt', ''))
         
-        return self.log_event_with_analytics(event_data, debug)
+        return self.log_event(event_data, debug)
     
     def _calculate_duration_ms(self, start_time_iso: str) -> float:
         """Calculate duration between ISO timestamp and now in milliseconds."""

@@ -15,12 +15,9 @@ all hook implementations by providing a unified interface for hook execution.
 Usage Examples:
     # Simple hook (0 boilerplate):
     HookFramework("notification").execute()
-    
-    # Hook with custom data extraction:
-    HookFramework("session_start").with_extractor(extract_session_data).execute()
-    
-    # Complex hook with custom logic:
-    def custom_logic(framework):
+
+    # Hook with custom logic:
+    def custom_logic(framework, typed_input):
         # Custom business logic here
         pass
     HookFramework("pre_tool_use").with_custom_logic(custom_logic).execute()
@@ -108,7 +105,6 @@ class HookFramework:
         self.project_root: Optional[Path] = None
         self.session_id: str = "unknown"
         self.custom_logic_fn: Optional[Callable] = None
-        self.data_extractor_fn: Optional[Callable] = None
         self.success_handler_fn: Optional[Callable] = None
         self.decision_output: Optional[PreToolUseDecisionOutput] = None
         
@@ -214,7 +210,7 @@ class HookFramework:
         self._initialize_infrastructure()
     
     def _initialize_infrastructure(self) -> None:
-        """Initialize advanced analytics and logging infrastructure."""
+        """Initialize event logging and debug logging infrastructure."""
         if not self.project_root:
             return
 
@@ -233,7 +229,7 @@ class HookFramework:
 
             # Initialize event logger with Claude Code session correlation
             if self.enable_event_logging and create_event_logger:
-                event_logging_enabled = '--analytics' in sys.argv  # TODO: Update flag name
+                event_logging_enabled = '--event-logging' in sys.argv
                 self.event_logger = create_event_logger(
                     self.project_root, self.hook_name,
                     enable_event_logging=event_logging_enabled,
@@ -260,7 +256,7 @@ class HookFramework:
                 success = self.event_logger.log_user_prompt(self.raw_input_data, debug=debug_mode)
             else:
                 # General event logging with session context
-                success = self.event_logger.log_event_with_analytics(self.raw_input_data, debug=debug_mode)
+                success = self.event_logger.log_event(self.raw_input_data, debug=debug_mode)
 
             if self.debug_logger:
                 if success:
@@ -329,25 +325,6 @@ class HookFramework:
             HookFramework("pre_tool_use").with_custom_logic(pre_tool_use_logic).execute()
         """
         self.custom_logic_fn = logic_fn
-        return self
-    
-    def with_extractor(self, extractor_fn: Callable[[Dict[str, Any]], Dict[str, Any]]) -> 'HookFramework':
-        """
-        Add custom data extractor for analytics.
-        
-        Args:
-            extractor_fn: Function that extracts custom data from raw input
-            
-        Returns:
-            Self for method chaining
-            
-        Example:
-            def extract_notification_data(raw_input):
-                return {'message': raw_input.get('message', 'Unknown')}
-            
-            HookFramework("notification").with_extractor(extract_notification_data).execute()
-        """
-        self.data_extractor_fn = extractor_fn
         return self
     
     def with_success_handler(self, handler_fn: Callable) -> 'HookFramework':
@@ -523,97 +500,6 @@ class HookFramework:
             
         except Exception as e:
             self._handle_error(e)
-
-
-# Convenience functions for common data extraction patterns
-def extract_file_data(raw_input_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract file-related data for file operation hooks."""
-    tool_input = raw_input_data.get('tool_input', {})
-    extra_data = {}
-    
-    if file_path := tool_input.get('file_path'):
-        extra_data['file_path'] = file_path
-    
-    return extra_data
-
-
-def extract_command_data(raw_input_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract command data for bash operation hooks."""
-    tool_input = raw_input_data.get('tool_input', {})
-    extra_data = {}
-    
-    if command := tool_input.get('command'):
-        extra_data['command'] = command
-    
-    return extra_data
-
-
-def extract_tool_data(raw_input_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract tool execution data for tool operation hooks."""
-    extra_data = {}
-    
-    if tool_name := raw_input_data.get('tool_name'):
-        extra_data['tool_name'] = tool_name
-    
-    if tool_response := raw_input_data.get('tool_response'):
-        # Determine success from tool response
-        if isinstance(tool_response, dict):
-            if tool_response.get('is_error', False):
-                extra_data['tool_success'] = False
-            elif 'success' in tool_response:
-                extra_data['tool_success'] = tool_response['success']
-            else:
-                extra_data['tool_success'] = True
-    
-    return extra_data
-
-
-def extract_prompt_data(raw_input_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract basic prompt data for prompt submission hooks."""
-    prompt = raw_input_data.get('prompt', '')
-    
-    return {
-        'prompt_info': {
-            'length_chars': len(prompt),
-            'word_count': len(prompt.split()),
-            'has_question': '?' in prompt,
-            'has_code_references': bool('`' in prompt or '.py' in prompt or '.js' in prompt),
-            'is_empty': len(prompt.strip()) == 0
-        }
-    }
-
-
-def extract_session_data(raw_input_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract session-related data for session management hooks."""
-    return {
-        'session_id': raw_input_data.get('session_id', 'unknown'),
-        'user_id': raw_input_data.get('user_id', 'unknown')
-    }
-
-
-def extract_notification_data(raw_input_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract notification data for notification hooks."""
-    return {
-        'message': raw_input_data.get('message', 'Unknown notification'),
-        'notification_type': raw_input_data.get('type', 'generic')
-    }
-
-
-# Legacy compatibility function
-def create_standard_raw_hook(hook_name: str, extract_extra_data_fn=None):
-    """
-    Legacy compatibility function - use HookFramework class instead.
-    
-    This function is preserved for backward compatibility but HookFramework
-    provides better features and cleaner interface.
-    """
-    def hook_main():
-        if extract_extra_data_fn:
-            HookFramework(hook_name).with_extractor(extract_extra_data_fn).execute()
-        else:
-            HookFramework(hook_name).execute()
-    
-    return hook_main
 
 
 if __name__ == '__main__':
