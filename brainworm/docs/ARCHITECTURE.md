@@ -142,7 +142,7 @@ cat "$(pwd)/.brainworm/state/<subagent-type>/current_transcript_"*.json
 ### 4. Event Storage System
 
 **Local Event Capture**:
-Brainworm captures hook execution events locally in `.brainworm/analytics/hooks.db` for session tracking and correlation. This is infrastructure that runs transparently - events are automatically captured with session IDs and correlation IDs to maintain workflow continuity.
+Brainworm captures hook execution events locally in `.brainworm/events/hooks.db` for session tracking and correlation. This is infrastructure that runs transparently - events are automatically captured with session IDs and correlation IDs to maintain workflow continuity.
 
 **Storage Details**:
 - SQLite database with minimal schema (5 columns + JSON blob)
@@ -189,12 +189,12 @@ State Management Updates
 ```
 Project/.brainworm/
 ├── hooks/                          # Complete hook system
-│   ├── pre_tool_use.py             # DAIC enforcement + analytics
+│   ├── pre_tool_use.py             # DAIC enforcement + event capture
 │   ├── user_messages.py            # Trigger detection
 │   ├── post_tool_use.py            # Tool execution tracking
 │   ├── stop.py                     # Session lifecycle
 │   ├── session_start.py            # Session initialization
-│   ├── analytics_processor.py      # Core analytics engine
+│   ├── event_store.py              # Core event storage engine
 │   ├── daic_state_manager.py       # Unified state management
 │   └── subagent_stop.py            # Subagent coordination
 ├── protocols/                      # Workflow protocols
@@ -205,10 +205,8 @@ Project/.brainworm/
 ├── state/                          # State management
 │   ├── daic-mode.json              # DAIC workflow mode
 │   └── unified_session_state.json  # Complete session state (includes task tracking)
-├── analytics/                      # Event storage
-│   ├── hooks.db                    # SQLite event database
-│   ├── logs/                       # Daily JSONL backups
-│   └── correlations/               # Session correlation data
+├── events/                         # Event storage
+│   └── hooks.db                    # SQLite event database
 ├── templates/                      # System templates
 │   ├── TEMPLATE.md                 # Task template
 │   ├── CLAUDE.sessions.md          # Behavioral guidance

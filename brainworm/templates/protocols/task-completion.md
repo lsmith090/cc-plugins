@@ -1,7 +1,7 @@
 # Task Completion Protocol
 
 ## Overview
-This protocol guides the proper completion and archiving of tasks in the DAIC-enhanced brainworm workflow system. Proper task completion ensures knowledge retention, analytics learning, and clean project state.
+This protocol guides the proper completion and archiving of tasks in the DAIC-enhanced brainworm workflow system. Proper task completion ensures knowledge retention, complete event tracking, and clean project state.
 
 ## When to Use This Protocol
 - All success criteria have been met
@@ -238,7 +238,7 @@ Before marking a task complete, verify:
 **Process Quality:**
 - [ ] Success criteria honestly assessed
 - [ ] Work log provides clear record of accomplishments
-- [ ] Analytics data captured for learning
+- [ ] Event data captured for workflow continuity
 - [ ] Follow-up tasks identified and created
 - [ ] Team communication completed
 
@@ -262,7 +262,7 @@ The completion process is as important as the implementation - it's where indivi
 The clear command:
 1. Reads current unified_session_state.json
 2. Clears current_task field
-3. Preserves session and correlation IDs for analytics
+3. Preserves session and correlation IDs for event tracking
 4. Maintains task completion metadata
 5. Returns success confirmation
 

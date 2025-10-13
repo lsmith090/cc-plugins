@@ -135,7 +135,7 @@ Instead of jumping in, create a structured task:
 - Populates README.md from template
 - Creates appropriate git branch (`fix/fix-dashboard-performance`)
 - Updates DAIC state
-- Initializes analytics tracking
+- Initializes event tracking
 
 **Result:** You get a fully configured task ready for work
 
@@ -235,9 +235,9 @@ When you're finished:
 
 **Claude runs task-completion protocol:**
 1. **Code-review agent** does final quality check
-2. **Service-documentation agent** updates relevant docs  
+2. **Service-documentation agent** updates relevant docs
 3. **Logging agent** creates final work summary
-4. Analytics are updated with success patterns
+4. Event data captured for workflow continuity
 
 **Result:** Clean task completion with preserved knowledge for future work.
 
@@ -407,19 +407,6 @@ I'd like to implement this change, but I'm currently in discussion mode...
 
 # Advanced Tips
 
-## Working with Analytics
-
-The system learns from your patterns:
-```
-Based on brainworm analytics, similar authentication tasks typically:
-- Spend 30% of time in discussion mode for planning
-- Use context-gathering agent early for comprehensive context
-- Complete implementation in focused sessions  
-- Apply code-review agent before final completion
-```
-
-**Use these insights** to optimize your workflow.
-
 ## Effective Trigger Phrase Usage
 
 **Context matters:**
@@ -450,18 +437,18 @@ For tasks spanning multiple sessions:
 After mastering these basics:
 
 1. **Read the full technical docs** in `docs/DAIC_WORKFLOW.md`
-2. **Explore analytics features** with `uv run .brainworm/hooks/view_analytics.py`
-3. **Customize your configuration** using `docs/CONFIGURATION.md`
-4. **Learn about the architecture** in `docs/ARCHITECTURE.md`
+2. **Customize your configuration** using `docs/CONFIGURATION.md`
+3. **Learn about the architecture** in `docs/ARCHITECTURE.md`
+4. **Explore event storage** with SQLite queries on `.brainworm/analytics/hooks.db`
 
 ## Remember
 
 The DAIC workflow might feel constraining at first, but it's designed to:
 - **Prevent costly mistakes** through better planning
 - **Improve code quality** through structured processes
-- **Build institutional knowledge** through analytics
+- **Build institutional knowledge** through documentation
 - **Make complex tasks manageable** through proper structure
 
-**The system learns from every session to make future development more effective.**
+**Thoughtful development workflows lead to better outcomes.**
 
 Welcome to more thoughtful, effective software development! 🚀

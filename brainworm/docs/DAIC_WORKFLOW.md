@@ -16,7 +16,7 @@ DAIC transforms the typical "ask → implement immediately" pattern into a delib
 - **Tool Blocking**: Implementation tools (`Edit`, `Write`, `MultiEdit`, `NotebookEdit`) are blocked
 - **Read-Only Operations**: Extensive allowlist of safe commands for exploration
 - **Collaborative**: Encourages asking questions, exploring alternatives, presenting options
-- **Analytics-Enhanced**: Data provides insights from similar historical tasks
+- **Event-Tracked**: Workflow data captured for session continuity
 
 **What You Can Do**:
 - File exploration (`ls`, `cat`, `grep`, `rg`, `find`)
@@ -33,11 +33,6 @@ DAIC transforms the typical "ask → implement immediately" pattern into a delib
 - **Present multiple options** when architectural decisions have tradeoffs
 - **Use subagents proactively** for complex analysis (context-gathering, code-review)
 - **Document your findings** to inform implementation decisions
-
-**Analytics Features**:
-- **Pattern Analysis**: Historical data informs approach recommendations
-- **Codebase Learning**: Analytics remember architectural patterns and past decisions
-- **Quality Insights**: Analysis of what discussion patterns lead to successful outcomes
 
 ### 🤝 Alignment Phase
 
@@ -61,11 +56,6 @@ DAIC transforms the typical "ask → implement immediately" pattern into a delib
 - Approach is documented and understood by all parties
 - Risks and dependencies are acknowledged and addressed
 - Success criteria are clear and measurable
-
-**Analytics Features**:
-- **Confidence Scoring**: Analytics provide confidence in approach based on similar patterns
-- **Risk Prediction**: Historical data identifies potential failure points
-- **Success Pattern Matching**: Leverage learnings from similar successful implementations
 
 ### ⚡ Implementation Phase
 
@@ -95,11 +85,6 @@ DAIC transforms the typical "ask → implement immediately" pattern into a delib
 - **Document complex decisions** for future maintainers
 - **Use meaningful commit messages** that explain the "why" not just the "what"
 
-**Analytics Features**:
-- **Success Pattern Application**: Apply learned patterns from similar successful implementations
-- **Real-Time Monitoring**: Track progress against success predictions
-- **Early Warning Systems**: Alert to potential issues based on implementation patterns
-
 ### ✅ Check Phase
 
 **Purpose**: Validate implementation quality, completeness, and alignment with original goals
@@ -128,11 +113,6 @@ DAIC transforms the typical "ask → implement immediately" pattern into a delib
 - Success criteria are demonstrably met
 - Documentation is updated and accurate
 - Team members can understand and maintain the changes
-
-**Analytics Features**:
-- **Quality Prediction**: Analytics predict potential quality issues before they occur
-- **Success Validation**: Automated comparison against historical success patterns
-- **Learning Capture**: Document patterns that led to successful outcomes
 
 ## Workflow Transitions
 
@@ -201,9 +181,9 @@ DAIC transforms the typical "ask → implement immediately" pattern into a delib
 DAIC workflow behavior can be customized through configuration files. See [`docs/CONFIGURATION.md`](CONFIGURATION.md) for complete configuration reference including:
 
 - **Trigger phrase customization** - Modify phrases that transition to implementation mode
-- **Tool blocking configuration** - Control which tools are restricted in discussion mode  
+- **Tool blocking configuration** - Control which tools are restricted in discussion mode
 - **Read-only command allowlists** - Define investigation commands allowed in discussion mode
-- **Analytics feature toggles** - Control background learning capabilities
+- **Event storage settings** - Configure workflow event capture
 
 ## Common Workflow Patterns
 
@@ -268,7 +248,7 @@ Discussion → Implementation → Check (repeat until satisfied)
 - Use specialized subagents for comprehensive analysis
 - Focus on understanding requirements and constraints thoroughly
 - Present well-researched options with clear tradeoffs
-- Leverage analytics insights to improve investigation quality
+- Leverage documented patterns to improve investigation quality
 
 ## Integration with Other Brainworm Features
 
@@ -278,13 +258,10 @@ Discussion → Implementation → Check (repeat until satisfied)
 - **Logging**: Continuous documentation throughout workflow
 - **Service-Documentation**: Updates documentation as changes are implemented
 
-### Analytics Intelligence
+### Event Storage Integration
 - **Session Correlation**: Track workflow continuity across sessions
-- **Pattern Recognition**: Basic identification of successful workflow sequences
-- **Background Learning**: Quiet capture of development patterns
-
-See [`docs/ANALYTICS.md`](ANALYTICS.md) for complete analytics capabilities and current implementation status.
-- **Real-Time Monitoring**: Live dashboard of workflow progress and health
+- **Event Capture**: Record DAIC transitions and tool usage
+- **Workflow Tracking**: Maintain event history for debugging and analysis
 
 ### Task Management
 - **Protocol Integration**: DAIC workflow built into task creation, completion, and startup protocols
@@ -303,33 +280,13 @@ See [`docs/ANALYTICS.md`](ANALYTICS.md) for complete analytics capabilities and 
 ### Team Collaboration
 - **Share workflow patterns** that work well for your team
 - **Customize trigger phrases** to match team communication style
-- **Use analytics insights** to improve team development patterns
+- **Review event data** to understand team development patterns
 - **Establish team standards** for thorough discussion and comprehensive analysis
 
 ### Project Management
-- **Track DAIC effectiveness** using brainworm analytics
+- **Track DAIC effectiveness** using event data queries
 - **Maintain consistent discipline** regardless of team experience to preserve thoughtful workflow
-- **Use success patterns** to guide project planning and estimation
-- **Monitor workflow health** through real-time dashboard and alerting
+- **Document successful patterns** to guide project planning and estimation
+- **Monitor workflow consistency** through event tracking
 
-## Success Metrics and Analytics
-
-### Individual Metrics
-- **Implementation Success Rate**: Percentage of implementations that meet success criteria
-- **Discussion Thoroughness**: Completeness of analysis and requirement understanding before implementation
-- **Codebase Learning**: How well discussions incorporate existing patterns and architectural knowledge
-- **Decision Quality**: Alignment between discussed approach and successful implementation outcomes
-
-### Team Metrics  
-- **Collective Success Patterns**: Discussion approaches that lead to successful outcomes
-- **Knowledge Sharing**: How effectively insights from one developer benefit others
-- **Learning Integration**: How well team incorporates patterns and lessons from analytics
-- **Quality Trends**: Code quality improvements attributable to thorough DAIC discussion phases
-
-### Project Metrics
-- **Defect Reduction**: Bugs prevented through thorough discussion and alignment phases
-- **Requirements Understanding**: How well discussion phase captures and clarifies requirements
-- **Technical Debt**: Reduction in shortcuts and quick fixes through proper discussion and check phases
-- **Documentation Quality**: Improved maintainability through integrated documentation practices
-
-The DAIC methodology, enhanced with brainworm's intelligence features, creates a self-improving development workflow that maintains high code quality while adapting to individual and team patterns for maximum effectiveness.
+The DAIC methodology creates a structured development workflow that maintains high code quality through deliberate phases and thoughtful decision-making.

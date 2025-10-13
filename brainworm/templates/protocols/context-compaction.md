@@ -61,7 +61,7 @@ Task file: .brainworm/tasks/[current-task-name]/README.md
 
 **State is automatically preserved:**
 - Session correlation continues across compaction
-- Analytics data is maintained automatically
+- Event data is maintained automatically
 - Task association persists in unified_session_state.json
 - No manual state updates needed
 
@@ -100,10 +100,10 @@ with any significant patterns or insights discovered during this session.
 - [Decision 1]: [Rationale]
 - [Decision 2]: [Rationale]
 
-### Analytics Insights
-- **Session effectiveness:** [DAIC workflow patterns observed]
+### Session Notes
+- **Workflow patterns:** [DAIC workflow observations from this session]
 - **Success factors:** [What worked well this session]
-- **Risk factors:** [Potential issues to watch for]
+- **Watch for:** [Potential issues to be aware of]
 
 ### Context for Resumption
 [Any information that will be important when work resumes]
@@ -256,7 +256,7 @@ State files remain intact across compaction:
 - `unified_session_state.json` preserves task, branch, services
 - Session and correlation IDs persist
 - DAIC mode settings maintained
-- Analytics tracking continues seamlessly
+- Event tracking continues seamlessly
 
 **Manual state inspection** (for understanding):
 ```bash

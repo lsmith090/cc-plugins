@@ -21,14 +21,8 @@ correlation_id: [brainworm-correlation-id]
 ## Context Files
 <!-- Added by context-gathering agent or manually -->
 - @service/file.py:123-145  # Specific lines
-- @other/module.py          # Whole file  
+- @other/module.py          # Whole file
 - patterns/auth-flow        # Pattern reference
-
-## Analytics Insights
-<!-- Populated by brainworm analytics for similar tasks -->
-- Similar task success patterns: [pattern-description]
-- Recommended approach based on historical data
-- Estimated complexity and timeline from analytics
 
 ## User Notes
 <!-- Any specific notes or requirements from the developer -->

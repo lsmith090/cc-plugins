@@ -1,14 +1,14 @@
 # Task Creation Protocol
 
 ## Overview
-This protocol guides the creation of structured, well-defined tasks in the DAIC-enhanced brainworm workflow system. Tasks are the fundamental unit of work, ensuring focused development with proper context preservation and analytics integration.
+This protocol guides the creation of structured, well-defined tasks in the DAIC-enhanced brainworm workflow system. Tasks are the fundamental unit of work, ensuring focused development with proper context preservation and event correlation.
 
 ## When to Use This Protocol
 - User explicitly requests task creation
 - A new feature or bug fix needs structured tracking
 - Work scope is complex enough to warrant dedicated context
 - Need to switch between different types of work
-- Analytics suggest breaking work into smaller tasks for better success rates
+- Breaking work into smaller tasks improves focus and success rates
 
 ## Task Creation Process
 
@@ -23,7 +23,7 @@ This protocol guides the creation of structured, well-defined tasks in the DAIC-
 **Ask clarifying questions if needed:**
 - "Should this include testing and documentation?"
 - "Are there specific performance requirements?"
-- "Should this integrate with existing analytics tracking?"
+- "Are there any specific workflow tracking needs?"
 - "What's the priority level for this work?"
 
 ### Step 2: Determine Task Type and Naming
@@ -61,7 +61,7 @@ This protocol guides the creation of structured, well-defined tasks in the DAIC-
 - Creates appropriate git branch (`feature/`, `fix/`, `refactor/`, etc.)
 - Handles submodule-aware branch creation for super-repo projects
 - Updates DAIC state with task, branch, and service information
-- Initializes event correlation tracking
+- Initializes session correlation tracking for workflow continuity
 - Runs in non-interactive mode for automation compatibility
 
 **Verify creation:**
@@ -168,7 +168,7 @@ If a task feels too large:
 ### Handling Dependencies
 When tasks have dependencies:
 - Document dependencies clearly in task description
-- Use analytics to identify common dependency patterns
+- Review similar past tasks for common dependency patterns
 - Consider creating prerequisite tasks explicitly
 - Track dependency resolution in work logs
 
@@ -212,7 +212,7 @@ The create command performs these operations:
 4. Creates git branch with appropriate prefix (feature/, fix/, etc.)
 5. Handles submodule-aware branching for monorepos
 6. Updates unified_session_state.json via DAICStateManager
-7. Initializes analytics correlation tracking
+7. Initializes session correlation tracking for workflow continuity
 8. Provides next steps guidance
 
 **If wrapper is unavailable, manual process:**

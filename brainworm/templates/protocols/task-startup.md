@@ -158,7 +158,7 @@ Task file: .brainworm/tasks/[task-name]/README.md
 For tasks requiring significant investigation:
 1. Start with thorough context gathering
 2. Plan multiple discussion sessions before implementation
-3. Use analytics to estimate research vs implementation time
+3. Estimate research vs implementation time needs
 4. Document findings continuously for future reference
 
 ### Integration Tasks
@@ -174,23 +174,6 @@ For fixing existing issues:
 2. Understand root cause before implementing fixes
 3. Consider prevention strategies, not just immediate fixes
 4. Plan regression testing to prevent reoccurrence
-
-## Analytics-Driven Optimizations
-
-### Session Timing
-- Use analytics to identify optimal work session lengths for task types
-- Consider historical patterns for discussion vs implementation time ratios
-- Plan breaks and context preservation based on complexity estimates
-
-### Success Factors
-- Apply learned success patterns from similar historical tasks
-- Avoid approaches that analytics show have high failure rates
-- Use team performance patterns to optimize collaboration approaches
-
-### Risk Mitigation
-- Identify early warning signs of potential task difficulties
-- Apply preventive measures for common failure patterns
-- Set up monitoring for factors that correlate with task success
 
 ## Quality Checklist
 
@@ -208,12 +191,6 @@ Before beginning substantive work, verify:
 - [ ] All required services and dependencies are available
 - [ ] DAIC state properly configured (via `./tasks status`)
 
-**Analytics Integration:**
-- [ ] Session correlation tracking is active
-- [ ] Relevant success patterns have been reviewed
-- [ ] Performance baselines established for comparison
-- [ ] Risk factors identified and mitigation planned
-
 **Work Planning:**
 - [ ] Session goals are realistic and specific
 - [ ] Discussion vs implementation balance planned
@@ -224,10 +201,10 @@ Before beginning substantive work, verify:
 
 Effective task startup:
 - Prevents wasted effort from insufficient context
-- Leverages organizational learning for better outcomes
+- Leverages documented learnings for better outcomes
 - Establishes proper workflow patterns from the beginning
 - Enables smooth handoffs and continuations
-- Contributes to continuous improvement through analytics
+- Contributes to continuous improvement through documentation
 
 The investment in proper startup pays dividends throughout the task lifecycle and contributes to overall team effectiveness.
 

@@ -1,6 +1,6 @@
 # Brainworm - DAIC Workflow Enhancement for Claude Code
 
-Transform your Claude Code development workflow with structured discipline and intelligent insights.
+Transform your Claude Code development workflow with structured discipline and workflow continuity.
 
 ## What is Brainworm?
 
@@ -11,7 +11,7 @@ Brainworm is a comprehensive Claude Code plugin that enforces the **DAIC methodo
 **🎯 DAIC Workflow Enforcement**
 - **Discussion Mode**: Tool blocking encourages thorough planning before implementation
 - **Trigger Phrases**: Natural transitions with "make it so", "ship it", "go ahead", etc.
-- **Smart Recommendations**: System guides you toward better development practices
+- **Workflow Guidance**: Enforces thoughtful development practices through structured phases
 
 **🤖 Specialized Subagents**
 - **context-gathering**: Comprehensive task analysis and context creation
@@ -232,11 +232,6 @@ trigger_phrases = [
     "execute",
     "implement it"
 ]
-
-[daic.intelligence]
-codebase_learning = true
-pattern_recognition = true
-smart_recommendations = true
 ```
 
 ### Configure Event Storage

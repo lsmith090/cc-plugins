@@ -423,16 +423,6 @@ class DAICStateManager:
             "session_id": session_id or unified_state.get("session_id"),
             "correlation_id": correlation_id or unified_state.get("correlation_id")
         }
-        
-        # Log to analytics if processor available
-        try:
-            from analytics_processor import ClaudeAnalyticsProcessor
-            processor = ClaudeAnalyticsProcessor(self.project_root / ".brainworm")
-            processor.log_event({
-                "hook_name": "daic_transition",
-                "event_type": "workflow_transition",
-                **transition_event
-            })
-        except ImportError:
-            # If analytics processor not available, just update state
-            pass
+
+        # Note: DAIC transitions are captured by event_store.py hooks automatically
+        # No additional logging needed here

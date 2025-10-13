@@ -1,9 +1,9 @@
 # Brainworm Configuration Template
 # This file contains the core DAIC workflow and brainworm settings.
 #
-# NOTE: Multi-project analytics settings (sources, harvesting) belong in
+# NOTE: Multi-project event aggregation settings (sources, harvesting) belong in
 # nautiloid's configuration, not here. Brainworm focuses on single-project
-# DAIC enforcement and local analytics capture.
+# DAIC enforcement and local event storage.
 
 [daic]
 enabled = true

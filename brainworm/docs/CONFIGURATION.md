@@ -2,9 +2,9 @@
 
 ## Overview
 
-Brainworm uses `.brainworm/config.toml` for system configuration and auto-generates `.claude/settings.json` during installation. The configuration covers DAIC workflow enforcement, branch management, and local analytics capture.
+Brainworm uses `.brainworm/config.toml` for system configuration and auto-generates `.claude/settings.json` during installation. The configuration covers DAIC workflow enforcement, branch management, and local event storage.
 
-**Important**: Multi-project analytics aggregation (sources, harvesting, dashboards) is handled by the separate **nautiloid** project, not brainworm. This documentation covers only brainworm's single-project features.
+**Important**: Multi-project event aggregation (sources, harvesting, dashboards) is handled by the separate **nautiloid** project, not brainworm. This documentation covers only brainworm's single-project features.
 
 ## Installation
 
@@ -81,9 +81,9 @@ testing = [
 
 ## Configuration Sections
 
-### Multi-Project Analytics
+### Multi-Project Event Aggregation
 
-**Note**: Multi-project data sources, harvesting schedules, and cross-project analytics aggregation are managed by the separate **nautiloid** project. Nautiloid reads brainworm's local analytics database (`.brainworm/analytics/hooks.db`) but configuration for multi-project features belongs in nautiloid's config, not here.
+**Note**: Multi-project data sources, harvesting schedules, and cross-project event aggregation are managed by the separate **nautiloid** project. Nautiloid reads brainworm's local event database (`.brainworm/events/hooks.db`) but configuration for multi-project features belongs in nautiloid's config, not here.
 
 For nautiloid documentation, see: https://github.com/lsmith090/nautiloid
 
@@ -237,7 +237,7 @@ uv run src/hooks/configure_analytics.py
 This tool provides:
 - Project source configuration
 - DAIC workflow setup
-- Analytics settings
+- Event storage settings
 - Configuration validation
 
 ### Manual Configuration ✅ IMPLEMENTED
@@ -260,11 +260,8 @@ uv run src/hooks/verify_installation.py
 # Test DAIC workflow
 ./daic status
 
-# Test analytics processing
-uv run .brainworm/hooks/view_analytics.py
-
-# Test real-time dashboard (basic version)
-uv run src/analytics/realtime_dashboard.py --metrics
+# View event data
+sqlite3 .brainworm/events/hooks.db "SELECT * FROM hook_events ORDER BY timestamp DESC LIMIT 10"
 ```
 
 ## Auto-Generated Settings
@@ -386,26 +383,26 @@ cp brainworm-config.toml.backup brainworm-config.toml
 
 ### Brainworm (This Plugin)
 - **Single-project DAIC enforcement**: Discussion → Implementation workflow
-- **Local analytics capture**: Captures hook events to `.brainworm/analytics/hooks.db`
+- **Local event storage**: Captures hook events to `.brainworm/events/hooks.db`
 - **Branch management**: Automatic git branch enforcement
 - **Task management**: Task tracking and correlation
 - **Configuration**: `.brainworm/config.toml` (DAIC settings only)
 
 ### Nautiloid (Separate Project)
 - **Multi-project aggregation**: Harvests data from multiple brainworm installations
-- **Cross-project analytics**: Success patterns, developer insights, trends
+- **Cross-project event tracking**: Event patterns, developer insights, trends
 - **Dashboards**: Grafana, Metabase, real-time dashboards
 - **Data harvesting**: Scheduled collection across projects
 - **Configuration**: Nautiloid's own config (sources, harvesting, dashboards)
 
-See nautiloid documentation for multi-project analytics: https://github.com/lsmith090/nautiloid
+See nautiloid documentation for multi-project event aggregation: https://github.com/lsmith090/nautiloid
 
 ## Known Limitations
 
 ### Brainworm Scope
 - **Single-project focus**: Only manages the current project's workflow
-- **Local analytics only**: Analytics database is local to each project
-- **No cross-project insights**: Use nautiloid for aggregated analytics
+- **Local event storage only**: Event database is local to each project
+- **No cross-project insights**: Use nautiloid for aggregated event data
 - **Dynamic Configuration**: Some settings require Claude Code restart
 
 ### Configuration Best Practices
