@@ -21,10 +21,9 @@ Brainworm is a comprehensive Claude Code plugin that enforces the **DAIC methodo
 - **service-documentation**: Keeps CLAUDE.md files current
 
 **📊 Event Storage System**
-- **95%+ session correlation accuracy** with bridge-based tracking
-- **29MB optimized SQLite database** for <100ms queries
-- **Workflow event capture** for session continuity and tracking
-- **Privacy-first**: All data stays on your machine
+- **Seamless session continuity**: Resume any task with full context, powered by intelligent correlation
+- **Complete workflow capture**: Every decision, transition, and pattern tracked for learning
+- **Privacy-first by design**: All analytics data stays local on your machine
 
 **⚡ Zero Configuration**
 - Auto-setup on first session
