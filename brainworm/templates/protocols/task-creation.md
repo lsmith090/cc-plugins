@@ -61,7 +61,7 @@ This protocol guides the creation of structured, well-defined tasks in the DAIC-
 - Creates appropriate git branch (`feature/`, `fix/`, `refactor/`, etc.)
 - Handles submodule-aware branch creation for super-repo projects
 - Updates DAIC state with task, branch, and service information
-- Initializes analytics correlation tracking
+- Initializes event correlation tracking
 - Runs in non-interactive mode for automation compatibility
 
 **Verify creation:**
@@ -83,7 +83,7 @@ This protocol guides the creation of structured, well-defined tasks in the DAIC-
 - Template structure
 - Status tracking fields
 - DAIC state in unified_session_state.json
-- Analytics correlation tracking
+- Event correlation tracking
 
 ### Step 5: Verify Task Creation
 
@@ -144,25 +144,17 @@ and create a comprehensive context manifest. The task file is at .brainworm/task
 - Feasibility studies
 - Technical spikes
 
-## Integration with Brainworm Analytics
+## Integration with Brainworm Event Storage
 
-### Success Pattern Recognition
-- Analyze similar completed tasks for success patterns
-- Use analytics to estimate task complexity and duration
-- Identify common pitfalls from historical data
-- Suggest optimal team member assignments based on past performance
+### Session Correlation
+- Events are captured with task correlation from creation
+- Session IDs link all work within this task
+- Workflow continuity maintained across context boundaries
 
-### Workflow Optimization
-- Track DAIC transition effectiveness for task types
-- Monitor discussion-to-implementation timing patterns
-- Identify optimal task breakdown sizes
-- Measure correlation between task structure and success rates
-
-### Predictive Insights
-- Predict task completion likelihood based on initial structure
-- Suggest additional context gathering for complex tasks
-- Recommend task splitting when complexity indicators are high
-- Alert to potential blockers based on similar historical tasks
+### Workflow Tracking
+- DAIC mode transitions tracked for the task
+- Tool usage and timing captured
+- State changes preserved for session continuity
 
 ## Common Patterns
 
@@ -187,23 +179,23 @@ For tasks affecting multiple services:
 - Create service-specific implementation notes
 - Update relevant service CLAUDE.md files when complete
 
-## Success Metrics
+## Task Quality Indicators
 
-Track these metrics for task creation effectiveness:
-- Time from task creation to first implementation
-- Success rate of tasks with comprehensive context vs. minimal context
-- DAIC workflow effectiveness (discussion quality vs. implementation success)
-- Task completion rate by priority level
-- Correlation between task structure quality and outcome
+Consider these factors for effective task creation:
+- Clear scope definition and success criteria
+- Comprehensive context from context-gathering agent
+- Proper DAIC workflow adherence
+- Well-defined service boundaries
+- Appropriate task size and complexity
 
 ## Remember
 
 Good task creation:
 - Provides clear scope and success criteria
 - Enables focused work with proper context
-- Integrates with analytics for continuous improvement
+- Integrates with event storage for continuity
 - Supports the DAIC workflow for better outcomes
-- Creates institutional knowledge for future similar work
+- Creates institutional knowledge through task documentation
 
 The effort invested in proper task creation pays dividends throughout the development process.
 

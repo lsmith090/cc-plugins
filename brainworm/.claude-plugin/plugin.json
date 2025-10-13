@@ -1,7 +1,7 @@
 {
   "name": "brainworm",
   "version": "1.0.0",
-  "description": "DAIC workflow enforcement and multi-project analytics for Claude Code",
+  "description": "DAIC workflow enforcement and event storage system for Claude Code",
   "author": {
     "name": "Logan Smith",
     "email": "lsmith090@users.noreply.github.com"
@@ -9,6 +9,6 @@
   "homepage": "https://github.com/lsmith090",
   "repository": "https://github.com/lsmith090/cc-plugins",
   "license": "MIT",
-  "keywords": ["daic", "workflow", "analytics", "productivity", "hooks"],
+  "keywords": ["daic", "workflow", "events", "productivity", "hooks"],
   "hooks": "./hooks/hooks.json"
 }

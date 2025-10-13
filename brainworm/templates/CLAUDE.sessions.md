@@ -74,18 +74,18 @@ Specifically, avoid long prompts when invoking the logging or context-refinement
    - Use when: Creating new task OR task lacks context manifest
    - ALWAYS provide the task file path so the agent can update it directly
 
-2. **code-review** - Reviews code for quality and security with brainworm analytics
+2. **code-review** - Reviews code for quality and security
    - Use when: After writing significant code, before commits
    - Provide files and line ranges where code was implemented
-   - Integrates with success pattern recognition
+   - Follows established code patterns and standards
 
 3. **context-refinement** - Updates context with discoveries from work session
    - Use when: End of context window (if task continuing)
-   - Incorporates brainworm analytics insights
+   - Incorporates session insights and discoveries
 
-4. **logging** - Maintains clean chronological logs with analytics correlation
+4. **logging** - Maintains clean chronological logs with session correlation
    - Use when: End of context window or task completion
-   - Integrates with session correlation tracking
+   - Integrates with event storage for continuity
 
 5. **service-documentation** - Updates service CLAUDE.md files
    - Use when: After service changes
@@ -161,7 +161,7 @@ These protocols guide specific workflows:
    - **Wrapper command**: `./tasks create [task-name]`
    - EXPLICIT: "create a new task", "let's make a task for X"
    - VAGUE: "we should track this", "might need a task for that"
-   - Wrapper handles: directory creation, template, branch, DAIC state, analytics
+   - Wrapper handles: directory creation, template, branch, DAIC state, event correlation
 
 2. **.brainworm/protocols/task-startup.md** - Beginning work on existing tasks
    - **Wrapper command**: `./tasks switch [task-name]`
@@ -179,7 +179,7 @@ These protocols guide specific workflows:
    - **Wrapper commands**: `./daic status`, `./tasks switch` (if switching)
    - EXPLICIT: "let's compact", "run context compaction", "compact and restart"
    - VAGUE: "context is getting full", "we're using a lot of tokens"
-   - Wrappers preserve: state, analytics, session correlation
+   - Wrappers preserve: state, event data, session correlation
 
 ### Behavioral Examples
 
@@ -193,31 +193,22 @@ These protocols guide specific workflows:
 - User: "Yes"
 - You: [NOW read task-completion.md] → "I'll complete the task now..."
 
-## Brainworm Analytics Integration
+## Brainworm Event Storage Integration
 
 ### Session Correlation
 - All actions are correlated with session_id and correlation_id
-- Success patterns are learned and applied automatically
-- Performance data informs development effectiveness improvement
+- Events are captured for workflow continuity
+- Session data maintains context across interactions
 
-### Intelligent Recommendations  
-- Use analytics insights to suggest optimal approaches
-- Apply learned success patterns from similar tasks
-- Leverage real-time performance data for decisions
+### Workflow Tracking
+- Event storage captures tool usage and timing
+- Session correlation enables seamless continuation
+- State preservation across context boundaries
 
 ### Statusline Awareness
 - Monitor context usage with visual progress bar
 - Track DAIC mode, current task, and git activity
-- Use session analytics for workflow insights
-
-### Success Pattern Application
-```
-Based on brainworm analytics, successful [task-type] tasks typically:
-- Spend 30% of time in discussion mode for planning
-- Use context-gathering agent early for comprehensive context
-- Complete implementation in focused sessions
-- Apply code-review agent before final completion
-```
+- View session status and workflow state
 
 ## Enhanced Task Lifecycle
 
@@ -233,7 +224,7 @@ Based on brainworm analytics, successful [task-type] tasks typically:
 - Template population with metadata
 - Git branch creation (feature/, fix/, etc.)
 - DAIC state initialization
-- Analytics correlation setup
+- Event correlation setup
 
 **Then:**
 - Edit task file for specific requirements
@@ -257,10 +248,10 @@ Based on brainworm analytics, successful [task-type] tasks typically:
 - Begin work in discussion mode
 
 ### 3. Task Execution
-- Follow DAIC workflow with intelligent timing
-- Apply learned success patterns from analytics
+- Follow DAIC workflow methodology
 - Use specialized agents for complex operations
 - Update work logs as progress is made
+- Track workflow events for session correlation
 
 ### 4. Task Completion
 **Follow protocol with wrappers:**
@@ -286,28 +277,28 @@ Based on brainworm analytics, successful [task-type] tasks typically:
 
 ## Quality Integration Features
 
-### Analytics-Driven Development
-- Success pattern recognition guides approach selection
-- Real-time performance monitoring informs decisions
-- Historical data improves estimation accuracy
+### Event-Driven Workflow
+- Session correlation enables workflow continuity
+- Event capture tracks tool usage and timing
+- State preservation across context boundaries
 
-### Workflow Optimization  
-- DAIC timing recommendations based on task complexity
-- Intelligent agent selection for optimal outcomes  
-- Context usage optimization through predictive modeling
+### Workflow Structure
+- DAIC methodology enforces thoughtful development
+- Specialized agents handle complex operations
+- Protocols guide common workflow patterns
 
-### Continuous Learning
-- Every session contributes to organizational knowledge
-- Failed approaches are systematically avoided
-- Successful patterns are automatically replicated
+### Knowledge Retention
+- Every session preserves context in task files
+- Work logs maintain chronological records
+- State files enable seamless continuation
 
 ## Remember
 
 Effective brainworm-enhanced development:
 - Respects DAIC workflow for better code quality
-- Leverages analytics for continuous improvement  
+- Uses event storage for workflow continuity
 - Uses specialized agents for complex operations
 - Follows protocols for consistent outcomes
 - Builds organizational knowledge through every interaction
 
-The brainworm system learns from every session to make future development more effective and successful.
+The brainworm system maintains workflow continuity through session correlation and structured development practices.

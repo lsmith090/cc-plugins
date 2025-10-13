@@ -83,20 +83,20 @@ Task file: .brainworm/tasks/[task-name]/README.md
 - Security considerations found
 - Common pitfalls and how to avoid them
 
-### Step 5: Analytics and Learning Integration
+### Step 5: Completion Documentation
 
-**Record completion metrics:**
-- Final task duration and complexity rating
-- DAIC workflow effectiveness (discussion vs implementation time)
-- Success factors that contributed to completion
+**Record completion information:**
+- Final task duration and outcome
+- DAIC workflow adherence notes
+- Key decisions and approach taken
 - Blockers encountered and resolution strategies
-- Code quality metrics and review feedback
+- Code quality observations
 
-**Extract success patterns:**
+**Document learnings:**
 - Identify what made this task successful
-- Note effective workflow patterns for analytics learning
+- Note effective workflow patterns
 - Document reusable approaches for similar future tasks
-- Record team collaboration patterns that worked well
+- Record collaboration patterns that worked well
 
 ### Step 6: Branch and Git Management
 
@@ -136,7 +136,7 @@ git push origin --delete feature/[task-name]
 
 **Archive task artifacts:**
 - Task file remains in `.brainworm/tasks/[task-name]/` for reference
-- Analytics correlation data is preserved automatically
+- Event correlation data is preserved automatically
 - Branch cleanup is optional (keep for reference or delete)
 
 ### Step 8: Team Communication
@@ -205,25 +205,18 @@ git push origin --delete feature/[task-name]
 - Document process improvements discovered
 - Update coding standards if new patterns emerged
 
-## Analytics Integration Benefits
+## Event Storage Integration
 
-### Success Pattern Learning
-- Task completion contributes to brainworm's success pattern database
-- Future similar tasks benefit from learned approaches
-- Team performance patterns are analyzed for optimization
-- Workflow effectiveness is measured and improved
+### Session Correlation
+- Task completion events are captured with full context
+- Session IDs link all work within the completed task
+- Workflow data preserved for future reference
 
-### Predictive Improvements
-- Task structure patterns that lead to success are identified
-- Optimal team composition patterns are discovered
-- Risk factors for similar future tasks are predicted
-- Resource estimation accuracy improves over time
-
-### Continuous Optimization
-- DAIC workflow timing is optimized based on task type
-- Context gathering effectiveness is measured and improved
-- Code review patterns are analyzed for quality impact
-- Team collaboration patterns are optimized
+### Knowledge Preservation
+- Task documentation remains accessible
+- Work logs provide chronological record
+- Context files enable understanding of decisions made
+- Event data maintains workflow continuity records
 
 ## Quality Checklist
 
@@ -253,12 +246,12 @@ Before marking a task complete, verify:
 
 Proper task completion:
 - Ensures institutional knowledge is retained
-- Provides valuable data for analytics and learning
+- Provides documentation for future reference
 - Maintains clean project state for future work
-- Creates foundation for improved future performance
+- Creates foundation for similar future work
 - Demonstrates professional development practices
 
-The completion process is as important as the implementation - it's where individual work becomes team knowledge and organizational capability.
+The completion process is as important as the implementation - it's where individual work becomes team knowledge through thorough documentation.
 
 ---
 

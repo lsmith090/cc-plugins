@@ -120,7 +120,7 @@ with any significant patterns or insights discovered during this session.
 **If continuing same task:**
 - Ensure task file contains all necessary context for resumption
 - Verify implementation state is clearly documented
-- Check that analytics correlation will continue properly
+- Check that event correlation will continue properly
 - Current task remains active in state automatically
 
 **Manage DAIC mode for resumption:**
@@ -141,7 +141,7 @@ with any significant patterns or insights discovered during this session.
 **Verify continuity preparation:**
 - Someone else could pick up this work from the documentation
 - No critical information exists only in current context
-- Analytics tracking will resume correctly
+- Event correlation will resume correctly
 - Branch and development environment state is documented
 
 ## Compaction Quality Levels
@@ -173,7 +173,7 @@ with any significant patterns or insights discovered during this session.
 ### Automatic Context Loading
 **When resuming work:**
 - Current task file should provide complete context
-- Analytics correlation should continue seamlessly
+- Event correlation should continue seamlessly
 - DAIC state should reflect actual work status
 - Development environment state should be documented
 
@@ -184,25 +184,19 @@ with any significant patterns or insights discovered during this session.
 - Next steps are clear and actionable
 - No critical information was lost
 
-## Analytics Integration Benefits
+## Event Storage Integration
 
-### Session Continuity Tracking
-- Measure effectiveness of compaction strategies
-- Track work continuity across context boundaries
-- Identify optimal compaction timing patterns
-- Analyze impact on task completion success rates
+### Session Continuity
+- Events maintain correlation across context boundaries
+- Session IDs preserve workflow linkage
+- State files enable seamless resumption
+- Context compaction tracked in event data
 
-### Context Quality Metrics
-- Monitor how well compacted context supports work resumption
-- Track correlation between context quality and subsequent productivity
-- Identify patterns in context usage that predict compaction needs
-- Optimize context preservation strategies based on outcomes
-
-### Workflow Pattern Learning
-- Analyze DAIC workflow effectiveness across compaction boundaries
-- Learn optimal break points for different types of work
-- Identify context preservation strategies that work best for each task type
-- Develop predictive models for compaction timing
+### Context Preservation
+- Task files document current state
+- Work logs maintain progress records
+- State files preserve DAIC and task status
+- Event data tracks workflow continuity
 
 ## Common Compaction Scenarios
 
@@ -246,12 +240,11 @@ with any significant patterns or insights discovered during this session.
 
 Effective context compaction:
 - Preserves work continuity without losing institutional knowledge
-- Leverages analytics for continuous improvement of compaction strategies
 - Maintains DAIC workflow effectiveness across context boundaries
 - Enables seamless work resumption with full context preservation
-- Contributes to organizational learning about optimal work patterns
+- Provides opportunity to consolidate and document learnings
 
-Context compaction is not just about managing technical limitations - it's an opportunity to consolidate learning and improve future work effectiveness.
+Context compaction is not just about managing technical limitations - it's an opportunity to consolidate documentation and ensure nothing is lost.
 
 ---
 

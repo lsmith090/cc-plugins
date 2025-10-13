@@ -4,7 +4,7 @@ Transform your Claude Code development workflow with structured discipline and i
 
 ## What is Brainworm?
 
-Brainworm is a comprehensive Claude Code plugin that enforces the **DAIC methodology** (Discussion → Alignment → Implementation → Check) while capturing development intelligence for continuous improvement.
+Brainworm is a comprehensive Claude Code plugin that enforces the **DAIC methodology** (Discussion → Alignment → Implementation → Check) while capturing workflow events for session tracking and continuity.
 
 ### Core Features
 
@@ -15,15 +15,15 @@ Brainworm is a comprehensive Claude Code plugin that enforces the **DAIC methodo
 
 **🤖 Specialized Subagents**
 - **context-gathering**: Comprehensive task analysis and context creation
-- **code-review**: Quality and security review with pattern recognition
+- **code-review**: Quality and security review following established patterns
 - **logging**: Maintains chronological work logs with session correlation
 - **context-refinement**: Updates context with session discoveries
 - **service-documentation**: Keeps CLAUDE.md files current
 
-**📊 Local Analytics Intelligence**
+**📊 Event Storage System**
 - **95%+ session correlation accuracy** with bridge-based tracking
 - **29MB optimized SQLite database** for <100ms queries
-- **Pattern recognition** learns from successful workflows
+- **Workflow event capture** for session continuity and tracking
 - **Privacy-first**: All data stays on your machine
 
 **⚡ Zero Configuration**
@@ -144,7 +144,7 @@ Automatically:
 - Creates task directory in `.brainworm/tasks/`
 - Creates git branch (`feature/implement-user-authentication`)
 - Updates DAIC state
-- Initializes analytics tracking
+- Initializes event correlation tracking
 
 ### Work on a Task
 
@@ -173,36 +173,36 @@ Brainworm includes structured protocols for common workflows:
 
 Access protocols in `.brainworm/protocols/` or via specialized agents.
 
-## Analytics & Intelligence
+## Event Storage & Tracking
 
-### Local Analytics Capture
+### Local Event Capture
 
-Brainworm automatically captures:
-- Tool usage patterns
+Brainworm automatically captures workflow events:
+- Tool usage tracking
 - DAIC mode transitions
-- Session correlation
-- Success/failure patterns
-- Performance metrics
+- Session correlation data
+- Hook execution events
+- Workflow timing metrics
 
 **Storage**: `.brainworm/analytics/hooks.db` (SQLite)
 
-### View Analytics
+### View Event Data
 
 ```bash
-# Check analytics database
+# Check event database
 sqlite3 .brainworm/analytics/hooks.db "SELECT COUNT(*) FROM hook_events"
 
 # View recent events
 sqlite3 .brainworm/analytics/hooks.db "SELECT * FROM hook_events ORDER BY timestamp DESC LIMIT 10"
 ```
 
-### Multi-Project Intelligence (Optional)
+### Multi-Project Aggregation (Optional)
 
-For cross-project analytics and Grafana dashboards, see:
+For cross-project event aggregation and dashboards, see:
 - [Nautiloid Integration Guide](docs/NAUTILOID_INTEGRATION.md)
 - [Nautiloid Repository](https://github.com/lsmith090/nautiloid)
 
-Nautiloid aggregates data from multiple brainworm projects for organizational intelligence.
+Nautiloid aggregates event data from multiple brainworm projects for analysis.
 
 ## Configuration
 
@@ -239,15 +239,9 @@ pattern_recognition = true
 smart_recommendations = true
 ```
 
-### Configure Analytics
+### Configure Event Storage
 
-```toml
-[analytics]
-enabled = true
-quiet_mode = true
-session_correlation = true
-pattern_learning = true
-```
+Event storage is always enabled and configured automatically. Events are captured to `.brainworm/analytics/hooks.db` with session correlation for workflow continuity.
 
 ## Documentation
 
@@ -255,9 +249,8 @@ pattern_learning = true
 
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System design and components
 - [DAIC_WORKFLOW.md](docs/DAIC_WORKFLOW.md) - Detailed DAIC methodology
-- [ANALYTICS.md](docs/ANALYTICS.md) - Analytics system and capabilities
 - [CONFIGURATION.md](docs/CONFIGURATION.md) - Complete configuration reference
-- [NAUTILOID_INTEGRATION.md](docs/NAUTILOID_INTEGRATION.md) - Multi-project analytics
+- [NAUTILOID_INTEGRATION.md](docs/NAUTILOID_INTEGRATION.md) - Multi-project event aggregation
 - [END_USER_GUIDE.md](docs/END_USER_GUIDE.md) - Detailed user guide
 
 ## Troubleshooting
@@ -283,7 +276,7 @@ Only human users can switch modes (Claude cannot self-transition). Use:
 - Manual command: `/brainworm:daic implementation`
 - Restart Claude Code if hooks were recently updated
 
-### Analytics Not Capturing?
+### Events Not Being Captured?
 
 ```bash
 # Check hooks are configured
@@ -330,7 +323,7 @@ Recent highlights:
 - **1.5.0**: Comprehensive type system implementation
 - **1.4.0**: Hooks framework hybrid architecture
 - **1.3.0**: Unified project detection, enhanced agent system
-- **1.0.0**: DAIC + Analytics integration (Major Release)
+- **1.0.0**: DAIC + Event Storage integration (Major Release)
 
 ## Contributing
 
@@ -352,12 +345,12 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ## Related Projects
 
-**Nautiloid**: Multi-project analytics aggregation
+**Nautiloid**: Multi-project event aggregation and dashboards
 - Repository: https://github.com/lsmith090/nautiloid
 - Integration: [NAUTILOID_INTEGRATION.md](docs/NAUTILOID_INTEGRATION.md)
 
 ---
 
-**Built with discipline. Powered by intelligence. Enhanced by patterns.**
+**Built with discipline. Powered by structure. Enhanced by workflow tracking.**
 
 Transform your development workflow with Brainworm.

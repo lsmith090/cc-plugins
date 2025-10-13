@@ -49,7 +49,7 @@ This separation ensures users only get the plugin files they need, not developme
 ## Current Plugins
 
 ### brainworm
-DAIC workflow enforcement and multi-project analytics for Claude Code.
+DAIC workflow enforcement and event storage system for Claude Code.
 
 **Location**: `brainworm/`
 **Tests**: `tests/brainworm/`
