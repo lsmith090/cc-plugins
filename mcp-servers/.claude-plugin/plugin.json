@@ -1,0 +1,14 @@
+{
+  "name": "mcp-servers",
+  "version": "1.0.0",
+  "description": "Curated collection of Model Context Protocol (MCP) servers for enhanced Claude Code capabilities",
+  "author": {
+    "name": "Logan Smith",
+    "email": "lsmith090@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/lsmith090",
+  "repository": "https://github.com/lsmith090/cc-plugins",
+  "license": "MIT",
+  "keywords": ["mcp", "model-context-protocol", "context7", "documentation", "integration"],
+  "mcpServers": "./.mcp.json"
+}
