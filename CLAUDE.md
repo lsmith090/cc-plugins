@@ -7,7 +7,7 @@ Repository for distributing Claude Code plugins via plugin marketplace.
 This repository hosts plugins for installation via:
 ```bash
 /plugin marketplace add https://github.com/lsmith090/cc-plugins
-/plugin install <plugin-name>@brainworm-marketplace
+/plugin install <plugin-name>@medicus-it
 ```
 
 ## Repository Structure
@@ -301,7 +301,7 @@ Use semantic versioning (MAJOR.MINOR.PATCH):
 ```bash
 # In a test project
 /plugin marketplace add file:///path/to/cc-plugins
-/plugin install <plugin-name>@brainworm-marketplace
+/plugin install <plugin-name>@medicus-it
 ```
 
 ### Verify Installation

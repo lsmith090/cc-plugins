@@ -245,7 +245,7 @@ When developing within the cc-plugins repository:
 ```bash
 # In a test project
 /plugin marketplace add file:///Users/logansmith/repos/cc-plugins
-/plugin install mcp-servers@brainworm-marketplace
+/plugin install mcp-servers@medicus-it
 ```
 
 ## Related Documentation

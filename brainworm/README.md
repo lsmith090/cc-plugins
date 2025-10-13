@@ -40,7 +40,7 @@ Brainworm is a comprehensive Claude Code plugin that enforces the **DAIC methodo
 /plugin marketplace add https://github.com/lsmith090/cc-plugins
 
 # Install brainworm
-/plugin install brainworm@brainworm-marketplace
+/plugin install brainworm@medicus-it
 ```
 
 That's it! Brainworm will automatically set up on your first Claude Code session.

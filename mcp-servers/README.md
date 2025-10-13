@@ -32,7 +32,7 @@ This plugin provides a carefully selected set of MCP servers that extend Claude 
 
 ```bash
 /plugin marketplace add https://github.com/lsmith090/cc-plugins
-/plugin install mcp-servers@brainworm-marketplace
+/plugin install mcp-servers@medicus-it
 ```
 
 ### From Local Path (Development)

@@ -10,7 +10,7 @@ DAIC workflow enforcement and event storage system for Claude Code.
 **Installation:**
 ```
 /plugin marketplace add https://github.com/lsmith090/cc-plugins
-/plugin install brainworm@brainworm-marketplace
+/plugin install brainworm@medicus-it
 ```
 
 **Features:**
@@ -29,7 +29,7 @@ Curated collection of Model Context Protocol (MCP) servers for enhanced Claude C
 **Installation:**
 ```
 /plugin marketplace add https://github.com/lsmith090/cc-plugins
-/plugin install mcp-servers@brainworm-marketplace
+/plugin install mcp-servers@medicus-it
 ```
 
 **Features:**
