@@ -389,12 +389,12 @@ class HookFramework:
     def block_tool(self, reason: str, validation_issues: list = None, suppress_output: bool = False) -> 'HookFramework':
         """
         Block tool execution (for pre_tool_use hooks).
-        
+
         Args:
             reason: Reason for blocking
             validation_issues: List of validation issues
             suppress_output: Whether to suppress Claude Code output
-            
+
         Returns:
             Self for method chaining
         """
@@ -403,6 +403,8 @@ class HookFramework:
             self.decision_output = PreToolUseDecisionOutput.block(
                 reason, issues, self.session_id, suppress_output
             )
+        # Exit code 2 triggers blocking behavior in Claude Code
+        self.exit_code = 2
         return self
     
     def _output_decision(self) -> None:
