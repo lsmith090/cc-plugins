@@ -35,15 +35,30 @@ enabled = false
 # - TRACE: Everything including internal state
 level = "INFO"
 
+# Global default format for debug output ("text" or "json")
+# - text: Human-readable format with timestamps
+# - json: Machine-parseable JSONL format (one JSON object per line)
+# Can be overridden per output destination below
+format = "text"
+
 # Control where debug output goes
 [debug.outputs]
 # Print debug messages to stderr (recommended for immediate feedback)
 stderr = true
+# Format for stderr output (overrides global format if set)
+stderr_format = "text"
 
-# Write debug messages to .brainworm/logs/debug.log
-# Useful for offline analysis or when stderr is too noisy
+# Write debug messages to .brainworm/logs/debug.{log,jsonl}
+# File extension is automatically chosen based on format:
+# - "text" format → debug.log
+# - "json" format → debug.jsonl
 file = false
+# Format for file output (overrides global format if set)
+file_format = "json"
 
-# Write framework-specific debug to .brainworm/debug_framework_output.log
+# Write framework-specific debug to .brainworm/logs/debug_framework_output.{log,jsonl}
 # Captures JSON communication between hooks and Claude Code
+# File extension is automatically chosen based on format
 framework = false
+# Format for framework output (overrides global format if set)
+framework_format = "json"

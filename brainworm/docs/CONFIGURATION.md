@@ -133,11 +133,15 @@ Configure centralized debug output behavior for all brainworm hooks and utilitie
 [debug]
 enabled = false
 level = "INFO"
+format = "text"
 
 [debug.outputs]
 stderr = true
+stderr_format = "text"
 file = false
+file_format = "json"
 framework = false
+framework_format = "json"
 ```
 
 **Core Options**:
@@ -150,17 +154,26 @@ framework = false
   - `"INFO"` - Normal operations (recommended default)
   - `"DEBUG"` - Detailed debugging information
   - `"TRACE"` - Everything including internal state
+- `format` - Global default format for debug output (default: `"text"`)
+  - `"text"` - Human-readable format with timestamps
+  - `"json"` - Machine-parseable JSONL format (one JSON object per line)
+  - Can be overridden per output destination
 
 **Output Destinations** (`[debug.outputs]`):
 - `stderr` - Print debug messages to stderr (default: `true`)
   - Recommended for immediate feedback during development
   - Integrates with Claude Code terminal output
-- `file` - Write debug messages to `.brainworm/logs/debug.log` (default: `false`)
+  - `stderr_format` - Override format for stderr (default: `"text"`)
+- `file` - Write debug messages to `.brainworm/logs/debug.{log,jsonl}` (default: `false`)
   - Useful for offline analysis or when stderr is too noisy
   - Persists across sessions for debugging patterns
-- `framework` - Write framework-specific debug to `.brainworm/debug_framework_output.log` (default: `false`)
+  - File extension automatically chosen: `.log` for text, `.jsonl` for JSON
+  - `file_format` - Override format for file (default: `"json"`)
+- `framework` - Write framework-specific debug to `.brainworm/logs/debug_framework_output.{log,jsonl}` (default: `false`)
   - Captures JSON communication between hooks and Claude Code
   - Useful for debugging hook/Claude integration issues
+  - File extension automatically chosen: `.log` for text, `.jsonl` for JSON
+  - `framework_format` - Override format for framework (default: `"json"`)
 
 **CLI Flag Override**:
 
@@ -213,6 +226,28 @@ stderr = true
 file = true
 framework = true
 ```
+
+**Machine-parseable JSON logging** (for log analysis tools):
+```toml
+[debug]
+enabled = true
+level = "INFO"
+format = "json"
+
+[debug.outputs]
+stderr = false
+stderr_format = "text"  # Keep stderr human-readable
+file = true
+file_format = "json"  # JSON for analysis
+framework = true
+framework_format = "json"  # JSON for hook debugging
+```
+
+This configuration:
+- Logs to `.brainworm/logs/debug.jsonl` (JSON format)
+- Logs framework output to `.brainworm/logs/debug_framework_output.jsonl`
+- Keeps stderr in text format for terminal readability
+- Enables JSON log parsing with tools like `jq`
 
 **Debugging Double Logging Issues**:
 

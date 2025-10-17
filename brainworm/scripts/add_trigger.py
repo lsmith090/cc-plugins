@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "toml>=0.10.0",
+#     "tomli-w>=1.0.0",
 # ]
 # ///
 # Add plugin root to sys.path before any utils imports
@@ -10,7 +10,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import toml
+import tomllib  # Python 3.12+ built-in (read-only)
+import tomli_w  # For writing TOML files
 from utils.project import find_project_root
 
 def add_trigger_phrase() -> None:
@@ -33,24 +34,24 @@ def add_trigger_phrase() -> None:
     
     try:
         # Load existing config
-        with open(config_file, 'r') as f:
-            config = toml.load(f)
-        
+        with open(config_file, 'rb') as f:
+            config = tomllib.load(f)
+
         # Ensure daic section exists
         if "daic" not in config:
             config["daic"] = {}
-        
+
         # Ensure trigger_phrases exists
         if "trigger_phrases" not in config["daic"]:
             config["daic"]["trigger_phrases"] = []
-        
+
         # Add new phrase if not already present
         if phrase not in config["daic"]["trigger_phrases"]:
             config["daic"]["trigger_phrases"].append(phrase)
-            
+
             # Write back to file
-            with open(config_file, 'w') as f:
-                toml.dump(config, f)
+            with open(config_file, 'wb') as f:
+                tomli_w.dump(config, f)
             
             print(f"✅ Added trigger phrase: '{phrase}'")
         else:

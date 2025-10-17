@@ -24,10 +24,12 @@ dev = [
     "pytest-cov>=4.1.0",
     "ruff>=0.3.0",
     "rich>=13.0.0",
-    "toml>=0.10.0",
+    "tomli-w>=1.0.0",
     "psutil>=5.9.0",
     "typer>=0.9.0",
     "filelock>=3.13.0",
+    "tiktoken>=0.7.0",
+    "pendulum>=3.0.0",
 ]
 
 [tool.ruff]

@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "pendulum",
+#     "pendulum>=3.0.0",
 #     "rich>=13.0.0",
 # ]
 # ///

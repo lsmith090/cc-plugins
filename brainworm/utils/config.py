@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "toml>=0.10.0",
+#     "tomli-w>=1.0.0",
 # ]
 # ///
 
@@ -13,7 +13,8 @@ Centralized configuration loading with canonical defaults.
 """
 
 import sys
-import toml
+import tomllib  # Python 3.12+ built-in (read-only)
+import tomli_w  # For writing TOML files
 from pathlib import Path
 from typing import Dict, Any
 
@@ -65,10 +66,14 @@ def get_canonical_default_config() -> Dict[str, Any]:
         "debug": {
             "enabled": False,
             "level": "INFO",
+            "format": "text",
             "outputs": {
                 "stderr": True,
+                "stderr_format": "text",
                 "file": False,
-                "framework": False
+                "file_format": "json",
+                "framework": False,
+                "framework_format": "json"
             }
         }
     }
@@ -77,13 +82,13 @@ def get_canonical_default_config() -> Dict[str, Any]:
 def write_default_config(config_file: Path) -> None:
     """Write the canonical default configuration to file"""
     from .file_manager import AtomicFileWriter
-    
+
     config_file.parent.mkdir(parents=True, exist_ok=True)
     default_config = get_canonical_default_config()
-    
+
     # Use atomic writer for safer file operations
-    with AtomicFileWriter(config_file) as f:
-        toml.dump(default_config, f)
+    with AtomicFileWriter(config_file, mode='wb') as f:
+        tomli_w.dump(default_config, f)
 
 
 def load_config(project_root: Path, verbose: bool = False) -> Dict[str, Any]:
@@ -108,7 +113,8 @@ def load_config(project_root: Path, verbose: bool = False) -> Dict[str, Any]:
     
     # Load existing config
     try:
-        config = toml.load(config_file)
+        with open(config_file, 'rb') as f:
+            config = tomllib.load(f)
         
         # Merge defaults with loaded config (preserves user customizations)
         merged_config = {}
@@ -133,15 +139,6 @@ def load_config(project_root: Path, verbose: bool = False) -> Dict[str, Any]:
         return default_config
 
 
-def load_config_with_args() -> Dict[str, Any]:
-    """Load configuration with automatic --verbose flag detection"""
-    from utils.project import find_project_root
-    
-    project_root = find_project_root()
-    verbose = '--verbose' in sys.argv
-    return load_config(project_root, verbose=verbose)
-
-
 def update_config_value(project_root: Path, key: str, value: Any, create_if_missing: bool = True) -> bool:
     """Update a configuration value safely with atomic write.
     
@@ -159,7 +156,8 @@ def update_config_value(project_root: Path, key: str, value: Any, create_if_miss
     try:
         # Load or create config
         if config_file.exists():
-            config = toml.load(config_file)
+            with open(config_file, 'rb') as f:
+                config = tomllib.load(f)
         elif create_if_missing:
             config = get_canonical_default_config()
         else:
@@ -176,10 +174,10 @@ def update_config_value(project_root: Path, key: str, value: Any, create_if_miss
         # Set the value
         current[keys[-1]] = value
         
-        # Use atomic writer for safer file operations  
+        # Use atomic writer for safer file operations
         from .file_manager import AtomicFileWriter
-        with AtomicFileWriter(config_file, create_backup=True) as f:
-            toml.dump(config, f)
+        with AtomicFileWriter(config_file, mode='wb', create_backup=True) as f:
+            tomli_w.dump(config, f)
         
         return True
         
@@ -202,7 +200,8 @@ def toggle_config_value(project_root: Path, key: str) -> tuple[bool, bool, bool]
     try:
         # Load current config
         if config_file.exists():
-            config = toml.load(config_file)
+            with open(config_file, 'rb') as f:
+                config = tomllib.load(f)
         else:
             config = get_canonical_default_config()
         

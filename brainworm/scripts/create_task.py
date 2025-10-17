@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["rich>=13.0.0", "toml>=0.10.0"]
+# dependencies = ["rich>=13.0.0", "tomli-w>=1.0.0"]
 # ///
 
 """

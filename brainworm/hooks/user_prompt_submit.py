@@ -2,7 +2,7 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "rich>=13.0.0",
-#     "toml>=0.10.0",
+#     "tomli-w>=1.0.0",
 #     "filelock>=3.13.0",
 # ]
 # ///
@@ -210,7 +210,7 @@ def detect_task_patterns(prompt: str) -> bool:
     
     return any(re.search(pattern, prompt) for pattern in task_patterns)
 
-def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, config: Dict[str, Any], verbose: bool = False, debug_logger=None) -> Dict[str, Any]:
+def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, config: Dict[str, Any], debug_logger=None) -> Dict[str, Any]:
     """Custom logic for user prompt submit processing"""
     # Get DAIC configuration
     daic_config = config.get("daic", {})
@@ -352,7 +352,7 @@ def user_prompt_submit_framework_logic(framework, input_data: Dict[str, Any]):
         framework.debug_logger.info(f"Processing user prompt ({prompt_len} chars)")
 
     # Call custom logic
-    result = user_prompt_submit_logic(input_data, project_root, config, False, framework.debug_logger)
+    result = user_prompt_submit_logic(input_data, project_root, config, framework.debug_logger)
 
     # Debug logging - context injection summary
     if framework.debug_logger and result.get("context"):

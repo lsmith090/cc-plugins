@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "rich",
+#     "rich>=13.0.0",
 # ]
 # ///
 

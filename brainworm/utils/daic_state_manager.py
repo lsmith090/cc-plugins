@@ -21,7 +21,7 @@ Integration Points:
 """
 
 import json
-import toml
+import tomllib  # Python 3.12+ built-in (read-only)
 import sys
 from pathlib import Path
 from datetime import datetime, timezone
@@ -76,7 +76,8 @@ class DAICStateManager:
         except ImportError:
             # Fallback if shared config not available
             if self.config_file.exists():
-                return toml.load(self.config_file)
+                with open(self.config_file, 'rb') as f:
+                    return tomllib.load(f)
             return {"daic": {"enabled": True}}
     
     def load_daic_config(self) -> DAICConfig:

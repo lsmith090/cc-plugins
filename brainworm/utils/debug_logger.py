@@ -10,6 +10,7 @@ Provides unified, configuration-driven debug output control.
 """
 
 import sys
+import json
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional
@@ -30,24 +31,33 @@ DEBUG_LEVELS = {
 class DebugOutputs:
     """Configuration for debug output destinations."""
     stderr: bool = True
+    stderr_format: str = "text"
     file: bool = False
+    file_format: str = "json"
     framework: bool = False
+    framework_format: str = "json"
 
     @classmethod
     def from_dict(cls, data: dict) -> 'DebugOutputs':
         """Create from dictionary."""
         return cls(
             stderr=data.get('stderr', True),
+            stderr_format=data.get('stderr_format', 'text'),
             file=data.get('file', False),
-            framework=data.get('framework', False)
+            file_format=data.get('file_format', 'json'),
+            framework=data.get('framework', False),
+            framework_format=data.get('framework_format', 'json')
         )
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
             'stderr': self.stderr,
+            'stderr_format': self.stderr_format,
             'file': self.file,
-            'framework': self.framework
+            'file_format': self.file_format,
+            'framework': self.framework,
+            'framework_format': self.framework_format
         }
 
 
@@ -56,6 +66,7 @@ class DebugConfig:
     """Configuration for debug logging behavior."""
     enabled: bool = False
     level: str = "INFO"
+    format: str = "text"
     outputs: DebugOutputs = field(default_factory=DebugOutputs)
 
     @classmethod
@@ -66,6 +77,7 @@ class DebugConfig:
         return cls(
             enabled=data.get('enabled', False),
             level=data.get('level', 'INFO').upper(),
+            format=data.get('format', 'text'),
             outputs=outputs
         )
 
@@ -74,6 +86,7 @@ class DebugConfig:
         return {
             'enabled': self.enabled,
             'level': self.level,
+            'format': self.format,
             'outputs': self.outputs.to_dict()
         }
 
@@ -136,6 +149,37 @@ class DebugLogger:
         requested_level = DEBUG_LEVELS.get(level.upper(), 2)
         return requested_level <= current_level
 
+    def _format_message(self, message: str, level: str, execution_id: Optional[str], format_type: str) -> str:
+        """
+        Format a message according to the specified format type.
+
+        Args:
+            message: The log message
+            level: Debug level (ERROR, WARNING, INFO, DEBUG, TRACE)
+            execution_id: Optional unique execution identifier
+            format_type: Format type ("text" or "json")
+
+        Returns:
+            Formatted message string
+        """
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        if format_type == "json":
+            log_entry = {
+                "timestamp": timestamp,
+                "level": level.upper(),
+                "hook_name": self.hook_name,
+                "message": message,
+            }
+            if execution_id:
+                log_entry["execution_id"] = execution_id
+            if self.project_root:
+                log_entry["project_root"] = str(self.project_root)
+            return json.dumps(log_entry, ensure_ascii=False)
+        else:  # text format
+            exec_id_str = f" [exec:{execution_id}]" if execution_id else ""
+            return f"[{timestamp}] [{level.upper()}]{exec_id_str} {self.hook_name}: {message}"
+
     def log(self, message: str, level: str = "INFO", execution_id: Optional[str] = None) -> None:
         """
         Log a debug message according to configuration.
@@ -148,26 +192,39 @@ class DebugLogger:
         if not self.should_output_level(level):
             return
 
-        timestamp = datetime.now(timezone.utc).isoformat()
-        exec_id_str = f" [exec:{execution_id}]" if execution_id else ""
-        formatted = f"[{timestamp}] [{level.upper()}]{exec_id_str} {self.hook_name}: {message}"
-
         # Output to stderr if configured
         if self.debug_config.outputs.stderr:
+            stderr_format = self.debug_config.outputs.stderr_format
+            formatted = self._format_message(message, level, execution_id, stderr_format)
             print(formatted, file=sys.stderr)
 
         # Output to file if configured and project root available
         if self.debug_config.outputs.file and self.project_root:
-            self._write_to_file(formatted)
+            file_format = self.debug_config.outputs.file_format
+            formatted = self._format_message(message, level, execution_id, file_format)
+            self._write_to_file(formatted, file_format)
 
         # Output to framework debug log if configured
         if self.debug_config.outputs.framework and self.project_root:
-            self._write_to_framework_log(formatted)
+            framework_format = self.debug_config.outputs.framework_format
+            formatted = self._format_message(message, level, execution_id, framework_format)
+            self._write_to_framework_log(formatted, framework_format)
 
-    def _write_to_file(self, formatted_message: str) -> None:
-        """Write debug message to debug.log file."""
+    def _write_to_file(self, formatted_message: str, format_type: str) -> None:
+        """
+        Write debug message to debug log file.
+
+        Args:
+            formatted_message: Formatted log message
+            format_type: Format type ("text" or "json") - determines file extension
+        """
         try:
-            debug_file = self.project_root / '.brainworm' / 'logs' / 'debug.log'
+            # Choose file extension based on format
+            if format_type == "json":
+                debug_file = self.project_root / '.brainworm' / 'logs' / 'debug.jsonl'
+            else:
+                debug_file = self.project_root / '.brainworm' / 'logs' / 'debug.log'
+
             debug_file.parent.mkdir(parents=True, exist_ok=True)
             with open(debug_file, 'a', encoding='utf-8') as f:
                 f.write(formatted_message + '\n')
@@ -176,10 +233,21 @@ class DebugLogger:
             # Don't fail hook on debug logging errors
             pass
 
-    def _write_to_framework_log(self, formatted_message: str) -> None:
-        """Write debug message to framework debug log."""
+    def _write_to_framework_log(self, formatted_message: str, format_type: str) -> None:
+        """
+        Write debug message to framework debug log.
+
+        Args:
+            formatted_message: Formatted log message
+            format_type: Format type ("text" or "json") - determines file extension
+        """
         try:
-            framework_log = self.project_root / '.brainworm' / 'debug_framework_output.log'
+            # Choose file extension based on format
+            if format_type == "json":
+                framework_log = self.project_root / '.brainworm' / 'logs' / 'debug_framework_output.jsonl'
+            else:
+                framework_log = self.project_root / '.brainworm' / 'logs' / 'debug_framework_output.log'
+
             framework_log.parent.mkdir(parents=True, exist_ok=True)
             with open(framework_log, 'a', encoding='utf-8') as f:
                 f.write(formatted_message + '\n')
@@ -214,7 +282,15 @@ def get_default_debug_config() -> DebugConfig:
     return DebugConfig(
         enabled=False,
         level='INFO',
-        outputs=DebugOutputs(stderr=True, file=False, framework=False)
+        format='text',
+        outputs=DebugOutputs(
+            stderr=True,
+            stderr_format='text',
+            file=False,
+            file_format='json',
+            framework=False,
+            framework_format='json'
+        )
     )
 
 
@@ -272,5 +348,24 @@ if __name__ == '__main__':
     logger = DebugLogger('test_hook', debug_config=DebugConfig(enabled=False), verbose_override=True)
     logger.info("This should appear even though config is disabled")
     logger.debug("This should also appear")
+
+    print("\n=== Testing JSON Format ===", file=sys.stderr)
+    json_outputs = DebugOutputs(stderr=True, stderr_format='json', file=False, framework=False)
+    json_config = DebugConfig(enabled=True, level='INFO', format='json', outputs=json_outputs)
+    json_logger = DebugLogger('test_hook', debug_config=json_config)
+    json_logger.info("This is JSON formatted output", execution_id="test-123")
+    json_logger.error("This is a JSON error")
+
+    print("\n=== Testing Mixed Formats ===", file=sys.stderr)
+    print("(stderr=text, file=json, framework=json)", file=sys.stderr)
+    mixed_outputs = DebugOutputs(
+        stderr=True, stderr_format='text',
+        file=False, file_format='json',  # Would write to .jsonl
+        framework=False, framework_format='json'  # Would write to .jsonl
+    )
+    mixed_config = DebugConfig(enabled=True, level='DEBUG', format='text', outputs=mixed_outputs)
+    mixed_logger = DebugLogger('test_hook', debug_config=mixed_config)
+    mixed_logger.info("Mixed format test - stderr is text")
+    mixed_logger.debug("File and framework would be JSON")
 
     print("\nDebug logger tests complete!", file=sys.stderr)

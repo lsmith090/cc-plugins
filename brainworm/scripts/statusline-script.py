@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "toml>=0.10.0",
+#     "tomli-w>=1.0.0",
 # ]
 # ///
 

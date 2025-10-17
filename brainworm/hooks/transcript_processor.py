@@ -4,6 +4,7 @@
 #     "rich>=13.0.0",
 #     "tiktoken>=0.7.0",
 #     "filelock>=3.13.0",
+#     "tomli-w>=1.0.0",
 # ]
 # ///
 
@@ -17,13 +18,65 @@ Processes transcripts for optimal subagent consumption with service awareness.
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
+# DIAGNOSTIC: Log import environment
+diagnostic_file = Path.cwd() / '.brainworm' / 'logs' / 'transcript_processor_diagnostic.log'
+diagnostic_file.parent.mkdir(parents=True, exist_ok=True)
+with open(diagnostic_file, 'a') as f:
+    from datetime import datetime, timezone
+    timestamp = datetime.now(timezone.utc).isoformat()
+    f.write(f"[{timestamp}] IMPORT: sys.path before insert: {sys.path[:3]}\n")
+    f.flush()
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+with open(diagnostic_file, 'a') as f:
+    timestamp = datetime.now(timezone.utc).isoformat()
+    f.write(f"[{timestamp}] IMPORT: sys.path after insert: {sys.path[:3]}\n")
+    f.write(f"[{timestamp}] IMPORT: Plugin root: {Path(__file__).parent.parent}\n")
+    f.flush()
 
 import json
 from datetime import datetime, timezone
 from collections import deque
 from typing import Dict, Any, List, Optional
-from utils.hook_framework import HookFramework
+
+# WORKAROUND: Import debug_logger and config modules BEFORE hook_framework
+# This ensures they're available when hook_framework tries to import them
+# This is needed because uv run --script creates an isolated environment
+try:
+    import utils.debug_logger
+    import utils.config
+    import utils.event_logger
+    import utils.hook_types
+    with open(diagnostic_file, 'a') as f:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        f.write(f"[{timestamp}] IMPORT: Pre-imported utils modules successfully\n")
+        f.flush()
+except ImportError as e:
+    with open(diagnostic_file, 'a') as f:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        f.write(f"[{timestamp}] IMPORT ERROR pre-importing utils: {e}\n")
+        f.flush()
+
+# Now import HookFramework - it should find the already-imported modules
+try:
+    from utils.hook_framework import HookFramework
+    with open(diagnostic_file, 'a') as f:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        f.write(f"[{timestamp}] IMPORT: HookFramework imported successfully\n")
+        # Check if the imports in hook_framework succeeded
+        from utils.hook_framework import create_debug_logger, load_config
+        f.write(f"[{timestamp}] IMPORT: create_debug_logger is None: {create_debug_logger is None}\n")
+        f.write(f"[{timestamp}] IMPORT: load_config is None: {load_config is None}\n")
+        f.flush()
+except ImportError as e:
+    with open(diagnostic_file, 'a') as f:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        f.write(f"[{timestamp}] IMPORT ERROR: {e}\n")
+        f.flush()
+    raise
+
 from utils.business_controllers import create_subagent_manager
 
 def detect_project_structure(project_root: Path) -> Dict[str, Any]:
@@ -773,17 +826,35 @@ def log_analytics_event(project_root: Path, event_data: Dict[str, Any]) -> None:
     except Exception as e:
         print(f"Warning: Event logging failed: {e}", file=sys.stderr)
 
-def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, verbose: bool = False, debug_logger=None) -> Dict[str, Any]:
+def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, debug_logger=None) -> Dict[str, Any]:
     """Custom logic for transcript processing"""
+    # DIAGNOSTIC: Check debug_logger state at entry
+    diagnostic_file = Path.cwd() / '.brainworm' / 'logs' / 'transcript_processor_diagnostic.log'
+    def diag_log(msg: str):
+        timestamp = datetime.now(timezone.utc).isoformat()
+        log_line = f"[{timestamp}] LOGIC: {msg}\n"
+        print(log_line, file=sys.stderr, flush=True)
+        with open(diagnostic_file, 'a') as f:
+            f.write(log_line)
+            f.flush()
+
+    diag_log(f"=== transcript_processor_logic CALLED ===")
+    diag_log(f"debug_logger is None: {debug_logger is None}")
+    if debug_logger:
+        diag_log(f"debug_logger type: {type(debug_logger)}")
+        diag_log(f"debug_logger.is_enabled(): {debug_logger.is_enabled()}")
+        diag_log(f"debug_logger.debug_config.level: {debug_logger.debug_config.level}")
+        diag_log(f"debug_logger.debug_config.outputs.file: {debug_logger.debug_config.outputs.file}")
+
     start_time = datetime.now(timezone.utc)
     tool_name = input_data.get("tool_name", "")
 
     # Only process Task tool calls
     if tool_name != "Task":
         if debug_logger:
+            diag_log("About to call debug_logger.debug for non-Task skip...")
             debug_logger.debug(f"Skipping non-Task tool: {tool_name}")
-        if verbose:
-            print(f"Skipping non-Task tool: {tool_name}", file=sys.stderr)
+            diag_log("Called debug_logger.debug successfully")
         return {"skip": True, "reason": "non_task_tool"}
 
     # RECURSION PREVENTION: Check if we're already in a subagent context
@@ -792,8 +863,6 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
         if subagent_manager.is_in_subagent_context():
             if debug_logger:
                 debug_logger.warning("🔄 Recursion prevented: Already in subagent context")
-            if verbose:
-                print("⚠️  Recursion prevention: Already in subagent context, skipping transcript processing", file=sys.stderr)
             return {"skip": True, "reason": "recursion_prevention"}
         else:
             if debug_logger:
@@ -805,28 +874,28 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
         if subagent_flag.exists():
             if debug_logger:
                 debug_logger.warning("🔄 Recursion prevented: Subagent flag exists")
-            if verbose:
-                print("⚠️  Recursion prevention: Already in subagent context, skipping transcript processing", file=sys.stderr)
             return {"skip": True, "reason": "recursion_prevention"}
-    
+
     transcript_path = input_data.get("transcript_path", "")
     if not transcript_path:
-        if verbose:
-            print("No transcript_path provided", file=sys.stderr)
+        if debug_logger:
+            debug_logger.debug("No transcript_path provided")
         return {"skip": True, "reason": "no_transcript_path"}
-    
-    if verbose:
-        print("🔄 Processing transcript for Task tool", file=sys.stderr)
-        print(f"Transcript: {transcript_path}", file=sys.stderr)
-    
+
+    if debug_logger:
+        diag_log("About to call debug_logger.info for 'Processing transcript'...")
+        debug_logger.info("🔄 Processing transcript for Task tool")
+        diag_log("Called debug_logger.info successfully")
+        diag_log("About to call debug_logger.debug for transcript path...")
+        debug_logger.debug(f"Transcript: {transcript_path}")
+        diag_log("Called debug_logger.debug successfully")
+
     # Read and parse transcript
     with open(transcript_path, 'r') as f:
         transcript = [json.loads(line) for line in f if line.strip()]
-    
+
     original_entry_count = len(transcript)
-    if verbose:
-        print(f"Raw transcript entries: {original_entry_count}", file=sys.stderr)
-    
+
     # Remove pre-work entries
     transcript = remove_prework_entries(transcript)
     processed_entry_count = len(transcript)
@@ -835,9 +904,6 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
     if debug_logger:
         removed_count = original_entry_count - processed_entry_count
         debug_logger.info(f"📋 Transcript processing: {original_entry_count} → {processed_entry_count} entries (removed {removed_count} prework)")
-
-    if verbose:
-        print(f"After pre-work removal: {processed_entry_count}", file=sys.stderr)
 
     # Clean transcript entries
     clean_transcript = clean_transcript_entries(transcript)
@@ -849,9 +915,6 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
     # Debug logging - INFO level
     if debug_logger:
         debug_logger.info(f"🤖 Routing to subagent: {subagent_type}")
-
-    if verbose:
-        print(f"🤖 Routing to subagent: {subagent_type}", file=sys.stderr)
 
     # Normalize subagent_type for directory name (strip plugin namespace prefix)
     # e.g., "brainworm:context-gathering" -> "context-gathering"
@@ -869,13 +932,6 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
         debug_logger.info(f"🎯 Service context: {service_name} ({project_type}) via {detection_method}")
         debug_logger.debug(f"Project services: {len(service_context.get('project_structure', {}).get('services', []))}")
 
-    if verbose:
-        current_service = service_context.get("current_service", {})
-        service_name = current_service.get("name", "unknown") if current_service else "none"
-        detection_method = service_context.get("detection_method", "unknown")
-        project_type = service_context.get("project_structure", {}).get("project_type", "unknown")
-        print(f"🎯 Service context: {service_name} ({project_type}) via {detection_method}", file=sys.stderr)
-
     # Create output directory using normalized directory name
     batch_dir = project_root / '.brainworm' / 'state' / subagent_dir_name
     batch_dir.mkdir(parents=True, exist_ok=True)
@@ -888,19 +944,16 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
     if debug_logger:
         debug_logger.info(f"📦 Created {chunk_count} transcript chunks for subagent")
 
-    if verbose:
-        print(f"📦 Created {chunk_count} transcript chunks", file=sys.stderr)
-    
     # Calculate processing metrics
     processing_time = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
-    
+
     # Save chunks
     save_transcript_chunks(chunks, batch_dir)
-    
+
     # Save service context for subagent location awareness
     create_service_context_file(service_context, batch_dir)
-    if verbose:
-        print("📍 Created service context file for location awareness", file=sys.stderr)
+    if debug_logger:
+        debug_logger.debug("📍 Created service context file for location awareness")
     
     # Create subagent context flag using business controller
     # Use normalized directory name for consistency
@@ -927,14 +980,14 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, v
     }
 
 
-def transcript_processor_success_handler(result: Dict[str, Any], verbose: bool = False) -> None:
+def transcript_processor_success_handler(result: Dict[str, Any], debug_logger=None) -> None:
     """Generate success message for transcript processing"""
     if result.get("skip", False):
         return  # No message for skipped processing
-    
+
     processing_time = result.get("processing_time", 0)
-    if verbose:
-        print(f"✅ Transcript processing complete ({processing_time:.1f}ms)", file=sys.stderr)
+    if debug_logger:
+        debug_logger.info(f"✅ Transcript processing complete ({processing_time:.1f}ms)")
 
 
 def transcript_processor_framework_logic(framework, input_data: Dict[str, Any]):
@@ -944,45 +997,115 @@ def transcript_processor_framework_logic(framework, input_data: Dict[str, Any]):
         framework: HookFramework instance
         input_data: Raw input dict (always dict, typed input used for validation only)
     """
-    project_root = framework.project_root
+    # DIAGNOSTIC: Log entry to custom logic
+    diagnostic_file = Path.cwd() / '.brainworm' / 'logs' / 'transcript_processor_diagnostic.log'
+    def diag_log(msg: str):
+        timestamp = datetime.now(timezone.utc).isoformat()
+        log_line = f"[{timestamp}] CUSTOM_LOGIC: {msg}\n"
+        print(log_line, file=sys.stderr, flush=True)
+        with open(diagnostic_file, 'a') as f:
+            f.write(log_line)
+            f.flush()
 
-    # Handle case where project_root might be None
-    if not project_root:
-        return  # Exit gracefully if no project root
+    try:
+        diag_log(f"=== CUSTOM LOGIC CALLED ===")
+        diag_log(f"Framework project_root: {framework.project_root}")
 
-    # Debug logging - INFO level
-    tool_name = input_data.get('tool_name', 'unknown')
-    if framework.debug_logger:
-        framework.debug_logger.info(f"🔄 Transcript processor invoked for tool: {tool_name}")
+        project_root = framework.project_root
 
-    # Call custom logic (passing debug_logger for internal logging)
-    result = transcript_processor_logic(input_data, project_root, False, framework.debug_logger)
+        # Handle case where project_root might be None
+        if not project_root:
+            diag_log("!!! project_root is None, returning early")
+            return  # Exit gracefully if no project root
 
-    # Debug logging after processing
-    if framework.debug_logger and result:
-        if result.get("skip", False):
-            reason = result.get("reason", "unknown")
-            framework.debug_logger.debug(f"Transcript processing skipped: {reason}")
-        else:
-            processing_time = result.get("processing_time", 0)
-            chunk_count = result.get("chunk_count", 0)
-            framework.debug_logger.info(f"✅ Transcript processing complete: {chunk_count} chunks in {processing_time:.1f}ms")
+        diag_log("project_root exists, continuing...")
 
-    # Skip processing or handle special transcript processor requirements
-    if result and result.get("skip", False):
-        return
+        # DIAGNOSTIC: Check framework.debug_logger state
+        diag_log(f"framework.debug_logger is None: {framework.debug_logger is None}")
+        if framework.debug_logger:
+            diag_log(f"framework.debug_logger type: {type(framework.debug_logger)}")
+            diag_log(f"framework.debug_logger.is_enabled(): {framework.debug_logger.is_enabled()}")
+
+        # Debug logging - INFO level
+        tool_name = input_data.get('tool_name', 'unknown')
+        if framework.debug_logger:
+            framework.debug_logger.info(f"🔄 Transcript processor invoked for tool: {tool_name}")
+
+        # Call custom logic (passing debug_logger for internal logging)
+        diag_log(f"Calling transcript_processor_logic...")
+        diag_log(f"Passing debug_logger: {framework.debug_logger}")
+        result = transcript_processor_logic(input_data, project_root, framework.debug_logger)
+        diag_log(f"transcript_processor_logic returned: skip={result.get('skip', False)}")
+
+        # Debug logging after processing
+        if framework.debug_logger and result:
+            if result.get("skip", False):
+                reason = result.get("reason", "unknown")
+                framework.debug_logger.debug(f"Transcript processing skipped: {reason}")
+            else:
+                processing_time = result.get("processing_time", 0)
+                chunk_count = result.get("chunk_count", 0)
+                framework.debug_logger.info(f"✅ Transcript processing complete: {chunk_count} chunks in {processing_time:.1f}ms")
+
+        # Skip processing or handle special transcript processor requirements
+        if result and result.get("skip", False):
+            diag_log("Skipping due to skip flag")
+            return
+
+        diag_log("=== CUSTOM LOGIC COMPLETED ===")
+
+    except Exception as e:
+        diag_log(f"!!! ERROR IN CUSTOM LOGIC: {e}")
+        import traceback
+        diag_log(f"!!! TRACEBACK: {traceback.format_exc()}")
+        raise
 
     # Framework handles successful exit automatically
 
 
 def main() -> None:
     """Main transcript processor entry point - Pure Framework Approach"""
+    # DIAGNOSTIC: Write directly to file to bypass debug logger
+    diagnostic_file = Path.cwd() / '.brainworm' / 'logs' / 'transcript_processor_diagnostic.log'
+    diagnostic_file.parent.mkdir(parents=True, exist_ok=True)
+
+    def diag_log(msg: str):
+        """Write diagnostic message to file and stderr."""
+        timestamp = datetime.now(timezone.utc).isoformat()
+        log_line = f"[{timestamp}] TRANSCRIPT_PROCESSOR: {msg}\n"
+        print(log_line, file=sys.stderr, flush=True)
+        with open(diagnostic_file, 'a') as f:
+            f.write(log_line)
+            f.flush()
+
     try:
-        HookFramework("transcript_processor", enable_event_logging=True) \
-            .with_custom_logic(transcript_processor_framework_logic) \
-            .execute()
-            
+        diag_log("=== HOOK STARTING ===")
+        diag_log(f"Working directory: {Path.cwd()}")
+        diag_log(f"Script location: {Path(__file__)}")
+        diag_log("Creating HookFramework...")
+
+        framework = HookFramework("transcript_processor", enable_event_logging=True) \
+            .with_custom_logic(transcript_processor_framework_logic)
+
+        diag_log(f"Framework created, project_root AFTER INIT: {framework.project_root}")
+        diag_log(f"Framework debug_logger exists AFTER INIT: {framework.debug_logger is not None}")
+
+        diag_log("Calling framework.execute()...")
+        framework.execute()
+
+        diag_log(f"Framework project_root AFTER EXECUTE: {framework.project_root}")
+        diag_log(f"Framework debug_logger exists AFTER EXECUTE: {framework.debug_logger is not None}")
+        if framework.debug_logger:
+            diag_log(f"Debug logger enabled: {framework.debug_logger.is_enabled()}")
+            diag_log(f"Debug logger level: {framework.debug_logger.debug_config.level}")
+
+        diag_log("=== HOOK COMPLETED ===")
+
     except Exception as e:
+        diag_log(f"!!! ERROR: {e}")
+        diag_log(f"!!! ERROR TYPE: {type(e).__name__}")
+        import traceback
+        diag_log(f"!!! TRACEBACK: {traceback.format_exc()}")
         # Handle errors gracefully
         print(f"Error in transcript processor: {e}", file=sys.stderr)
         sys.exit(0)  # Non-blocking error
