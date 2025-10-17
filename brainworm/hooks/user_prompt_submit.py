@@ -228,6 +228,7 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
     context_warning = check_context_warnings(transcript_path, project_root)
     if context_warning:
         print(context_warning, file=sys.stderr)
+        context += context_warning  # Inject warning into Claude's context
         if debug_logger:
             if "90%" in context_warning:
                 debug_logger.warning("Context 90% WARNING triggered")
@@ -278,10 +279,22 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
 
                 context += f"[DAIC: Implementation Mode Activated] Trigger phrase '{detected_trigger}' detected. You may now implement ONLY the immediately discussed steps. DO NOT take **any** actions beyond what was explicitly agreed upon. When you're done, run the command: ./daic\n"
         
-        # Protocol detection
+        # Protocol detection with subagent reminders
         detected_protocols = detect_protocols(prompt)
         for protocol in detected_protocols:
-            context += f"If the user is asking to {protocol.replace('-', ' ')}, read and follow sessions/protocols/{protocol}.md protocol.\n"
+            protocol_name = protocol.replace('-', ' ')
+            context += f"If the user is asking to {protocol_name}, read and follow sessions/protocols/{protocol}.md protocol.\n"
+
+            # Add protocol-specific subagent reminders
+            if protocol == "task-creation":
+                context += "[Subagent Reminder] After creating the task, use the context-gathering agent to build a comprehensive context manifest. Invoke: Task tool with subagent_type='brainworm:context-gathering'\n"
+            elif protocol == "task-completion":
+                context += "[Subagent Reminder] Use the logging agent to consolidate work logs and the service-documentation agent to update relevant docs. Invoke: Task tool with subagent_type='brainworm:logging' and 'brainworm:service-documentation'\n"
+            elif protocol == "context-compaction":
+                context += "[Subagent Reminder] Use the context-refinement agent to update the task context with discoveries, and the logging agent to consolidate logs. Invoke: Task tool with subagent_type='brainworm:context-refinement' and 'brainworm:logging'\n"
+            elif protocol == "task-startup":
+                context += "[Subagent Reminder] If the task lacks a context manifest, use the context-gathering agent. Invoke: Task tool with subagent_type='brainworm:context-gathering'\n"
+
             if debug_logger:
                 debug_logger.info(f"📋 Protocol detected: {protocol}")
 
