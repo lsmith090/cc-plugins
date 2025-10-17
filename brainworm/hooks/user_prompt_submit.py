@@ -288,7 +288,7 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
         detected_protocols = detect_protocols(prompt)
         for protocol in detected_protocols:
             protocol_name = protocol.replace('-', ' ')
-            context += f"If the user is asking to {protocol_name}, read and follow sessions/protocols/{protocol}.md protocol.\n"
+            context += f"{protocol_name} protocol found in prompt, read and follow sessions/protocols/{protocol}.md protocol.\n"
 
             # Add protocol-specific subagent reminders
             if protocol == "task-creation":
