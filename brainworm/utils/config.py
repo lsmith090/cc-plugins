@@ -29,7 +29,7 @@ def get_canonical_default_config() -> Dict[str, Any]:
             "enabled": True,
             "default_mode": "discussion",
             "trigger_phrases": ["make it so", "run that", "go ahead", "ship it"],
-            "blocked_tools": ["Edit", "Write", "MultiEdit", "NotebookEdit"],
+            "blocked_tools": ["Edit", "Write", "MultiEdit", "NotebookEdit", "SlashCommand"],
             "read_only_bash_commands": {
                 "basic": [
                     "ls", "ll", "pwd", "cd", "echo", "cat", "head", "tail",

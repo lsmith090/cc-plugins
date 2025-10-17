@@ -86,6 +86,9 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
                 # Always configure statusline to ensure it's up to date
                 configure_statusline(project_root, plugin_root)
 
+                # Always configure DAIC permissions to ensure mode-switching is protected
+                configure_daic_permissions(project_root)
+
                 # Always ensure CLAUDE.sessions.md exists and is referenced
                 setup_claude_sessions_docs(project_root, plugin_root)
                 return
@@ -169,7 +172,10 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
         # 7. Configure statusline
         configure_statusline(project_root, plugin_root)
 
-        # 8. Setup CLAUDE.sessions.md
+        # 8. Configure DAIC permissions
+        configure_daic_permissions(project_root)
+
+        # 9. Setup CLAUDE.sessions.md
         setup_claude_sessions_docs(project_root, plugin_root)
 
         console.print("[dim green]✓ Brainworm initialized[/dim green]")
@@ -348,6 +354,44 @@ def configure_statusline(project_root: Path, plugin_root: Path) -> None:
 
         # Write back
         with open(settings_file, 'w') as f:
+            json.dump(settings, f, indent=2)
+
+    except Exception:
+        pass  # Don't fail session start
+
+def configure_daic_permissions(project_root: Path) -> None:
+    """Configure DAIC mode-switching deny rules in .claude/settings.local.json"""
+    try:
+        claude_dir = project_root / '.claude'
+        claude_dir.mkdir(exist_ok=True)
+
+        settings_local_file = claude_dir / 'settings.local.json'
+
+        # Read existing settings or create new
+        if settings_local_file.exists():
+            with open(settings_local_file, 'r') as f:
+                settings = json.load(f)
+        else:
+            settings = {}
+
+        # Ensure permissions structure exists
+        if 'permissions' not in settings:
+            settings['permissions'] = {}
+        if 'deny' not in settings['permissions']:
+            settings['permissions']['deny'] = []
+
+        # Add DAIC mode-switching deny rules if not already present
+        deny_rules = [
+            "SlashCommand(/brainworm:daic implementation)",
+            "SlashCommand(/brainworm:daic toggle)"
+        ]
+
+        for rule in deny_rules:
+            if rule not in settings['permissions']['deny']:
+                settings['permissions']['deny'].append(rule)
+
+        # Write back
+        with open(settings_local_file, 'w') as f:
             json.dump(settings, f, indent=2)
 
     except Exception:

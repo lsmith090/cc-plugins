@@ -85,8 +85,8 @@ def is_brainworm_system_command(command: str, config: Dict[str, Any], project_ro
     return any(re.search(pattern, command) for pattern in read_only_system_patterns)
 
 
-def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any], 
-                          daic_state: Dict[str, Any], project_root: Path) -> ToolBlockingResult:
+def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any],
+                          daic_state: Dict[str, Any], project_root: Path, debug_logger=None) -> ToolBlockingResult:
     """
     DAIC enforcement logic - determine if tool should be blocked
     Returns ToolBlockingResult with blocking decision and reason
@@ -121,43 +121,42 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
     # Handle Bash commands specially
     if tool_name == "Bash":
         command = tool_input.get("command", "").strip()
-        
-        # Allow brainworm system management commands even in discussion mode
-        if is_discussion_mode and is_brainworm_system_command(command, config, project_root):
-            return ToolBlockingResult.allow_tool("Brainworm system command allowed")
-        
-        # Block other daic commands in discussion mode (they should be handled by user-messages hook)
-        # Only check the actual command, not arguments/file paths
+
+        # FIRST: Block daic mode-switching commands in discussion mode (check before system commands)
         if is_discussion_mode:
             command_parts = split_command_respecting_quotes(command)
             if command_parts:
                 # Get the first part of the first command (before any pipes)
                 first_command = command_parts[0].strip().split()[0] if command_parts[0].strip() else ""
-                # Check if the command itself is 'daic' or './daic'
+
+                # DEBUG: Log command analysis for slash command investigation
+                if debug_logger:
+                    debug_logger.debug(f"Slash command check - Full command: {command}")
+                    debug_logger.debug(f"Slash command check - First command: '{first_command}'")
+                    debug_logger.debug(f"Slash command check - Has 'plugin-launcher': {'plugin-launcher' in first_command}")
+                    debug_logger.debug(f"Slash command check - Has 'daic_command.py': {'daic_command.py' in command}")
+                    debug_logger.debug(f"Slash command check - Has 'implementation': {'implementation' in command}")
+
+                # Check for direct daic command: 'daic' or './daic'
                 if first_command in ('daic', './daic'):
                     return ToolBlockingResult.command_block(command, "The 'daic' command is not allowed in discussion mode. You're already in discussion mode.")
-        
-        # Check if command is read-only in discussion mode
+
+                # Check for slash command via plugin-launcher: '.brainworm/plugin-launcher daic_command.py'
+                if 'plugin-launcher' in first_command and 'daic_command.py' in command:
+                    # Extract arguments to check for mode-switching subcommands
+                    if any(arg in command for arg in ['implementation', 'toggle']):
+                        return ToolBlockingResult.command_block(
+                            command,
+                            "DAIC mode switching to implementation is not allowed. Use trigger phrases or let the user invoke the command directly."
+                        )
+
+        # SECOND: Allow brainworm system management commands even in discussion mode (after mode-switching check)
+        if is_discussion_mode and is_brainworm_system_command(command, config, project_root):
+            return ToolBlockingResult.allow_tool("Brainworm system command allowed")
+
+        # THIRD: Check if command is read-only in discussion mode
         if is_discussion_mode and not is_read_only_bash_command(command, config):
             return ToolBlockingResult.command_block(command[:50] + "...", "Potentially modifying Bash command blocked in discussion mode")
-
-    # Handle SlashCommand tool specially - prevent DAIC mode bypassing
-    if tool_name == "SlashCommand":
-        command = tool_input.get("command", "").strip()
-
-        # Block DAIC mode-switching commands in discussion mode
-        if command.startswith("/brainworm:daic"):
-            # Extract the subcommand
-            parts = command.split()
-            if len(parts) >= 2:
-                subcommand = parts[1]
-
-                # In discussion mode: block implementation and toggle
-                if is_discussion_mode and subcommand in ("implementation", "toggle"):
-                    return ToolBlockingResult.command_block(
-                        command,
-                        "DAIC mode switching to implementation is not allowed. Only the human operator can trigger a switch."
-                    )
 
     # Check for subagent boundary violations
     try:
@@ -251,7 +250,7 @@ def pre_tool_use_framework_logic(framework, input_data: Dict[str, Any]):
 
     # PHASE 2: DAIC enforcement check
     daic_result = should_block_tool_daic(
-        framework.raw_input_data, config, daic_state, project_root
+        framework.raw_input_data, config, daic_state, project_root, framework.debug_logger
     )
 
     # Determine final blocking decision
