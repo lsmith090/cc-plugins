@@ -175,40 +175,27 @@ def detect_protocols(prompt: str) -> List[str]:
     """Detect protocol-triggering phrases"""
     protocols = []
     prompt_lower = prompt.lower()
-    
+
     # Context compaction detection
     if any(phrase in prompt_lower for phrase in ["compact", "restart session", "context compaction"]):
         protocols.append("context-compaction")
-    
+
     # Task completion detection
-    if any(phrase in prompt_lower for phrase in ["complete the task", "finish the task", "task is done", 
+    if any(phrase in prompt_lower for phrase in ["complete the task", "finish the task", "task is done",
                                                    "mark as complete", "close the task", "wrap up the task"]):
         protocols.append("task-completion")
-    
+
     # Task creation detection
     if any(phrase in prompt_lower for phrase in ["create a new task", "create a task", "make a task",
                                                    "new task for", "add a task"]):
         protocols.append("task-creation")
-    
+
     # Task switching detection
     if any(phrase in prompt_lower for phrase in ["switch to task", "work on task", "change to task"]):
         protocols.append("task-startup")
-    
+
     return protocols
 
-
-def detect_task_patterns(prompt: str) -> bool:
-    """Detect patterns that suggest task creation might be needed"""
-    task_patterns = [
-        r"(?i)we (should|need to|have to) (implement|fix|refactor|migrate|test|research)",
-        r"(?i)create a task for",
-        r"(?i)add this to the (task list|todo|backlog)",
-        r"(?i)we'll (need to|have to) (do|handle|address) (this|that) later",
-        r"(?i)that's a separate (task|issue|problem)",
-        r"(?i)file this as a (bug|task|issue)"
-    ]
-    
-    return any(re.search(pattern, prompt) for pattern in task_patterns)
 
 def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, config: Dict[str, Any], debug_logger=None) -> Dict[str, Any]:
     """Custom logic for user prompt submit processing"""
@@ -222,7 +209,6 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
 
     # Initialize context response
     context = ""
-    debug_info = {}
 
     # Check for context warnings
     context_warning = check_context_warnings(transcript_path, project_root)
@@ -298,43 +284,13 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
             if debug_logger:
                 debug_logger.info(f"📋 Protocol detected: {protocol}")
 
-        # Task pattern detection
-        if daic_config.get("task_detection", {}).get("enabled", True):
-            if detect_task_patterns(prompt):
-                context += """
-[Task Detection Notice]
-The message may reference something that could be a task.
-If this looks like work that should be tracked separately, consider creating a task for it.
-Ask the user if they'd like you to create a task for this work.
-"""
-                if debug_logger:
-                    debug_logger.debug("📝 Task pattern detected in prompt")
-        
-        # Iterloop detection
-        if "iterloop" in prompt.lower():
-            context += "You have been instructed to iteratively loop over a list. Identify what list the user is referring to, then follow this loop: present one item, wait for the user to respond with questions and discussion points, only continue to the next item when the user explicitly says 'continue' or something similar\n"
-        
-        # Basic workflow guidance
-        intelligence_config = daic_config.get("intelligence", {})
-        if intelligence_config.get("smart_recommendations", False):
-            if is_discussion_mode and len(prompt.split()) > 50:
-                context += "\n[DAIC Intelligence] This appears to be a detailed message. Consider discussing the approach thoroughly before implementation.\n"
-        
         # Add ultrathink if not in API mode
         if not config.get("api_mode", False) and not prompt.strip().startswith('/'):
             context = "[[ ultrathink ]]\n" + context
-        
-        # Debug info for response
-        debug_info = {
-            "current_daic_mode": current_mode,
-            "trigger_phrases": daic_config.get("trigger_phrases", []),
-            "daic_enabled": daic_config.get("enabled", True)
-        }
     
     # Return processing results
     return {
         "context": context,
-        "debug_info": debug_info,
         "prompt_info": get_basic_prompt_info(prompt),
         "session_id": session_id
     }
@@ -373,9 +329,8 @@ def user_prompt_submit_framework_logic(framework, input_data: Dict[str, Any]):
         framework.debug_logger.debug(f"Context injected: {context_summary}...")
 
     # Generate typed JSON response for Claude
-    debug_info = None  # Debug info not needed in typed response
     typed_response = UserPromptContextResponse.create_context(
-        result["context"], debug_info
+        result["context"], None
     )
 
     # Set typed JSON response for framework to handle
