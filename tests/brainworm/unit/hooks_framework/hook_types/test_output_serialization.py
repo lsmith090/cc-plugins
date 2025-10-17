@@ -25,8 +25,6 @@ from brainworm.utils.hook_types import (
     PreToolUseDecisionOutput, ToolResponse,
     HookSpecificOutput, UserPromptContextResponse,
     SessionCorrelationResponse, DAICModeResult, ToolAnalysisResult,
-    # Central data types
-    CentralHookEventRow,
     # Serialization utilities
     to_json_serializable
 )
@@ -490,50 +488,6 @@ class TestUniversalSerialization:
                 pass
             else:
                 raise
-
-
-class TestCentralHookEventRowParsing:
-    """Test CentralHookEventRow JSON handling - MEDIUM RISK for analytics integration"""
-    
-    def test_central_hook_event_row_json_string_parsing(self):
-        """Test parsing JSON string data"""
-        row_with_json_string = {
-            'project_source': 'test-project',
-            'hook_name': 'pre_tool_use',
-            'event_type': 'hook_execution',
-            'data': '{"tool_name": "Edit", "success": true, "unicode": "🚀"}'
-        }
-        
-        parsed = CentralHookEventRow.parse(row_with_json_string)
-        assert isinstance(parsed.data, dict)
-        assert parsed.data['tool_name'] == "Edit"
-        assert parsed.data['success'] is True
-        assert parsed.data['unicode'] == "🚀"
-    
-    def test_central_hook_event_row_invalid_json_handling(self):
-        """HIGH RISK: Test graceful handling of invalid JSON"""
-        row_with_invalid_json = {
-            'project_source': 'test-project',
-            'hook_name': 'pre_tool_use',
-            'data': 'invalid json {unclosed'
-        }
-        
-        parsed = CentralHookEventRow.parse(row_with_invalid_json)
-        # Should not crash, should preserve raw data
-        assert parsed.data == {'raw': 'invalid json {unclosed'}
-    
-    def test_central_hook_event_row_dict_data_passthrough(self):
-        """Test dict data passes through unchanged"""
-        row_with_dict = {
-            'project_source': 'test-project',
-            'hook_name': 'pre_tool_use',
-            'data': {"tool_name": "Write", "success": False, "metadata": {"key": "val"}}
-        }
-        
-        parsed = CentralHookEventRow.parse(row_with_dict)
-        assert parsed.data['tool_name'] == "Write"
-        assert parsed.data['success'] is False
-        assert parsed.data['metadata']['key'] == "val"
 
 
 class TestClaudeCodeSpecificationCompliance:

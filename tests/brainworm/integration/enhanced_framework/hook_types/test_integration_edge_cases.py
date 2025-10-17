@@ -29,9 +29,9 @@ from brainworm.utils.hook_types import (
     PreToolUseLogEvent, PostToolUseLogEvent, UserPromptSubmitLogEvent,
     HookSpecificOutput, UserPromptContextResponse,
     SessionCorrelationResponse, DAICModeResult, ToolAnalysisResult,
-    CentralHookEventRow, ToolResponse,
+    ToolResponse,
     # Utility functions
-    to_json_serializable, normalize_validation_issues, 
+    to_json_serializable, normalize_validation_issues,
     get_standard_timestamp, parse_standard_timestamp, format_for_database,
     _coerce_iso, _as_list
 )
@@ -385,55 +385,7 @@ class TestMemoryAndPerformanceEdgeCases:
 
 class TestDataCorruptionAndRecovery:
     """Test graceful handling of corrupted or malformed data"""
-    
-    def test_malformed_json_recovery(self):
-        """
-        HIGH RISK: Test recovery from corrupted JSON data
-        """
-        # Test CentralHookEventRow with various malformed JSON
-        malformed_cases = [
-            {"data": '{"valid": "json"}'},  # Valid
-            {"data": '{"unclosed": "bracket"'},  # Missing }
-            {"data": '{invalid json syntax}'},  # Invalid syntax
-            {"data": '{"unicode": "🧪", "valid": true}'},  # Unicode in JSON
-            {"data": ''},  # Empty string
-            {"data": 'not json at all'},  # Not JSON
-            {"data": None},  # None
-        ]
-        
-        for i, case in enumerate(malformed_cases):
-            case.update({
-                "project_source": f"test-{i}",
-                "hook_name": "test_hook",
-                "event_type": "hook_execution"
-            })
-            
-            # Should not crash on malformed data
-            parsed = CentralHookEventRow.parse(case)
-            assert parsed is not None
-            assert parsed.project_source == f"test-{i}"
-            
-            # Data should be handled gracefully
-            if case["data"] == '{"valid": "json"}':
-                assert isinstance(parsed.data, dict)
-                assert parsed.data["valid"] == "json"
-            elif case["data"] == '{"unicode": "🧪", "valid": true}':
-                # Valid JSON with Unicode should parse correctly
-                assert isinstance(parsed.data, dict)
-                assert parsed.data["unicode"] == "🧪"
-                assert parsed.data["valid"] is True
-            elif case["data"] and isinstance(case["data"], str) and case["data"].startswith('{'):
-                # Malformed JSON should be wrapped in raw
-                assert isinstance(parsed.data, dict)
-                if "raw" not in parsed.data:
-                    # If it parsed successfully, that's also acceptable
-                    assert len(parsed.data) > 0
-                else:
-                    assert "raw" in parsed.data
-            else:
-                # Non-JSON should be handled appropriately
-                assert parsed.data is not None
-    
+
     def test_partial_data_corruption_recovery(self):
         """
         HIGH RISK: Test recovery when some fields are corrupted

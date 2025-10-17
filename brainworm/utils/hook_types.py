@@ -660,46 +660,6 @@ def parse_log_event(data: Dict[str, Any]) -> LogEventVariant:
     return BaseLogEvent.parse(data)
 
 
-# ---------------------------------------------------------------------------
-# Central DB row representation
-# ---------------------------------------------------------------------------
-
-@dataclass
-class CentralHookEventRow:
-    project_source: str
-    original_id: Union[int, str, None]
-    timestamp: Optional[float]
-    hook_name: str
-    event_type: str
-    correlation_id: Optional[str]
-    session_id: Optional[str]
-    success: Optional[bool]
-    duration_ms: Optional[float]
-    data: Dict[str, Any]
-    created_at: Optional[str]
-
-    @staticmethod
-    def parse(row: Dict[str, Any]) -> 'CentralHookEventRow':
-        raw_data = row.get('data')
-        if isinstance(raw_data, str):
-            import json
-            try:
-                raw_data = json.loads(raw_data)
-            except Exception:
-                raw_data = {'raw': raw_data}
-        return CentralHookEventRow(
-            project_source=row.get('project_source',''),
-            original_id=row.get('original_id'),
-            timestamp=row.get('timestamp'),
-            hook_name=row.get('hook_name',''),
-            event_type=row.get('event_type','hook_execution'),
-            correlation_id=row.get('correlation_id'),
-            session_id=row.get('session_id'),
-            success=row.get('success'),
-            duration_ms=row.get('duration_ms'),
-            data=raw_data if isinstance(raw_data, dict) else {},
-            created_at=row.get('created_at')
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -1344,204 +1304,6 @@ class IdGenerationResult:
         return self.session_id, self.correlation_id
 
 
-# ---------------------------------------------------------------------------
-# Analytics Result Types
-# ---------------------------------------------------------------------------
-
-@dataclass
-class DatabaseStats:
-    """Analytics database statistics with performance metrics"""
-    total_events: int = field()
-    unique_sessions: int = field()
-    unique_correlations: int = field()
-    active_projects: int = field()
-    overall_success_rate: float = field()
-    avg_duration_ms: float = field()
-    analysis_window_hours: int = field()
-    timestamp: str = field(default_factory=_now_iso)
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for serialization"""
-        return {
-            'total_events': self.total_events,
-            'unique_sessions': self.unique_sessions,
-            'unique_correlations': self.unique_correlations,
-            'active_projects': self.active_projects,
-            'overall_success_rate': self.overall_success_rate,
-            'avg_duration_ms': self.avg_duration_ms,
-            'analysis_window_hours': self.analysis_window_hours,
-            'timestamp': self.timestamp
-        }
-    
-    @classmethod
-    def from_query_result(cls, stats: tuple, hours: int) -> 'DatabaseStats':
-        """Factory method for creating from database query results"""
-        return cls(
-            total_events=stats[0] or 0,
-            unique_sessions=stats[1] or 0,
-            unique_correlations=stats[2] or 0,
-            active_projects=stats[3] or 0,
-            overall_success_rate=(stats[4] or 0) * 100,
-            avg_duration_ms=stats[5] or 0,
-            analysis_window_hours=hours
-        )
-    
-    @classmethod
-    def empty_stats(cls, hours: int = 24) -> 'DatabaseStats':
-        """Factory method for empty stats (error case)"""
-        return cls(
-            total_events=0,
-            unique_sessions=0,
-            unique_correlations=0,
-            active_projects=0,
-            overall_success_rate=0.0,
-            avg_duration_ms=0.0,
-            analysis_window_hours=hours
-        )
-
-
-@dataclass
-class HarvestResults:
-    """Results from data harvesting operations"""
-    harvested_sources: int = 0
-    new_events: int = 0
-    new_session_notes: int = 0
-    errors: List[str] = field(default_factory=list)
-    sources_processed: List[Dict[str, Any]] = field(default_factory=list)
-    timestamp: str = field(default_factory=_now_iso)
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for serialization"""
-        return {
-            'harvested_sources': self.harvested_sources,
-            'new_events': self.new_events,
-            'new_session_notes': self.new_session_notes,
-            'errors': self.errors,
-            'sources_processed': self.sources_processed,
-            'timestamp': self.timestamp
-        }
-    
-    def add_source_result(self, source_name: str, events: int, notes: int):
-        """Add results from processing a source"""
-        self.harvested_sources += 1
-        self.new_events += events
-        self.new_session_notes += notes
-        self.sources_processed.append({
-            'name': source_name,
-            'new_events': events,
-            'new_session_notes': notes,
-            'timestamp': _now_iso()
-        })
-    
-    def add_error(self, error_message: str):
-        """Add an error to the results"""
-        self.errors.append(error_message)
-    
-    @classmethod
-    def empty_results(cls) -> 'HarvestResults':
-        """Factory method for empty harvest results"""
-        return cls()
-
-
-@dataclass
-class CorrelationOperationResult:
-    """Results from session correlation operations"""
-    correlations_created: int = field()
-    correlations_updated: int = field()
-    operation_type: str = field()
-    correlation_stats: Optional[Dict[str, Any]] = None
-    timestamp: str = field(default_factory=_now_iso)
-    errors: List[str] = field(default_factory=list)
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for serialization"""
-        result = {
-            'correlations_created': self.correlations_created,
-            'correlations_updated': self.correlations_updated,
-            'operation_type': self.operation_type,
-            'timestamp': self.timestamp
-        }
-        if self.correlation_stats:
-            result['correlation_stats'] = self.correlation_stats
-        if self.errors:
-            result['errors'] = self.errors
-        return result
-    
-    @classmethod
-    def successful_operation(cls, created: int, updated: int, operation_type: str = "correlation",
-                           stats: Dict[str, Any] = None) -> 'CorrelationOperationResult':
-        """Factory method for successful correlation operations"""
-        return cls(
-            correlations_created=created,
-            correlations_updated=updated,
-            operation_type=operation_type,
-            correlation_stats=stats
-        )
-    
-    @classmethod
-    def failed_operation(cls, operation_type: str, error: str) -> 'CorrelationOperationResult':
-        """Factory method for failed correlation operations"""
-        return cls(
-            correlations_created=0,
-            correlations_updated=0,
-            operation_type=operation_type,
-            errors=[error]
-        )
-
-
-@dataclass
-class HourlyProductivityStats:
-    """Hourly productivity analysis results"""
-    hour: int = field()
-    event_count: int = field()
-    success_rate: float = field()
-    session_count: int = field()
-    avg_duration: float = field()
-    day_of_week: Optional[int] = None
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for serialization"""
-        result = {
-            'hour': self.hour,
-            'event_count': self.event_count,
-            'success_rate': self.success_rate,
-            'session_count': self.session_count,
-            'avg_duration': self.avg_duration
-        }
-        if self.day_of_week is not None:
-            result['day_of_week'] = self.day_of_week
-        return result
-
-
-@dataclass
-class HarvestStatistics:
-    """Statistics from data harvesting operations"""
-    projects: List[Dict[str, Any]] = field(default_factory=list)
-    harvest_tracking: List[Dict[str, Any]] = field(default_factory=list)
-    total_projects: int = 0
-    total_events: int = 0
-    timestamp: str = field(default_factory=_now_iso)
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for serialization"""
-        return {
-            'projects': self.projects,
-            'harvest_tracking': self.harvest_tracking,
-            'total_projects': self.total_projects,
-            'total_events': self.total_events,
-            'timestamp': self.timestamp
-        }
-    
-    @classmethod
-    def from_query_results(cls, projects: List[Dict[str, Any]], 
-                          tracking: List[Dict[str, Any]]) -> 'HarvestStatistics':
-        """Factory method for creating from database query results"""
-        return cls(
-            projects=projects,
-            harvest_tracking=tracking,
-            total_projects=len(projects),
-            total_events=sum(p.get('event_count', 0) for p in projects)
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -1650,7 +1412,7 @@ __all__ = [
     'SessionStartInput','SessionEndInput','StopInput','NotificationInput',
     'PreToolUseDecisionOutput','CommandToolInput','FileWriteToolInput','FileEditToolInput',
     'ToolResponse','parse_tool_input','BaseLogEvent','PreToolUseLogEvent','PostToolUseLogEvent',
-    'UserPromptSubmitLogEvent','parse_log_event','CentralHookEventRow','DeveloperInfo','normalize_validation_issues',
+    'UserPromptSubmitLogEvent','parse_log_event','DeveloperInfo','normalize_validation_issues',
     'to_json_serializable','get_standard_timestamp','parse_standard_timestamp','format_for_database',
     # DAIC Mode enumeration
     'DAICMode',
@@ -1659,8 +1421,6 @@ __all__ = [
     'ReadOnlyCommandsConfig','BranchEnforcementConfig','IntelligenceConfig','TaskDetectionConfig','DAICConfig',
     # Operation result types
     'OperationResult','DAICModeOperationResult',
-    # Analytics result types
-    'DatabaseStats','HarvestResults','CorrelationOperationResult','HourlyProductivityStats','HarvestStatistics',
     # Output schema classes for type-safe responses
     'HookSpecificOutput','UserPromptContextResponse','SessionCorrelationResponse',
     'DAICModeResult','ToolAnalysisResult'
