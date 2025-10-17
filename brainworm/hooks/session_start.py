@@ -19,6 +19,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.hook_framework import HookFramework
+from utils.file_manager import AtomicFileWriter
+from utils.daic_state_manager import DAICStateManager
 import json
 import subprocess
 import shutil
@@ -68,7 +70,6 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
                 # Update plugin_root if changed (plugin moved/updated)
                 if current_plugin != str(plugin_root):
                     state['plugin_root'] = str(plugin_root)
-                    from utils.file_manager import AtomicFileWriter
                     with AtomicFileWriter(state_file) as f:
                         json.dump(state, f, indent=2)
 
@@ -156,7 +157,6 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
             pass
 
         # Write initial state
-        from utils.file_manager import AtomicFileWriter
         with AtomicFileWriter(state_file) as f:
             json.dump(initial_state, f, indent=2)
 
@@ -545,7 +545,6 @@ def session_start_logic(framework, typed_input):
     # FIX #1: Auto-populate session_id in unified state
     # Update unified state with session_id from Claude Code
     try:
-        from utils.daic_state_manager import DAICStateManager
         state_mgr = DAICStateManager(project_root)
         current_state = state_mgr.get_unified_state()
 

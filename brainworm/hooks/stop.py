@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from typing import Dict, Any
 from utils.hook_framework import HookFramework
+from utils.correlation_manager import CorrelationManager
 
 def stop_session_logic(framework, input_data: Dict[str, Any]):
     """Custom logic for session stop with correlation cleanup.
@@ -36,8 +37,6 @@ def stop_session_logic(framework, input_data: Dict[str, Any]):
         framework.debug_logger.info(f"🧹 Clearing session correlation for {session_short}")
 
     try:
-        from utils.correlation_manager import CorrelationManager
-
         correlation_manager = CorrelationManager(framework.project_root)
         correlation_manager.clear_session_correlation(session_id)
 
