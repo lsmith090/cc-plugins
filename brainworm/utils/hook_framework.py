@@ -3,6 +3,7 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "rich>=13.0.0",
+#     "filelock>=3.13.0",
 # ]
 # ///
 
@@ -25,11 +26,14 @@ Usage Examples:
 
 import json
 import sys
+import time
 import uuid
+import hashlib
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Callable, Union
 from rich.console import Console
+from filelock import FileLock
 
 # Import sophisticated infrastructure systems
 try:
@@ -78,7 +82,8 @@ class HookFramework:
     Reduces individual hook files from 60-80 lines to 5-10 lines.
     """
     
-    def __init__(self, hook_name: str, enable_event_logging: bool = True, security_critical: bool = False):
+    def __init__(self, hook_name: str, enable_event_logging: bool = True, security_critical: bool = False,
+                 prevent_duplicate_execution: bool = True, lock_duration_seconds: int = 10):
         """
         Initialize framework for a specific hook.
 
@@ -86,10 +91,17 @@ class HookFramework:
             hook_name: Name of the hook (e.g., "notification", "session_start")
             enable_event_logging: Whether to enable event storage
             security_critical: Whether event logging failures should cause hook failure
+            prevent_duplicate_execution: Whether to prevent duplicate hook executions (default: True)
+            lock_duration_seconds: How long execution locks remain valid (default: 10 seconds)
         """
         self.hook_name = hook_name
         self.console = Console()
         self.execution_id: str = uuid.uuid4().hex[:12]  # Unique execution identifier
+
+        # Execution protection settings
+        self.prevent_duplicate_execution = prevent_duplicate_execution
+        self.lock_duration_seconds = lock_duration_seconds
+        self.lock_file: Optional[Path] = None
 
         # Capture which hook script file invoked the framework
         import inspect
@@ -301,7 +313,179 @@ class HookFramework:
         """Centralized error handling with consistent formatting."""
         print(f"Error in {self.hook_name} hook: {error}", file=sys.stderr)
         sys.exit(1)
-    
+
+    def _generate_lock_key(self) -> str:
+        """
+        Generate a unique lock key based on hook context.
+
+        Different hooks use different keying strategies:
+        - SessionStart/SessionEnd: session_id only (one per session)
+        - PreToolUse/PostToolUse: session_id + tool_name + correlation_id
+        - UserPromptSubmit: session_id + prompt hash
+        - Stop/Notification: session_id + time window
+
+        Returns:
+            Hash string to use for lock file naming
+        """
+        # Start with hook name and session ID
+        key_parts = [self.hook_name, self.session_id]
+
+        # Add context-specific components
+        if self.hook_name in ('pre_tool_use', 'post_tool_use', 'daic_pre_tool_use'):
+            # Tool hooks: per-operation granularity
+            tool_name = self.raw_input_data.get('tool_name', '')
+            correlation_id = self.raw_input_data.get('correlation_id', '')
+            key_parts.extend([tool_name, correlation_id])
+        elif self.hook_name == 'user_prompt_submit':
+            # User prompt: per-prompt granularity
+            prompt = self.raw_input_data.get('prompt', '')
+            # Hash prompt to keep key short
+            prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()[:12]
+            key_parts.append(prompt_hash)
+        elif self.hook_name in ('stop', 'notification'):
+            # Stop/Notification: per-second granularity to catch rapid duplicates
+            time_window = str(int(time.time()))
+            key_parts.append(time_window)
+        # else: SessionStart/SessionEnd use session_id only
+
+        # Create hash of all components
+        key_string = '|'.join(key_parts)
+        key_hash = hashlib.sha256(key_string.encode()).hexdigest()[:16]
+        return f"{self.hook_name}_{key_hash}"
+
+    def _check_duplicate_execution(self) -> bool:
+        """
+        Check if this is a duplicate execution of the same hook.
+        Uses cross-platform file locking to prevent race conditions.
+
+        Returns:
+            True if this is a duplicate (should skip), False if this is first execution
+        """
+        if not self.prevent_duplicate_execution or not self.project_root:
+            return False
+
+        try:
+            # Ensure lock directory exists
+            lock_dir = self.project_root / '.brainworm' / 'state' / 'hook_locks'
+            lock_dir.mkdir(parents=True, exist_ok=True)
+
+            # Generate lock key and file paths
+            lock_key = self._generate_lock_key()
+            lock_file = lock_dir / f"{lock_key}.lock"
+            marker_file = lock_dir / f"{lock_key}.marker"
+            current_time = time.time()
+
+            # Use atomic file locking to prevent race condition
+            lock = FileLock(str(lock_file), timeout=10)
+
+            # Acquire exclusive lock - blocks until acquired
+            with lock:
+                # Now we have exclusive access - check marker
+                if marker_file.exists():
+                    try:
+                        marker_data = json.loads(marker_file.read_text())
+                        marker_timestamp = marker_data.get('timestamp', 0)
+                        marker_age = current_time - marker_timestamp
+
+                        if marker_age < self.lock_duration_seconds:
+                            # This is a duplicate within the time window
+                            if self.debug_logger:
+                                first_execution = marker_data.get('execution_id', 'unknown')
+                                self.debug_logger.debug(
+                                    f"⏭️  Skipping duplicate execution\n"
+                                    f"  First execution: {first_execution}\n"
+                                    f"  This execution: {self.execution_id}\n"
+                                    f"  Marker age: {marker_age:.3f}s"
+                                )
+                            return True
+                    except (json.JSONDecodeError, KeyError):
+                        # Corrupt marker file, remove it
+                        marker_file.unlink()
+
+                # Not a duplicate - create marker
+                marker_data = {
+                    'execution_id': self.execution_id,
+                    'timestamp': current_time,
+                    'session_id': self.session_id,
+                    'hook_name': self.hook_name
+                }
+                marker_file.write_text(json.dumps(marker_data))
+
+                # Store marker file for cleanup
+                self.lock_file = marker_file
+
+                if self.debug_logger:
+                    self.debug_logger.debug(f"Execution marker created for {self.hook_name}", execution_id=self.execution_id)
+
+                # Clean up old markers while we have the lock
+                self._cleanup_old_locks_internal(lock_dir, current_time)
+
+                return False
+
+        except Exception as e:
+            # Don't fail hook execution due to lock mechanism issues
+            if self.debug_logger:
+                self.debug_logger.warning(f"Lock check failed: {type(e).__name__}: {e}")
+            return False
+
+    def _cleanup_execution_lock(self) -> None:
+        """Clean up execution marker after successful completion."""
+        if self.lock_file and self.lock_file.exists():
+            try:
+                self.lock_file.unlink()
+                # Also try to clean up corresponding .lock file (FileLock creates .lock files)
+                lock_file = self.lock_file.parent / f"{self.lock_file.stem}.lock"
+                if lock_file.exists():
+                    lock_file.unlink()
+            except Exception:
+                pass  # Ignore cleanup errors
+
+    def _cleanup_old_locks_internal(self, lock_dir: Path, current_time: float) -> None:
+        """
+        Remove expired marker and lock files (called while holding lock).
+
+        Args:
+            lock_dir: Directory containing lock files
+            current_time: Current timestamp for age comparison
+        """
+        try:
+            # Clean up old marker files
+            for marker_file in lock_dir.glob('*.marker'):
+                try:
+                    marker_data = json.loads(marker_file.read_text())
+                    marker_timestamp = marker_data.get('timestamp', 0)
+                    marker_age = current_time - marker_timestamp
+
+                    if marker_age > self.lock_duration_seconds:
+                        marker_file.unlink()
+                        # Also clean up corresponding lock file
+                        lock_file = lock_dir / f"{marker_file.stem}.lock"
+                        if lock_file.exists():
+                            lock_file.unlink()
+                except (json.JSONDecodeError, KeyError, OSError):
+                    # Remove corrupt or unreadable markers
+                    try:
+                        marker_file.unlink()
+                    except:
+                        pass
+        except Exception:
+            pass  # Don't fail execution due to cleanup issues
+
+    def _cleanup_old_locks(self) -> None:
+        """Remove expired lock files (external call without holding lock)."""
+        if not self.project_root:
+            return
+
+        try:
+            lock_dir = self.project_root / '.brainworm' / 'state' / 'hook_locks'
+            if not lock_dir.exists():
+                return
+
+            current_time = time.time()
+            self._cleanup_old_locks_internal(lock_dir, current_time)
+        except Exception:
+            pass  # Don't fail execution due to cleanup issues
+
     def with_custom_logic(self, logic_fn: Callable[['HookFramework', Any], None]) -> 'HookFramework':
         """
         Add custom business logic to be executed within the framework.
@@ -457,6 +641,14 @@ class HookFramework:
             # 2. Discover project root and initialize infrastructure (eliminates 20+ lines per hook)
             self._discover_project_root()
 
+            # 2.5 Check for duplicate execution (Claude Code bug workaround)
+            if self._check_duplicate_execution():
+                # This is a duplicate - exit silently
+                sys.exit(0)
+
+            # Clean up old lock files from previous executions
+            self._cleanup_old_locks()
+
             # Add execution_id and hook_script to raw_input_data for downstream systems
             self.raw_input_data['execution_id'] = self.execution_id
             self.raw_input_data['hook_script'] = self.hook_script
@@ -494,8 +686,11 @@ class HookFramework:
             
             # 7. Show success message (eliminates 5 lines per hook)
             self._show_success()
-            
-            # 8. Exit with specified code
+
+            # 8. Clean up execution lock after successful completion
+            self._cleanup_execution_lock()
+
+            # 9. Exit with specified code
             if self.exit_message:
                 print(self.exit_message, file=sys.stderr)
             sys.exit(self.exit_code)

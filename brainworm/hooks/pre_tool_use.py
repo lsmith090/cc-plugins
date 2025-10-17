@@ -3,6 +3,7 @@
 # dependencies = [
 #     "rich>=13.0.0",
 #     "toml>=0.10.0",
+#     "filelock>=3.13.0",
 # ]
 # ///
 
@@ -139,7 +140,25 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
         # Check if command is read-only in discussion mode
         if is_discussion_mode and not is_read_only_bash_command(command, config):
             return ToolBlockingResult.command_block(command[:50] + "...", "Potentially modifying Bash command blocked in discussion mode")
-    
+
+    # Handle SlashCommand tool specially - prevent DAIC mode bypassing
+    if tool_name == "SlashCommand":
+        command = tool_input.get("command", "").strip()
+
+        # Block DAIC mode-switching commands in discussion mode
+        if command.startswith("/brainworm:daic"):
+            # Extract the subcommand
+            parts = command.split()
+            if len(parts) >= 2:
+                subcommand = parts[1]
+
+                # In discussion mode: block implementation and toggle
+                if is_discussion_mode and subcommand in ("implementation", "toggle"):
+                    return ToolBlockingResult.command_block(
+                        command,
+                        "DAIC mode switching to implementation is not allowed. Only the human operator can trigger a switch."
+                    )
+
     # Check for subagent boundary violations
     try:
         subagent_manager = create_subagent_manager(project_root)

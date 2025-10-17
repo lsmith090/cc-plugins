@@ -3,6 +3,7 @@
 # dependencies = [
 #     "rich>=13.0.0",
 #     "toml>=0.10.0",
+#     "filelock>=3.13.0",
 # ]
 # ///
 
@@ -23,6 +24,7 @@ import subprocess
 import shutil
 import sqlite3
 import os
+import time
 from datetime import datetime, timezone
 from rich.console import Console
 
@@ -442,16 +444,16 @@ def cleanup_session_flags(project_root: Path) -> None:
     """Clean up flags from previous sessions based on cc-sessions logic"""
     try:
         state_dir = project_root / ".brainworm" / "state"
-        
+
         # Clear context warning flags for new session
         warning_75_flag = state_dir / "context-warning-75.flag"
         warning_90_flag = state_dir / "context-warning-90.flag"
-        
+
         if warning_75_flag.exists():
             warning_75_flag.unlink()
         if warning_90_flag.exists():
             warning_90_flag.unlink()
-            
+
         # Also clean up any stale subagent context flag
         subagent_flag = state_dir / "in_subagent_context.flag"
         if subagent_flag.exists():

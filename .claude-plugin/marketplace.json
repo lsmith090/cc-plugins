@@ -9,6 +9,11 @@
       "name": "brainworm",
       "source": "./brainworm",
       "description": "DAIC workflow enforcement and multi-project analytics for Claude Code"
+    },
+    {
+      "name": "mcp-servers",
+      "source": "./mcp-servers",
+      "description": "Curated collection of Model Context Protocol (MCP) servers for enhanced Claude Code capabilities"
     }
   ]
 }

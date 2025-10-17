@@ -18,8 +18,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["brainworm"]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "ruff>=0.3.0",
@@ -27,6 +27,7 @@ dev-dependencies = [
     "toml>=0.10.0",
     "psutil>=5.9.0",
     "typer>=0.9.0",
+    "filelock>=3.13.0",
 ]
 
 [tool.ruff]

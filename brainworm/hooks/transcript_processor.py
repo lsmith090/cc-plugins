@@ -3,6 +3,7 @@
 # dependencies = [
 #     "rich>=13.0.0",
 #     "tiktoken>=0.7.0",
+#     "filelock>=3.13.0",
 # ]
 # ///
 

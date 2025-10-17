@@ -3,6 +3,7 @@
 # dependencies = [
 #     "rich>=13.0.0",
 #     "toml>=0.10.0",
+#     "filelock>=3.13.0",
 # ]
 # ///
 
