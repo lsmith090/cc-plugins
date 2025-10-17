@@ -141,8 +141,10 @@ def is_read_only_bash_command(command: str, config: Dict[str, Any]) -> bool:
 
     # PHASE 1: Check for write patterns (output redirection, file modifications)
     write_patterns = [
-        r'>(?!&)(?!\s*/dev/null)',  # Output redirection (except fd redirects and /dev/null)
-        r'>>',                      # Append redirection
+        # Output redirection patterns (improved security)
+        # Match > but exclude specific safe patterns: >&1, >&2, > /dev/null, > /dev/zero
+        r'>(?!&[12]\b)(?!\s*/dev/null\b)(?!\s*/dev/zero\b)',  # Output redirection
+        r'>>',                      # Append redirection always blocked
         r'\btee\b',           # tee command (writes to files)
         r'\bmv\b',            # move/rename
         r'\bcp\b',            # copy
@@ -154,6 +156,9 @@ def is_read_only_bash_command(command: str, config: Dict[str, Any]) -> bool:
         r'\bpip\s+install',   # pip install
         r'-delete\b',         # find -delete flag (SECURITY)
         r'-exec\s+.*rm\b',    # find -exec with rm (SECURITY)
+        r'\bdd\b',            # dd command (can write to disk)
+        r'<\(',               # Process substitution write
+        r'>\(',               # Process substitution write
     ]
 
     # If command has any write patterns, it's not read-only

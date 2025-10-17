@@ -124,8 +124,17 @@ class SubmoduleManager:
             bool: True if successful
 
         Raises:
-            ValueError: If specified submodule doesn't exist
+            ValueError: If specified submodule doesn't exist or branch name is invalid
         """
+        # Security: Validate branch name to prevent command injection
+        try:
+            from .security_validators import validate_branch_name
+            branch_name = validate_branch_name(branch_name)
+        except ImportError:
+            # Fallback validation without security_validators
+            if not branch_name or any(c in branch_name for c in [';', '&', '|', '$', '`', '(', ')', '\n', '\\']):
+                raise ValueError(f"Invalid branch name: {branch_name}")
+
         # Determine working directory for git operation
         if submodule:
             if submodule not in self.submodules:
@@ -141,6 +150,7 @@ class SubmoduleManager:
             location = "main repository"
 
         # Check if branch already exists
+        # Security: branch_name is validated above, safe to use in subprocess
         check_result = subprocess.run(
             ['git', 'rev-parse', '--verify', branch_name],
             cwd=cwd,

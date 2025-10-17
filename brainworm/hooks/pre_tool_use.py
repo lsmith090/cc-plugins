@@ -171,15 +171,29 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
     if in_subagent_context and tool_name in ["Write", "Edit", "MultiEdit"]:
         file_path_str = tool_input.get("file_path", "")
         if file_path_str:
-            file_path = Path(file_path_str)
             try:
+                # Security: Resolve path to normalize and prevent traversal attacks
+                # Must resolve BEFORE checking relationship to state_dir
+                file_path = Path(file_path_str).resolve()
+                resolved_state_dir = state_dir.resolve()
+
                 # Check if file_path is under the state directory
-                file_path.resolve().relative_to(state_dir.resolve())
+                # This will properly detect paths like ".brainworm/state/../state/file.txt"
+                file_path.relative_to(resolved_state_dir)
                 # If we get here, the file is under .brainworm/state
-                return ToolBlockingResult.block_tool("[Subagent Boundary Violation] Subagents are NOT allowed to modify .brainworm/state files.", "SUBAGENT_BOUNDARY_VIOLATION")
+                return ToolBlockingResult.block_tool(
+                    "[Subagent Boundary Violation] Subagents are NOT allowed to modify .brainworm/state files.",
+                    "SUBAGENT_BOUNDARY_VIOLATION"
+                )
             except ValueError:
                 # Not under .brainworm/state, which is fine
                 pass
+            except Exception:
+                # Path resolution failed - could be malicious, block to be safe
+                return ToolBlockingResult.block_tool(
+                    "[Subagent Boundary Violation] Invalid file path",
+                    "INVALID_PATH"
+                )
     
     return ToolBlockingResult.allow_tool("Tool allowed by DAIC")
 

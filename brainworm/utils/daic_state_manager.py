@@ -113,18 +113,32 @@ class DAICStateManager:
     def get_developer_info(self) -> DeveloperInfo:
         """Get developer information from user config or git"""
         user_config = self.load_user_config()
-        
+
         # If set to auto, try to get from git config
         if user_config.developer.git_identity_source == "auto":
             try:
                 import subprocess
-                name = subprocess.check_output(["git", "config", "user.name"], 
-                                             cwd=self.project_root, text=True).strip()
-                email = subprocess.check_output(["git", "config", "user.email"], 
-                                              cwd=self.project_root, text=True).strip()
+                # Security: Ensure project_root is resolved and valid before using in subprocess
+                # This prevents path traversal attacks via cwd parameter
+                safe_cwd = self.project_root.resolve()
+                if not safe_cwd.exists() or not safe_cwd.is_dir():
+                    raise ValueError("Invalid project root directory")
+
+                name = subprocess.check_output(
+                    ["git", "config", "user.name"],
+                    cwd=safe_cwd,
+                    text=True,
+                    timeout=5  # Add timeout to prevent hanging
+                ).strip()
+                email = subprocess.check_output(
+                    ["git", "config", "user.email"],
+                    cwd=safe_cwd,
+                    text=True,
+                    timeout=5  # Add timeout to prevent hanging
+                ).strip()
                 if name and email:
                     return DeveloperInfo(name=name, email=email, source="git")
-            except subprocess.CalledProcessError:
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
                 pass
         
         return DeveloperInfo(

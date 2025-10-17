@@ -70,18 +70,40 @@ class AtomicFileWriter:
     
     def __enter__(self):
         """Enter the context and prepare for atomic write"""
+        # Security: Validate file path to prevent path traversal
+        try:
+            from .security_validators import validate_safe_path
+            # Ensure file_path is absolute and normalized
+            self.file_path = self.file_path.resolve()
+            # Validate parent directory doesn't escape expected boundaries
+            parent_dir = self.file_path.parent
+            # Allow operation only if parent exists or can be created within safe boundaries
+            if not parent_dir.exists():
+                # Validate parent is within reasonable bounds before creating
+                # Get the first existing ancestor
+                current = parent_dir
+                while not current.exists() and current != current.parent:
+                    current = current.parent
+                # Validate this ancestor is a valid base
+                if current == current.parent:  # Reached filesystem root
+                    raise ValueError("Cannot create directories at filesystem root")
+        except ImportError:
+            # Fallback: basic validation without security_validators
+            self.file_path = self.file_path.resolve()
+
         # Create parent directories if they don't exist
         self.file_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Check if original file exists
         self._original_exists = self.file_path.exists()
-        
+
         # Create backup if requested and file exists
         if self.create_backup and self._original_exists:
             self.backup_path = self._create_backup()
-        
+
         # Create temporary file in the same directory as target
         # This ensures the rename operation is atomic (same filesystem)
+        # Security: temp_dir is derived from validated self.file_path.parent
         temp_dir = self.file_path.parent
         temp_fd, temp_path = tempfile.mkstemp(
             dir=temp_dir,

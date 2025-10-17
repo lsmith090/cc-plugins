@@ -164,7 +164,33 @@ class HookEventStore:
             # Extract minimal indexed fields
             execution_id = event_data.get('execution_id', None)
 
+            # Security: Validate inputs to prevent injection attacks
+            # Note: Using parameterized queries (?) already prevents SQL injection,
+            # but we validate inputs for defense in depth
+            try:
+                from .security_validators import sanitize_for_display
+                # Validate string lengths to prevent DoS via huge inputs
+                if hook_name and len(hook_name) > 100:
+                    hook_name = sanitize_for_display(hook_name, 100)
+                if correlation_id and len(correlation_id) > 100:
+                    correlation_id = sanitize_for_display(correlation_id, 100)
+                if session_id and len(session_id) > 100:
+                    session_id = sanitize_for_display(session_id, 100)
+                if execution_id and len(execution_id) > 100:
+                    execution_id = sanitize_for_display(execution_id, 100)
+            except ImportError:
+                # Fallback: basic length validation
+                if hook_name and len(hook_name) > 100:
+                    hook_name = hook_name[:100]
+                if correlation_id and len(correlation_id) > 100:
+                    correlation_id = correlation_id[:100]
+                if session_id and len(session_id) > 100:
+                    session_id = session_id[:100]
+                if execution_id and len(execution_id) > 100:
+                    execution_id = execution_id[:100]
+
             # Store in database with simplified schema: minimal columns + rich JSON
+            # Using parameterized queries (?) to prevent SQL injection
             with sqlite3.connect(self.db_path, timeout=1.0) as conn:
                 conn.execute("""
                     INSERT INTO hook_events
