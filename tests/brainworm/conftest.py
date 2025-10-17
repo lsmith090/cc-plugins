@@ -103,20 +103,25 @@ def mock_claude_project(temp_dir) -> Path:
     """Create a mock Claude Code project structure."""
     project_dir = temp_dir / "mock_project"
     project_dir.mkdir()
-    
+
     # Create .claude directory structure
     claude_dir = project_dir / ".claude"
     claude_dir.mkdir()
-    
+
     (claude_dir / "hooks").mkdir()
-    (claude_dir / "analytics").mkdir()
-    (claude_dir / "analytics" / "logs").mkdir()
     (claude_dir / "logs").mkdir()
-    
+
+    # Create .brainworm directory structure
+    brainworm_dir = project_dir / ".brainworm"
+    brainworm_dir.mkdir()
+
+    (brainworm_dir / "events").mkdir()
+    (brainworm_dir / "logs").mkdir()
+
     # Create basic project files
     (project_dir / "README.md").write_text("# Mock Project\n")
     (project_dir / "main.py").write_text("print('Hello World')\n")
-    
+
     return project_dir
 
 
@@ -129,10 +134,9 @@ def installed_hooks_project(mock_claude_project, brainworm_dir) -> Path:
     
     # Copy hook templates to project
     hook_files = [
-        "stop.py", "pre_tool_use.py", "post_tool_use.py", 
+        "stop.py", "pre_tool_use.py", "post_tool_use.py",
         "session_start.py", "user_prompt_submit.py", "pre_compact.py",
-        "notification.py", "subagent_stop.py", "analytics_processor.py",
-        "view_analytics.py", "settings.json"
+        "notification.py", "subagent_stop.py", "settings.json"
     ]
     
     for hook_file in hook_files:
@@ -323,16 +327,17 @@ def mock_config_data() -> Dict[str, Any]:
 # ============================================================================
 
 @pytest.fixture
-def mock_analytics_processor():
-    """Mock analytics processor."""
-    processor = Mock()
-    processor.process_event.return_value = True
-    processor.get_stats.return_value = {
+def mock_event_store():
+    """Mock event store."""
+    event_store = Mock()
+    event_store.log_event.return_value = True
+    event_store.get_statistics.return_value = {
         "total_events": 100,
-        "sessions": 10,
-        "avg_session_duration": 300
+        "unique_sessions": 10,
+        "unique_correlations": 5,
+        "period": "24h"
     }
-    return processor
+    return event_store
 
 
 @pytest.fixture
@@ -391,19 +396,23 @@ def benchmark_data_sizes():
 def full_system_setup(installed_hooks_project, temp_db):
     """Full system setup for integration testing."""
     project_dir = installed_hooks_project
-    
-    # Configure analytics database path
-    analytics_dir = project_dir / ".claude" / "analytics"
-    db_path = analytics_dir / "hooks.db"
-    
+
+    # Configure event storage database path
+    brainworm_dir = project_dir / ".brainworm"
+    brainworm_dir.mkdir(parents=True, exist_ok=True)
+    events_dir = brainworm_dir / "events"
+    events_dir.mkdir(parents=True, exist_ok=True)
+    db_path = events_dir / "hooks.db"
+
     # Copy test database
     shutil.copy2(temp_db, db_path)
-    
+
     return {
         "project_dir": project_dir,
         "db_path": db_path,
         "hooks_dir": project_dir / ".claude" / "hooks",
-        "analytics_dir": analytics_dir
+        "events_dir": events_dir,
+        "brainworm_dir": brainworm_dir
     }
 
 

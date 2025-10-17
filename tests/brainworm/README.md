@@ -249,7 +249,7 @@ Shared fixtures and pytest configuration for all test categories.
 - `temp_db` - Temporary SQLite database
 - `analytics_db_with_data` - Database with sample data
 - `sample_hook_input/output` - Hook I/O data samples
-- `mock_analytics_processor` - Mocked analytics processor
+- `mock_event_store` - Mocked event store
 - `performance_baseline` - Performance expectations
 - `full_system_setup` - Complete system for integration testing
 

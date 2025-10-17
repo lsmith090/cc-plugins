@@ -1,12 +1,12 @@
-# Unit Tests for Brainworm Analytics System
+# Unit Tests for Brainworm Event Storage System
 
-This directory contains comprehensive unit tests for the core components of the brainworm Claude Code analytics system.
+This directory contains comprehensive unit tests for the core components of the brainworm Claude Code event storage system.
 
 ## Test Structure
 
-### Priority 1: Analytics Processor Tests (`test_analytics_processor.py`)
+### Priority 1: Event Store Tests (`test_event_store.py`)
 
-Comprehensive tests for the `ClaudeAnalyticsProcessor` class covering:
+Comprehensive tests for the `HookEventStore` class covering:
 
 #### Database Operations
 - ✅ Database initialization and schema creation
@@ -143,10 +143,10 @@ uv run python -m pytest tests/unit/ --cov=src --cov-report=html
 
 ### Run Specific Test Suites
 ```bash
-# Analytics processor tests only
-uv run python -m pytest tests/unit/test_analytics_processor.py -v
+# Event store tests only
+uv run python -m pytest tests/unit/test_event_store.py -v
 
-# Correlation manager tests only  
+# Correlation manager tests only
 uv run python -m pytest tests/unit/utils/test_correlation_manager.py -v
 
 # Hook component tests only
@@ -173,8 +173,8 @@ uv run python validate_unit_tests.py
 
 Current test coverage targets:
 
-- **Analytics Processor**: 95%+ line coverage
-- **Correlation Manager**: 90%+ line coverage  
+- **Event Store**: 95%+ line coverage
+- **Correlation Manager**: 90%+ line coverage
 - **Hook Components**: 85%+ line coverage
 - **Critical Paths**: 100% coverage for error handling and performance paths
 

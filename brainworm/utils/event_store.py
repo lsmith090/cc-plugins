@@ -40,13 +40,6 @@ except ImportError:
     def format_for_database(ts):
         return ts if ts else get_standard_timestamp()
 
-# Optional TOML support for configuration
-try:
-    import toml
-    TOML_AVAILABLE = True
-except ImportError:
-    TOML_AVAILABLE = False
-
 class HookEventStore:
     """Event storage system for Claude Code hooks with session correlation"""
 
@@ -58,75 +51,26 @@ class HookEventStore:
 
         self.db_path = self.events_dir / "hooks.db"
 
-        # Load configuration
-        self.config = self._load_config()
-        
         # Initialize database manager if available
         if HooksSQLiteManager:
             self.db_manager = HooksSQLiteManager()
         else:
             self.db_manager = None
-            
-        self._init_database()
 
-    def _load_config(self) -> Dict[str, Any]:
-        """Load configuration from .brainworm/config.toml if available"""
-        if not TOML_AVAILABLE:
-            return self._default_config()
-        
-        # Look for .brainworm/config.toml in project root
-        search_paths = [
-            self.brainworm_dir / "config.toml",                 # .brainworm directory
-            self.brainworm_dir.parent / ".brainworm" / "config.toml",  # Project root
-        ]
-        
-        # Walk up directories to find config
-        current = self.brainworm_dir.parent
-        while current != current.parent:
-            config_path = current / ".brainworm" / "config.toml"
-            if config_path.exists():
-                search_paths.insert(0, config_path)
-                break
-            current = current.parent
-        
-        for config_path in search_paths:
-            try:
-                if config_path.exists():
-                    with open(config_path, 'r') as f:
-                        config = toml.load(f)
-                    # Merge config with defaults
-                    default_config = self._default_config()
-                    analytics_config = config.get('analytics', {})
-                    default_config.update(analytics_config)
-                    return default_config
-            except Exception:
-                continue
-        
-        return self._default_config()
-    
-    def _default_config(self) -> Dict[str, Any]:
-        """Default analytics configuration"""
-        return {
-            'real_time_processing': True,
-            'correlation_timeout_minutes': 60,
-            'success_rate_window_hours': 24,
-            'max_processing_time_ms': 50,
-            'retention_days': 30,
-            'max_db_size_mb': 100
-        }
+        self._init_database()
     
     def _extract_duration_ms(self, event_data: Dict[str, Any]) -> float:
         """Extract duration from various possible structures in event data"""
         # Check for direct duration_ms field first
         if 'duration_ms' in event_data:
             return float(event_data['duration_ms'])
-        
-        # Check for nested timing structure from hook_analytics.py
+
+        # Check for nested timing structure from event data
         if 'timing' in event_data and isinstance(event_data['timing'], dict):
             timing_data = event_data['timing']
             if 'execution_duration_ms' in timing_data:
                 return float(timing_data['execution_duration_ms'])
-        
+
         # Default to 0 if no duration data found
         return 0.0
     
@@ -233,9 +177,9 @@ class HookEventStore:
                 ))
 
             return True
-            
+
         except Exception as e:
-            # Analytics failure should not break hooks
+            # Event storage failure should not break hooks
             return False
     
     def process_hook_event(self, event_data: Dict[str, Any]) -> bool:

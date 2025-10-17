@@ -439,7 +439,7 @@ After mastering these basics:
 1. **Read the full technical docs** in `docs/DAIC_WORKFLOW.md`
 2. **Customize your configuration** using `docs/CONFIGURATION.md`
 3. **Learn about the architecture** in `docs/ARCHITECTURE.md`
-4. **Explore event storage** with SQLite queries on `.brainworm/analytics/hooks.db`
+4. **Explore event storage** with SQLite queries on `.brainworm/events/hooks.db`
 
 ## Remember
 

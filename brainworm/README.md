@@ -183,16 +183,16 @@ Brainworm automatically captures workflow events:
 - Hook execution events
 - Workflow timing metrics
 
-**Storage**: `.brainworm/analytics/hooks.db` (SQLite)
+**Storage**: `.brainworm/events/hooks.db` (SQLite)
 
 ### View Event Data
 
 ```bash
 # Check event database
-sqlite3 .brainworm/analytics/hooks.db "SELECT COUNT(*) FROM hook_events"
+sqlite3 .brainworm/events/hooks.db "SELECT COUNT(*) FROM hook_events"
 
 # View recent events
-sqlite3 .brainworm/analytics/hooks.db "SELECT * FROM hook_events ORDER BY timestamp DESC LIMIT 10"
+sqlite3 .brainworm/events/hooks.db "SELECT * FROM hook_events ORDER BY timestamp DESC LIMIT 10"
 ```
 
 ### Multi-Project Aggregation (Optional)
@@ -235,7 +235,7 @@ trigger_phrases = [
 
 ### Configure Event Storage
 
-Event storage is always enabled and configured automatically. Events are captured to `.brainworm/analytics/hooks.db` with session correlation for workflow continuity.
+Event storage is always enabled and configured automatically. Events are captured to `.brainworm/events/hooks.db` with session correlation for workflow continuity.
 
 ## Documentation
 
@@ -277,7 +277,7 @@ Only human users can switch modes (Claude cannot self-transition). Use:
 cat .claude/settings.json | grep brainworm
 
 # Verify database exists
-ls -la .brainworm/analytics/hooks.db
+ls -la .brainworm/events/hooks.db
 
 # Test hook execution
 echo '{"test": true}' | uv run .brainworm/hooks/stop.py

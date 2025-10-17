@@ -159,7 +159,7 @@ Create the memory file using this EXACT template:
 
 ## Code Areas Active
 - **Hooks System**: [changes to .claude/hooks/, src/hooks/templates/]
-- **Analytics Engine**: [analytics_processor/, correlation tracking updates]
+- **Event Storage**: [event_store.py, correlation tracking updates]
 - **DAIC Workflow**: [workflow enforcement modifications]
 - **Agent System**: [agent template changes, new agents, agent fixes]
 - **Testing & Validation**: [test additions, verification scripts, or fixes]
