@@ -72,11 +72,32 @@ class CorrelationManager:
         self.state_manager.update_correlation_state(session_id, correlation_id)
     
     def clear_session_correlation(self, session_id: str) -> None:
-        """Clear correlation for a completed session"""
-        correlations = self.state_manager.read_correlation_state()
-        if session_id in correlations:
-            del correlations[session_id]
-            self.state_manager.write_json_file(self.correlation_file, correlations)
+        """
+        Clear correlation for a completed session.
+
+        Uses atomic read-modify-write with file locking to prevent race conditions.
+        """
+        # Import filelock for atomic operations
+        try:
+            from filelock import FileLock
+
+            # Use file locking to prevent race condition
+            lock_file = self.correlation_file.parent / '.correlation_state.lock'
+            lock = FileLock(str(lock_file), timeout=10)
+
+            with lock:
+                # Read current state while holding lock
+                correlations = self.state_manager.read_correlation_state()
+                if session_id in correlations:
+                    del correlations[session_id]
+                    # Write back while still holding lock
+                    self.state_manager.write_json_file(self.correlation_file, correlations)
+        except ImportError:
+            # Fallback without locking (race condition possible but rare)
+            correlations = self.state_manager.read_correlation_state()
+            if session_id in correlations:
+                del correlations[session_id]
+                self.state_manager.write_json_file(self.correlation_file, correlations)
 
 
 def get_workflow_correlation_id(project_root: Path, session_id: Optional[str] = None) -> str:
