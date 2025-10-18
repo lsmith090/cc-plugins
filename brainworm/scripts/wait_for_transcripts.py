@@ -57,6 +57,8 @@ def wait_for_transcripts(
         TimeoutError: If files not ready within timeout
         FileNotFoundError: If directory doesn't exist (hook failed)
     """
+    # Track file sizes between polls to detect stability
+    previous_sizes: Optional[dict] = None
     # Normalize subagent_type (strip plugin namespace prefix if present)
     # e.g., "brainworm:context-gathering" -> "context-gathering"
     subagent_dir_name = subagent_type.split(':', 1)[-1] if ':' in subagent_type else subagent_type
@@ -98,15 +100,36 @@ def wait_for_transcripts(
         # Success condition: at least one transcript file AND service context exists
         if transcript_files and service_context_file.exists():
             # Additional check: verify file size stability
-            # If file size hasn't changed in last 2 polls, it's safe to read
-            if attempt > 0:  # Skip stability check on first attempt
-                # Quick stability check: just verify files aren't empty
-                all_stable = all(f.stat().st_size > 0 for f in transcript_files)
-                if all_stable and service_context_file.stat().st_size > 0:
-                    return transcript_files
+            # Track file sizes to ensure they're not still being written
+            current_sizes = {}
+            for f in transcript_files:
+                try:
+                    current_sizes[str(f)] = f.stat().st_size
+                except OSError:
+                    # File disappeared or became unreadable
+                    break
             else:
-                # First successful find, do one more poll to verify stability
-                pass
+                # Also track service context file
+                try:
+                    current_sizes[str(service_context_file)] = service_context_file.stat().st_size
+                except OSError:
+                    pass
+
+                # Check if all files are non-empty
+                all_non_empty = all(size > 0 for size in current_sizes.values())
+
+                if not all_non_empty:
+                    # Files exist but are empty, keep waiting
+                    previous_sizes = current_sizes
+                elif previous_sizes is None:
+                    # First time seeing non-empty files, save sizes and wait one more poll
+                    previous_sizes = current_sizes
+                elif current_sizes == previous_sizes:
+                    # File sizes haven't changed since last poll - they're stable!
+                    return transcript_files
+                else:
+                    # File sizes changed - still being written
+                    previous_sizes = current_sizes
 
         # Wait before next attempt with exponential backoff
         time.sleep(delay_ms / 1000.0)

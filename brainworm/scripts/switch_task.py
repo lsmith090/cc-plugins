@@ -217,7 +217,8 @@ def switch_task(task_name: str) -> bool:
                         cwd=submodule_path,  # ← This is the fix!
                         capture_output=True,
                         text=True,
-                        check=False
+                        check=False,
+                        timeout=10  # Prevent hanging on slow git operations
                     )
 
                     if result.returncode != 0:
@@ -271,7 +272,8 @@ def switch_task(task_name: str) -> bool:
                             cwd=submodule_path,
                             capture_output=True,
                             text=True,
-                            check=False
+                            check=False,
+                            timeout=10  # Prevent hanging on slow git operations
                         )
 
                         if result.returncode != 0:
@@ -291,7 +293,8 @@ def switch_task(task_name: str) -> bool:
                         cwd=project_root,
                         capture_output=True,
                         text=True,
-                        check=False
+                        check=False,
+                        timeout=10  # Prevent hanging on slow git operations
                     )
 
                     if result.returncode != 0:
@@ -353,7 +356,8 @@ def switch_task(task_name: str) -> bool:
                     ['git', 'branch', '--show-current'],
                     cwd=project_root,
                     capture_output=True,
-                    text=True
+                    text=True,
+                    timeout=5  # Quick operation, shorter timeout
                 )
                 main_branch = main_result.stdout.strip()
                 if main_branch:

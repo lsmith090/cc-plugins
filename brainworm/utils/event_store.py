@@ -77,9 +77,13 @@ class HookEventStore:
     def _init_database(self):
         """Initialize SQLite database for event storage with minimal schema"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                # Simplified schema: minimal indexed columns + rich JSON
-                conn.execute("""
+            # Use connection pool if available, otherwise fallback to direct connection
+            if self.db_manager:
+                from .sqlite_manager import get_hooks_sqlite_manager
+                manager = get_hooks_sqlite_manager()
+
+                # Use ensure_schema which handles connection pooling
+                schema_sql = """
                     CREATE TABLE IF NOT EXISTS hook_events (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         hook_name TEXT NOT NULL,
@@ -88,29 +92,49 @@ class HookEventStore:
                         execution_id TEXT,
                         timestamp DATETIME NOT NULL,
                         event_data TEXT NOT NULL
-                    )
-                """)
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp ON hook_events(timestamp);
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_correlation ON hook_events(correlation_id);
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_session ON hook_events(session_id);
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_execution_id ON hook_events(execution_id)
+                """
+                manager.ensure_schema(self.db_path, schema_sql, "hook_events")
+            else:
+                # Fallback to direct connection
+                with sqlite3.connect(self.db_path) as conn:
+                    # Simplified schema: minimal indexed columns + rich JSON
+                    conn.execute("""
+                        CREATE TABLE IF NOT EXISTS hook_events (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            hook_name TEXT NOT NULL,
+                            correlation_id TEXT,
+                            session_id TEXT,
+                            execution_id TEXT,
+                            timestamp DATETIME NOT NULL,
+                            event_data TEXT NOT NULL
+                        )
+                    """)
 
-                # Indexes for efficient querying
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp
-                    ON hook_events(timestamp)
-                """)
+                    # Indexes for efficient querying
+                    conn.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp
+                        ON hook_events(timestamp)
+                    """)
 
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_hook_events_correlation
-                    ON hook_events(correlation_id)
-                """)
+                    conn.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_hook_events_correlation
+                        ON hook_events(correlation_id)
+                    """)
 
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_hook_events_session
-                    ON hook_events(session_id)
-                """)
+                    conn.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_hook_events_session
+                        ON hook_events(session_id)
+                    """)
 
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_hook_events_execution_id
-                    ON hook_events(execution_id)
-                """)
+                    conn.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_hook_events_execution_id
+                        ON hook_events(execution_id)
+                    """)
         except Exception:
             # Event storage is optional - continue if database init fails
             pass
@@ -191,16 +215,35 @@ class HookEventStore:
 
             # Store in database with simplified schema: minimal columns + rich JSON
             # Using parameterized queries (?) to prevent SQL injection
-            with sqlite3.connect(self.db_path, timeout=1.0) as conn:
-                conn.execute("""
-                    INSERT INTO hook_events
-                    (hook_name, correlation_id, session_id, execution_id,
-                     timestamp, event_data)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (
-                    hook_name, correlation_id, session_id, execution_id,
-                    timestamp, json.dumps(event_data)
-                ))
+            # Use connection pool if available, otherwise fallback to direct connection
+            if self.db_manager:
+                from .sqlite_manager import get_hooks_sqlite_manager
+                manager = get_hooks_sqlite_manager()
+
+                # Use connection pool for better performance
+                with manager.connection(self.db_path) as conn:
+                    conn.execute("""
+                        INSERT INTO hook_events
+                        (hook_name, correlation_id, session_id, execution_id,
+                         timestamp, event_data)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        hook_name, correlation_id, session_id, execution_id,
+                        timestamp, json.dumps(event_data)
+                    ))
+                    conn.commit()
+            else:
+                # Fallback to direct connection
+                with sqlite3.connect(self.db_path, timeout=1.0) as conn:
+                    conn.execute("""
+                        INSERT INTO hook_events
+                        (hook_name, correlation_id, session_id, execution_id,
+                         timestamp, event_data)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        hook_name, correlation_id, session_id, execution_id,
+                        timestamp, json.dumps(event_data)
+                    ))
 
             return True
 
@@ -219,38 +262,77 @@ class HookEventStore:
     def get_recent_events(self, limit: int = 100) -> list:
         """Get recent hook events for monitoring"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute("""
-                    SELECT * FROM hook_events 
-                    ORDER BY timestamp DESC 
-                    LIMIT ?
-                """, (limit,))
-                return [dict(row) for row in cursor.fetchall()]
+            # Use connection pool if available
+            if self.db_manager:
+                from .sqlite_manager import get_hooks_sqlite_manager
+                manager = get_hooks_sqlite_manager()
+
+                with manager.connection(self.db_path) as conn:
+                    cursor = conn.execute("""
+                        SELECT * FROM hook_events
+                        ORDER BY timestamp DESC
+                        LIMIT ?
+                    """, (limit,))
+                    return [dict(row) for row in cursor.fetchall()]
+            else:
+                # Fallback to direct connection
+                with sqlite3.connect(self.db_path) as conn:
+                    conn.row_factory = sqlite3.Row
+                    cursor = conn.execute("""
+                        SELECT * FROM hook_events
+                        ORDER BY timestamp DESC
+                        LIMIT ?
+                    """, (limit,))
+                    return [dict(row) for row in cursor.fetchall()]
         except Exception:
             return []
     
     def get_statistics(self) -> Dict[str, Any]:
         """Get basic statistics about hook performance"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute("""
-                    SELECT
-                        COUNT(*) as total_events,
-                        COUNT(DISTINCT session_id) as unique_sessions,
-                        COUNT(DISTINCT correlation_id) as unique_correlations
-                    FROM hook_events
-                    WHERE datetime(timestamp) > datetime('now', '-1 day')
-                """)  # Last 24 hours using SQLite datetime functions
+            # Use connection pool if available
+            if self.db_manager:
+                from .sqlite_manager import get_hooks_sqlite_manager
+                manager = get_hooks_sqlite_manager()
 
-                row = cursor.fetchone()
-                if row:
-                    return {
-                        'total_events': row[0],
-                        'unique_sessions': row[1],
-                        'unique_correlations': row[2],
-                        'period': '24h'
-                    }
+                with manager.connection(self.db_path) as conn:
+                    cursor = conn.execute("""
+                        SELECT
+                            COUNT(*) as total_events,
+                            COUNT(DISTINCT session_id) as unique_sessions,
+                            COUNT(DISTINCT correlation_id) as unique_correlations
+                        FROM hook_events
+                        WHERE datetime(timestamp) > datetime('now', '-1 day')
+                    """)  # Last 24 hours using SQLite datetime functions
+
+                    row = cursor.fetchone()
+                    if row:
+                        return {
+                            'total_events': row[0],
+                            'unique_sessions': row[1],
+                            'unique_correlations': row[2],
+                            'period': '24h'
+                        }
+            else:
+                # Fallback to direct connection
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.execute("""
+                        SELECT
+                            COUNT(*) as total_events,
+                            COUNT(DISTINCT session_id) as unique_sessions,
+                            COUNT(DISTINCT correlation_id) as unique_correlations
+                        FROM hook_events
+                        WHERE datetime(timestamp) > datetime('now', '-1 day')
+                    """)  # Last 24 hours using SQLite datetime functions
+
+                    row = cursor.fetchone()
+                    if row:
+                        return {
+                            'total_events': row[0],
+                            'unique_sessions': row[1],
+                            'unique_correlations': row[2],
+                            'period': '24h'
+                        }
         except Exception:
             pass
 

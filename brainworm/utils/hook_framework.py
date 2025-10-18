@@ -184,12 +184,21 @@ class HookFramework:
         """Read and parse JSON input from Claude Code stdin with type-safe processing."""
         try:
             input_text = sys.stdin.read()
+
+            # Security: Limit input size to prevent memory exhaustion attacks
+            # Claude Code hook inputs should be under 10MB in normal operation
+            MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10MB
+            if len(input_text) > MAX_INPUT_SIZE:
+                print(f"Warning: Input size ({len(input_text)} bytes) exceeds maximum allowed ({MAX_INPUT_SIZE} bytes)", file=sys.stderr)
+                self.raw_input_data = {}
+                return
+
             self.raw_input_data = json.loads(input_text) if input_text.strip() else {}
             self.session_id = self.raw_input_data.get('session_id', 'unknown')
-            
+
             # Type-safe input processing using sophisticated schemas
             self._parse_typed_input()
-            
+
         except json.JSONDecodeError:
             print("Warning: Invalid JSON input format", file=sys.stderr)
             self.raw_input_data = {}

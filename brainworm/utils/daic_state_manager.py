@@ -292,7 +292,11 @@ class DAICStateManager:
     
     
     def _update_unified_state(self, updates: Dict[str, Any]):
-        """Update specific fields in unified state"""
+        """Update specific fields in unified state with pre-validation"""
+        # Pre-validate updates before merging to catch bad data early
+        if not self._validate_updates(updates):
+            raise ValueError("Invalid state updates - validation failed before merge")
+
         current_state = self.get_unified_state()
         current_state.update(updates)
         current_state["last_updated"] = datetime.now(timezone.utc).isoformat()
@@ -324,6 +328,53 @@ class DAICStateManager:
                     temp_file.unlink()
                 raise e
     
+    def _validate_updates(self, updates: Dict[str, Any]) -> bool:
+        """
+        Pre-validate state updates before merging with current state.
+        Catches bad data early before it corrupts the state.
+        """
+        # Validate DAIC mode if being updated
+        if "daic_mode" in updates:
+            daic_mode = updates["daic_mode"]
+            if daic_mode is not None and not DAICMode.is_valid_mode(daic_mode):
+                print(f"Warning: Invalid DAIC mode in updates: '{daic_mode}'", file=sys.stderr)
+                return False
+
+        # Validate task_services is list if being updated
+        if "task_services" in updates:
+            task_services = updates["task_services"]
+            if task_services is not None and not isinstance(task_services, list):
+                print(f"Warning: task_services must be a list, got {type(task_services)}", file=sys.stderr)
+                return False
+
+        # Validate active_submodule_branches is dict if being updated
+        if "active_submodule_branches" in updates:
+            submodule_branches = updates["active_submodule_branches"]
+            if submodule_branches is not None and not isinstance(submodule_branches, dict):
+                print(f"Warning: active_submodule_branches must be a dict, got {type(submodule_branches)}", file=sys.stderr)
+                return False
+
+        # Validate developer info structure if being updated
+        if "developer" in updates:
+            developer = updates["developer"]
+            if developer is not None:
+                if not isinstance(developer, dict):
+                    print(f"Warning: developer must be a dict, got {type(developer)}", file=sys.stderr)
+                    return False
+                # Check for required developer fields
+                if "name" not in developer or "email" not in developer:
+                    print("Warning: developer must have 'name' and 'email' fields", file=sys.stderr)
+                    return False
+
+        # Validate string fields are not empty strings (None is okay, but not "")
+        string_fields = ["session_id", "correlation_id", "current_task", "current_branch"]
+        for field in string_fields:
+            if field in updates and updates[field] == "":
+                print(f"Warning: Field '{field}' should not be empty string (use None instead)", file=sys.stderr)
+                return False
+
+        return True
+
     def _validate_state(self, state: Dict[str, Any]) -> bool:
         """Validate unified state data for consistency"""
         required_fields = [

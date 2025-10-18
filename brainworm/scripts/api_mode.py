@@ -3,6 +3,7 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "tomli-w>=1.0.0",
+#     "filelock>=3.13.0",
 # ]
 # ///
 """API mode control script for brainworm."""
@@ -25,23 +26,44 @@ def toggle_api_mode() -> None:
         sys.exit(1)
     
     try:
-        # Load existing config
-        with open(config_file, 'rb') as f:
-            config = tomllib.load(f)
+        # Use file locking to prevent race conditions in read-modify-write
+        try:
+            from filelock import FileLock
+            lock_file = config_file.parent / '.config.lock'
+            lock = FileLock(str(lock_file), timeout=10)
 
-        # Get current API mode setting (default False)
-        current_api_mode = config.get("api_mode", False)
-        new_api_mode = not current_api_mode
+            with lock:
+                # Load existing config while holding lock
+                with open(config_file, 'rb') as f:
+                    config = tomllib.load(f)
 
-        # Update config
-        config["api_mode"] = new_api_mode
+                # Get current API mode setting (default False)
+                current_api_mode = config.get("api_mode", False)
+                new_api_mode = not current_api_mode
 
-        # Write back to file
-        with open(config_file, 'wb') as f:
-            tomli_w.dump(config, f)
-        
-        print(f"API mode toggled: {current_api_mode} → {new_api_mode}")
-        
+                # Update config
+                config["api_mode"] = new_api_mode
+
+                # Write back to file while still holding lock
+                with open(config_file, 'wb') as f:
+                    tomli_w.dump(config, f)
+
+                print(f"API mode toggled: {current_api_mode} → {new_api_mode}")
+        except ImportError:
+            # Fallback without locking (race condition possible but rare)
+            with open(config_file, 'rb') as f:
+                config = tomllib.load(f)
+
+            current_api_mode = config.get("api_mode", False)
+            new_api_mode = not current_api_mode
+
+            config["api_mode"] = new_api_mode
+
+            with open(config_file, 'wb') as f:
+                tomli_w.dump(config, f)
+
+            print(f"API mode toggled: {current_api_mode} → {new_api_mode}")
+
     except Exception as e:
         print(f"Error: Failed to update config: {e}", file=sys.stderr)
         sys.exit(1)
