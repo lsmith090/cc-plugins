@@ -60,6 +60,15 @@ def get_daic_state(project_root: Path) -> Dict[str, Any]:
 def set_daic_mode(project_root: Path, mode: str, trigger: str = "manual_command") -> Dict[str, Any]:
     """Set DAIC mode using DAICStateManager (unified state)"""
 
+    # Validate mode before setting
+    valid_modes = ["discussion", "implementation"]
+    mode_lower = mode.lower().strip()
+
+    if mode_lower not in valid_modes:
+        raise ValueError(
+            f"Invalid DAIC mode: '{mode}'. Must be one of: {', '.join(valid_modes)}"
+        )
+
     # Use DAICStateManager for unified state management
     sys.path.insert(0, str(Path(__file__).parent.parent))  # Add plugin root for utils access
     from utils.daic_state_manager import DAICStateManager
@@ -67,13 +76,13 @@ def set_daic_mode(project_root: Path, mode: str, trigger: str = "manual_command"
     state_manager = DAICStateManager(project_root)
 
     # Set the mode using the unified state manager
-    state_manager.set_daic_mode(mode)
+    state_manager.set_daic_mode(mode_lower)
 
     # Get the new state for return
     current_state = get_daic_state(project_root)
 
     return {
-        "mode": mode,
+        "mode": mode_lower,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "previous_mode": current_state.get("previous_mode"),
         "trigger": trigger

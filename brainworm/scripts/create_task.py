@@ -199,6 +199,14 @@ def create_task(
             # NEW: Monorepo with services - create branches in submodules only
             console.print(f"[cyan]Detected {len(services)} services: {', '.join(services)}[/cyan]")
 
+            # Validate that all services exist before attempting branch creation
+            available_submodules = sm.list_submodules()
+            invalid_services = [svc for svc in services if svc not in available_submodules]
+            if invalid_services:
+                console.print(f"[red]Error: Invalid service names: {', '.join(invalid_services)}[/red]")
+                console.print(f"[yellow]Available services: {', '.join(available_submodules)}[/yellow]")
+                sys.exit(1)
+
             # Confirm multi-service branch creation
             if interactive:
                 console.print(f"[yellow]This will create '{branch_name}' in: {', '.join(services)}[/yellow]")
