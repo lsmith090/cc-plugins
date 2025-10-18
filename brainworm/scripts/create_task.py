@@ -44,8 +44,8 @@ try:
     from utils.daic_state_manager import DAICStateManager
 except ImportError as e:
     print(f"Error importing brainworm utilities: {e}")
-    print(f"Tried utils path: {utils_path}")
-    print(f"Tried parent path: {utils_path.parent}")
+    print(f"Tried plugin root: {plugin_root}")
+    print(f"Python path: {sys.path[:3]}")
     print("Make sure you're running create_task.py from an installed brainworm system")
     print("Install brainworm via: /plugin install brainworm@<marketplace>")
     sys.exit(1)

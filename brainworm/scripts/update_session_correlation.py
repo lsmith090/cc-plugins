@@ -65,7 +65,15 @@ def update_session_correlation(
             if correlation_id is None:
                 correlation_id = generated_correlation
                 console.print(f"🔄 [yellow]Generated new correlation ID:[/yellow] {correlation_id}")
-        
+
+        # Validate provided IDs (generated IDs are always valid)
+        if session_id and len(session_id) < 4:
+            console.print(f"❌ [red]Invalid session ID:[/red] Must be at least 4 characters")
+            sys.exit(1)
+        if correlation_id and len(correlation_id) < 4:
+            console.print(f"❌ [red]Invalid correlation ID:[/red] Must be at least 4 characters")
+            sys.exit(1)
+
         # Update session correlation atomically
         result = controller.update_correlation(session_id, correlation_id)
 
