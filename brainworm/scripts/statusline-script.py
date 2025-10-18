@@ -25,10 +25,20 @@ try:
     sys.path.insert(0, str(Path(__file__).parent.parent))  # Add plugin root for utils access
     from utils.hook_types import DAICMode
 except ImportError:
-    # Fallback if not available - define enum values as constants
+    # Fallback if not available - minimal enum-like class
     class DAICMode:
         DISCUSSION = "discussion"
         IMPLEMENTATION = "implementation"
+
+        @classmethod
+        def from_string(cls, mode_str: str) -> str:
+            """Parse DAIC mode from string with case insensitivity"""
+            if not mode_str:
+                return cls.DISCUSSION
+            mode_lower = mode_str.lower().strip()
+            if mode_lower in ("implementation", "impl"):
+                return cls.IMPLEMENTATION
+            return cls.DISCUSSION
 
 # Context limits based on model and mode
 SONNET_API_MODE_USABLE_TOKENS = 800000    # 1M Sonnet models in API mode
@@ -64,8 +74,11 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
             with open(config_path, 'r') as f:
                 config = toml.load(f)
                 api_mode_enabled = config.get('api_mode', False)
+        except ImportError:
+            # toml library not available - skip config reading
+            pass
         except Exception:
-            # Config file read error or missing toml library - use defaults
+            # Config file read error, TOML parse error, etc. - use defaults
             pass
     
     # Set context limit based on API mode and model
@@ -282,9 +295,10 @@ def get_git_display(project_root: Path) -> str:
                 cwd=project_root,
                 capture_output=True,
                 text=True,
-                check=True
+                timeout=5
             )
-            branch_name = branch_result.stdout.strip() or "detached"
+            if branch_result.returncode == 0:
+                branch_name = branch_result.stdout.strip() or "detached"
 
             # Count modified and staged files
             status_result = subprocess.run(
@@ -292,13 +306,17 @@ def get_git_display(project_root: Path) -> str:
                 cwd=project_root,
                 capture_output=True,
                 text=True,
-                check=True
+                timeout=5
             )
 
             # Count lines that match modified/added pattern
-            for line in status_result.stdout.strip().split('\n'):
-                if line and re.match(r'^[AM]|^.[AM]', line):
-                    modified_count += 1
+            if status_result.returncode == 0:
+                for line in status_result.stdout.strip().split('\n'):
+                    if line and re.match(r'^[AM]|^.[AM]', line):
+                        modified_count += 1
+        except subprocess.TimeoutExpired:
+            # Git command timeout - use defaults (repository may be unresponsive)
+            pass
         except Exception:
             # Git command failure - use defaults
             pass

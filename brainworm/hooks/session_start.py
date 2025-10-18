@@ -558,9 +558,9 @@ def session_start_logic(framework, typed_input):
                 new_short = new_session_id[:8] if len(new_session_id) >= 8 else new_session_id
                 framework.debug_logger.info(f"📝 Updating session_id: {current_short} → {new_short}")
 
-            state_mgr._update_unified_state({
-                'session_id': new_session_id
-            })
+            # Use public API - preserve existing correlation_id
+            current_correlation_id = current_state.get('correlation_id', new_session_id[:16])
+            state_mgr.update_session_correlation(new_session_id, current_correlation_id)
 
             # Verify the update worked
             verified_state = state_mgr.get_unified_state()
