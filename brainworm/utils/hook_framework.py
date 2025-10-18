@@ -500,7 +500,8 @@ class HookFramework:
                     # Remove corrupt or unreadable markers
                     try:
                         marker_file.unlink()
-                    except:
+                    except Exception:
+                        # Marker file deletion failed - continue cleanup
                         pass
         except Exception:
             pass  # Don't fail execution due to cleanup issues

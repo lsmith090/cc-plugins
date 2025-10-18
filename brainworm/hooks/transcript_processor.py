@@ -154,7 +154,7 @@ def identify_current_service_context(project_root: Path, task_data: Optional[Dic
     branch_service = None
     try:
         import subprocess
-        result = subprocess.run(['git', 'branch', '--show-current'], 
+        result = subprocess.run(['git', 'branch', '--show-current'],
                               capture_output=True, text=True, cwd=project_root)
         if result.returncode == 0:
             branch_name = result.stdout.strip().lower()
@@ -162,7 +162,8 @@ def identify_current_service_context(project_root: Path, task_data: Optional[Dic
                 if service["name"].lower() in branch_name:
                     branch_service = service
                     break
-    except:
+    except Exception:
+        # Git command failure or service name lookup error - skip branch detection
         pass
     
     # Priority resolution: current directory > task context > git branch > first service

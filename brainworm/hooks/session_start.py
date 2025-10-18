@@ -590,7 +590,7 @@ def session_start_logic(framework, typed_input):
                 f.write(f"Error: {str(e)}\n")
                 f.write(traceback.format_exc())
                 f.write(f"{'='*80}\n")
-        except:
+        except Exception:
             pass  # Don't fail if logging fails
 
     # Debug logging - INFO level

@@ -119,18 +119,34 @@ class SQLiteConnectionPool:
             # For now, just limit pool size - could add health checks here
             while len(self._pool) > self.config.max_connections:
                 conn = self._pool.pop(0)
-                conn.close()
-                if self._active_connections > 0:
-                    self._active_connections -= 1
+                try:
+                    conn.close()
+                except Exception as e:
+                    # Log but continue cleanup - don't let one bad connection stop cleanup
+                    logger.warning(f"Error closing stale SQLite connection: {e}")
+                finally:
+                    # Always decrement counter even if close() failed to prevent leak
+                    if self._active_connections > 0:
+                        self._active_connections -= 1
     
     def close_all(self):
         """Close all connections in the pool"""
         with self._lock:
+            errors = []
             for conn in self._pool:
-                conn.close()
+                try:
+                    conn.close()
+                except Exception as e:
+                    # Collect errors but continue closing all connections
+                    errors.append(str(e))
+
             self._pool.clear()
             self._active_connections = 0
-            logger.info(f"Closed all SQLite connections for {self.db_path}")
+
+            if errors:
+                logger.warning(f"Errors closing SQLite connections for {self.db_path}: {'; '.join(errors)}")
+            else:
+                logger.info(f"Closed all SQLite connections for {self.db_path}")
 
 class HooksSQLiteManager:
     """

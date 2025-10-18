@@ -64,7 +64,8 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
             with open(config_path, 'r') as f:
                 config = toml.load(f)
                 api_mode_enabled = config.get('api_mode', False)
-        except:
+        except Exception:
+            # Config file read error or missing toml library - use defaults
             pass
     
     # Set context limit based on API mode and model
@@ -96,7 +97,8 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
                         if timestamp and (not most_recent_timestamp or timestamp > most_recent_timestamp):
                             most_recent_timestamp = timestamp
                             most_recent_usage = data['message']['usage']
-                except:
+                except Exception:
+                    # Malformed JSON line in transcript - skip
                     continue
             
             # Calculate context length (input + cache tokens only, NOT output)
@@ -106,7 +108,8 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
                     most_recent_usage.get('cache_read_input_tokens', 0) +
                     most_recent_usage.get('cache_creation_input_tokens', 0)
                 )
-        except:
+        except Exception:
+            # Transcript file read error or parsing failure - use defaults
             pass
     
     # Default values when no transcript available - still add default context
@@ -162,7 +165,8 @@ def get_task_display(project_root: Path) -> str:
                 task_name = data.get('current_task', 'None')
                 if task_name is None or task_name == '':
                     task_name = 'None'
-        except:
+        except Exception:
+            # State file read error or JSON parsing failure
             pass
 
     # Always scan filesystem for accurate open task count
@@ -185,7 +189,8 @@ def _count_open_tasks(project_root: Path) -> int:
                             content = f.read()
                             if not re.search(r'status:\s*(done|completed)', content, re.IGNORECASE):
                                 open_count += 1
-                    except:
+                    except Exception:
+                        # File read error - skip
                         pass
             elif task_path.is_file() and task_path.suffix == '.md':
                 try:
@@ -193,9 +198,10 @@ def _count_open_tasks(project_root: Path) -> int:
                         content = f.read()
                         if not re.search(r'status:\s*(done|completed)', content, re.IGNORECASE):
                             open_count += 1
-                except:
+                except Exception:
+                    # File read error - skip
                     pass
-    
+
     return open_count
 
 def get_daic_mode(project_root: Path) -> str:
@@ -211,7 +217,8 @@ def get_daic_mode(project_root: Path) -> str:
                 data = json.load(f)
                 mode_str = data.get('daic_mode', 'discussion')
                 mode = DAICMode.from_string(mode_str)
-        except:
+        except Exception:
+            # State file read error or JSON parsing failure - use default
             pass
     
     if mode == DAICMode.DISCUSSION:
@@ -243,7 +250,8 @@ def get_git_display(project_root: Path) -> str:
             with open(unified_state_file, 'r') as f:
                 data = json.load(f)
                 active_submodule_branches = data.get('active_submodule_branches', {})
-        except:
+        except Exception:
+            # State file read error or JSON parsing failure
             pass
 
     if git_dir.exists():
@@ -291,7 +299,8 @@ def get_git_display(project_root: Path) -> str:
             for line in status_result.stdout.strip().split('\n'):
                 if line and re.match(r'^[AM]|^.[AM]', line):
                     modified_count += 1
-        except:
+        except Exception:
+            # Git command failure - use defaults
             pass
 
     # Build branch display with submodule awareness
