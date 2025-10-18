@@ -138,8 +138,9 @@ class DAICStateManager:
                 ).strip()
                 if name and email:
                     return DeveloperInfo(name=name, email=email, source="git")
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
-                pass
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError) as e:
+                # Git config not available - fall back to config file
+                print(f"Debug: Failed to get developer info from git: {e}", file=sys.stderr)
         
         return DeveloperInfo(
             name=user_config.developer.name,
@@ -282,8 +283,9 @@ class DAICStateManager:
                 with open(self.unified_state_file, 'r') as f:
                     state = json.load(f)
                     return {**default_unified, **state}
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            # State file doesn't exist or is corrupted - will create default
+            print(f"Debug: Failed to load unified state: {e}", file=sys.stderr)
         
         # Return default state if no unified state exists
         default_unified["last_updated"] = datetime.now(timezone.utc).isoformat()
@@ -376,38 +378,76 @@ class DAICStateManager:
         return True
 
     def _validate_state(self, state: Dict[str, Any]) -> bool:
-        """Validate unified state data for consistency"""
-        required_fields = [
-            "daic_mode", "last_updated"
-        ]
-        
-        # Check required fields exist and are not None
+        """
+        Validate unified state data for structural and semantic consistency.
+
+        Performs both structural validation (types, required fields) and semantic
+        validation (business logic constraints, field relationships).
+        """
+        # Structural validation: Required fields
+        required_fields = ["daic_mode", "last_updated"]
+
         for field in required_fields:
             if field not in state:
-                print(f"Warning: Missing required field '{field}' in state")
+                print(f"Warning: Missing required field '{field}' in state", file=sys.stderr)
                 return False
             if state[field] is None:
-                print(f"Warning: Required field '{field}' cannot be None")
+                print(f"Warning: Required field '{field}' cannot be None", file=sys.stderr)
                 return False
-        
-        # Validate DAIC mode
+
+        # Structural validation: DAIC mode
         daic_mode = state.get("daic_mode")
         if not DAICMode.is_valid_mode(daic_mode):
-            print(f"Warning: Invalid DAIC mode '{daic_mode}'")
+            print(f"Warning: Invalid DAIC mode '{daic_mode}'", file=sys.stderr)
             return False
-        
-        # Validate task services is list
-        if "task_services" in state and not isinstance(state["task_services"], list):
-            print(f"Warning: task_services must be a list, got {type(state['task_services'])}")
-            return False
-            
-        # Optional fields that should not be empty strings if present
-        optional_string_fields = ["session_id", "correlation_id"]
+
+        # Structural validation: Type checks
+        if "task_services" in state and state["task_services"] is not None:
+            if not isinstance(state["task_services"], list):
+                print(f"Warning: task_services must be a list, got {type(state['task_services'])}", file=sys.stderr)
+                return False
+            # Semantic validation: Services should be non-empty strings
+            for service in state["task_services"]:
+                if not isinstance(service, str) or not service.strip():
+                    print(f"Warning: task_services contains invalid service: {service!r}", file=sys.stderr)
+                    return False
+
+        # Structural validation: No empty strings for optional fields
+        optional_string_fields = ["session_id", "correlation_id", "current_task", "current_branch"]
         for field in optional_string_fields:
             if field in state and state[field] is not None and state[field] == "":
-                print(f"Warning: Field '{field}' should not be empty string")
+                print(f"Warning: Field '{field}' should not be empty string", file=sys.stderr)
                 return False
-            
+
+        # Semantic validation: Task/branch consistency
+        current_task = state.get("current_task")
+        current_branch = state.get("current_branch")
+        if current_task and not current_branch:
+            print(f"Warning: current_task '{current_task}' set but current_branch is missing", file=sys.stderr)
+            return False
+
+        # Semantic validation: Timestamp format
+        last_updated = state.get("last_updated")
+        if last_updated:
+            try:
+                from datetime import datetime
+                # Validate ISO 8601 format
+                datetime.fromisoformat(last_updated.replace('Z', '+00:00'))
+            except (ValueError, AttributeError) as e:
+                print(f"Warning: Invalid timestamp format for last_updated: {last_updated} ({e})", file=sys.stderr)
+                return False
+
+        # Semantic validation: Session/correlation ID format
+        session_id = state.get("session_id")
+        if session_id and len(session_id) < 4:
+            print(f"Warning: session_id too short (min 4 chars): {session_id!r}", file=sys.stderr)
+            return False
+
+        correlation_id = state.get("correlation_id")
+        if correlation_id and len(correlation_id) < 4:
+            print(f"Warning: correlation_id too short (min 4 chars): {correlation_id!r}", file=sys.stderr)
+            return False
+
         return True
     
     def update_session_correlation(self, session_id: str, correlation_id: str):

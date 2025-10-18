@@ -54,11 +54,15 @@ def split_command_respecting_quotes(command: str) -> List[str]:
     while i < len(command):
         char = command[i]
 
+        # Check if character is escaped (preceded by backslash)
+        is_escaped = i > 0 and command[i-1] == '\\' and (i < 2 or command[i-2] != '\\')
+
         # Handle quotes - toggle state and preserve in output
-        if char == '"' and not in_single_quote:
+        # Only toggle if not escaped
+        if char == '"' and not in_single_quote and not is_escaped:
             in_double_quote = not in_double_quote
             current_part.append(char)
-        elif char == "'" and not in_double_quote:
+        elif char == "'" and not in_double_quote and not is_escaped:
             in_single_quote = not in_single_quote
             current_part.append(char)
         # Handle operators only when not in quotes

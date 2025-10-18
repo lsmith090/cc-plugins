@@ -229,9 +229,9 @@ class DebugLogger:
             with open(debug_file, 'a', encoding='utf-8') as f:
                 f.write(formatted_message + '\n')
                 f.flush()
-        except Exception:
-            # Don't fail hook on debug logging errors
-            pass
+        except Exception as e:
+            # Don't fail hook on debug logging errors, but report to stderr as last resort
+            print(f"Debug logger failed: {e}", file=sys.stderr)
 
     def _write_to_framework_log(self, formatted_message: str, format_type: str) -> None:
         """
@@ -252,9 +252,9 @@ class DebugLogger:
             with open(framework_log, 'a', encoding='utf-8') as f:
                 f.write(formatted_message + '\n')
                 f.flush()
-        except Exception:
-            # Don't fail hook on debug logging errors
-            pass
+        except Exception as e:
+            # Don't fail hook on debug logging errors, but report to stderr as last resort
+            print(f"Framework debug logger failed: {e}", file=sys.stderr)
 
     def error(self, message: str, execution_id: Optional[str] = None) -> None:
         """Log an error message."""

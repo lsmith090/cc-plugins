@@ -432,6 +432,61 @@ cp brainworm-config.toml.backup brainworm-config.toml
 
 See nautiloid documentation for multi-project event aggregation: https://github.com/lsmith090/nautiloid
 
+## Timeout Policy
+
+Brainworm uses standardized timeouts for subprocess operations to prevent hanging and ensure reliable operation. These timeouts are hardcoded in the codebase for consistency.
+
+### Timeout Values
+
+| Operation Type | Timeout | Files |
+|---|---|---|
+| **Local git operations** | 5 seconds | `git.py`, `project.py`, `daic_state_manager.py` |
+| **Git state changes** | 30 seconds | `switch_task.py`, `git_submodule_manager.py` |
+| **Network operations** | 60 seconds | *None currently* |
+| **User scripts** | 300 seconds | `tasks_command.py`, `create_task.py` |
+| **Hook execution** | Framework-managed | Controlled by Claude Code |
+| **File locks** | 10 seconds | All FileLock usage across codebase |
+
+### Rationale
+
+**Local git operations (5s)**:
+- Fast operations like `git status`, `git rev-parse`, `git config`
+- Should complete in milliseconds on healthy systems
+- 5 seconds allows for slower file systems without indefinite hanging
+
+**Git state changes (30s)**:
+- Operations that modify git state: checkout, submodule update
+- May involve file operations across many files
+- 30 seconds handles large repositories while preventing indefinite hangs
+
+**User scripts (300s)**:
+- Task creation, switching, and management commands
+- May involve user input and git operations
+- 5 minutes allows for slow systems and user interaction
+
+**File locks (10s)**:
+- FileLock timeout for atomic file operations
+- Prevents deadlocks in concurrent hook execution
+- 10 seconds handles normal contention without indefinite blocking
+
+### Timeout Error Handling
+
+When timeouts occur:
+1. **Subprocess timeouts** - `subprocess.TimeoutExpired` exception raised
+2. **File lock timeouts** - `filelock.Timeout` exception raised
+3. **Graceful degradation** - Operations return partial results or safe defaults
+4. **Error logging** - Timeout failures logged to stderr for debugging
+
+### Customization
+
+Timeouts are **not configurable** via `.brainworm/config.toml` to ensure consistent behavior across installations. If you consistently hit timeouts:
+
+1. **Check system performance** - Slow disk I/O, resource constraints
+2. **Check repository size** - Very large git repositories may need optimization
+3. **Report issue** - Consistent timeouts may indicate bugs
+
+Future versions may add configurable timeout multipliers if needed.
+
 ## Known Limitations
 
 ### Brainworm Scope

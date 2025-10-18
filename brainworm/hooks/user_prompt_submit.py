@@ -77,8 +77,9 @@ def get_context_length_from_transcript(transcript_path: str) -> int:
                 most_recent_usage.get('cache_creation_input_tokens', 0)
             )
             return context_length
-    except Exception:
-        pass
+    except Exception as e:
+        # Failed to read transcript for context length - return 0 as fallback
+        print(f"Debug: Failed to get context length: {e}", file=sys.stderr)
     return 0
 
 def check_context_warnings(transcript_path: str, project_root: Path) -> str:
@@ -108,8 +109,9 @@ def check_context_warnings(transcript_path: str, project_root: Path) -> str:
             elif usable_percentage >= 75 and not warning_75_flag.exists():
                 context_warning = f"\n[75% WARNING] {context_length:,}/160,000 tokens used ({usable_percentage:.1f}%). Context is getting low. Be aware of coming context compaction trigger.\n"
                 warning_75_flag.touch()
-    except Exception:
-        pass
+    except Exception as e:
+        # Failed to create context warning flags - continue without warnings
+        print(f"Debug: Failed to check context warnings: {e}", file=sys.stderr)
     
     return context_warning
 

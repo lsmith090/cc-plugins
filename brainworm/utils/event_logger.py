@@ -4,6 +4,7 @@
 # dependencies = [
 #     "pendulum>=3.0.0",
 #     "rich>=13.0.0",
+#     "filelock>=3.13.0",
 # ]
 # ///
 
@@ -21,6 +22,12 @@ import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional
 from rich.console import Console
+
+# Import FileLock with fallback for atomic file operations
+try:
+    from filelock import FileLock
+except ImportError:
+    FileLock = None
 
 # Import type definitions with fallback
 try:
@@ -119,14 +126,38 @@ class SessionEventLogger(HookLogger):
             self.event_store = None
         
     def _get_fallback_session_id(self) -> str:
-        """Generate fallback session ID if not provided by Claude Code"""
-        # Try to get from environment (set by parent Claude Code process)
+        """
+        Generate fallback session ID if not provided by Claude Code.
+
+        Strategy:
+        1. Check CLAUDE_SESSION_ID environment variable
+        2. Check unified state file for current session
+        3. Generate and persist new session ID
+
+        This ensures session consistency even when Claude Code doesn't provide session_id.
+        """
         import os
+
+        # Strategy 1: Environment variable (set by parent Claude Code process)
         if session_id := os.environ.get('CLAUDE_SESSION_ID'):
             return session_id
-        
-        # Fallback to generating one (for standalone testing)
-        return f"fallback-{str(uuid.uuid4())[:8]}"
+
+        # Strategy 2: Try to get from unified state file
+        unified_state_file = self.project_root / '.brainworm' / 'state' / 'unified_session_state.json'
+        try:
+            if unified_state_file.exists():
+                import json
+                with open(unified_state_file, 'r') as f:
+                    state = json.load(f)
+                    if session_id := state.get('session_id'):
+                        return session_id
+        except Exception as e:
+            # State file unreadable - will generate new ID
+            print(f"Debug: Failed to load session ID from state: {e}", file=sys.stderr)
+
+        # Strategy 3: Generate new stable session ID
+        # Use longer ID (16 chars) for better uniqueness
+        return f"fallback-{str(uuid.uuid4())[:16]}"
     
     
     def enrich_event_data(self, event_data: dict) -> dict:
@@ -241,8 +272,18 @@ class SessionEventLogger(HookLogger):
         # Also write to shared timing storage for cross-hook coordination
         try:
             timing_file = self.timing_dir / f"{self.session_id}.json"
-            with open(timing_file, 'w') as f:
-                json.dump(timing_info, f)
+
+            # Use file locking to prevent race conditions with concurrent hook execution
+            if FileLock:
+                lock_file = self.timing_dir / f".{self.session_id}.json.lock"
+                lock = FileLock(lock_file, timeout=10)
+                with lock:
+                    with open(timing_file, 'w') as f:
+                        json.dump(timing_info, f)
+            else:
+                # Fallback without locking if filelock not available
+                with open(timing_file, 'w') as f:
+                    json.dump(timing_info, f)
         except Exception as e:
             if debug:
                 print(f"Warning: Failed to write timing file: {e}", file=sys.stderr)

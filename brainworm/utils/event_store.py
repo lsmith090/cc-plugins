@@ -135,9 +135,9 @@ class HookEventStore:
                         CREATE INDEX IF NOT EXISTS idx_hook_events_execution_id
                         ON hook_events(execution_id)
                     """)
-        except Exception:
+        except Exception as e:
             # Event storage is optional - continue if database init fails
-            pass
+            print(f"Warning: Failed to initialize event database: {e}", file=sys.stderr)
     
     def log_event(self, event_data: Dict[str, Any]) -> bool:
         """Store a hook event to the database"""
@@ -163,9 +163,10 @@ class HookEventStore:
                     duration_ms = self._extract_duration_ms(event_data)
                     if 'timestamp' in event_data:
                         timestamp = format_for_database(str(event_data['timestamp']))
-                        
-                except Exception:
-                    # Fallback to untyped parsing
+
+                except Exception as e:
+                    # Fallback to untyped parsing when typed parsing fails
+                    print(f"Debug: Typed event parsing failed, using fallback: {e}", file=sys.stderr)
                     hook_name = event_data.get('hook_name', 'unknown')
                     event_type = event_data.get('event_type', 'hook_execution')
                     correlation_id = event_data.get('correlation_id')
@@ -333,8 +334,9 @@ class HookEventStore:
                             'unique_correlations': row[2],
                             'period': '24h'
                         }
-        except Exception:
-            pass
+        except Exception as e:
+            # Database query failed - return default stats
+            print(f"Debug: Failed to query event summary: {e}", file=sys.stderr)
 
         return {
             'total_events': 0,

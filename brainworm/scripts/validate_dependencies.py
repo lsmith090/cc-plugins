@@ -170,8 +170,9 @@ def check_for_deprecated_imports(plugin_root: Path) -> List[str]:
                     issues.append(
                         f"  ❌ {py_file.relative_to(Path.cwd())}: {message}"
                     )
-        except Exception:
-            pass
+        except Exception as e:
+            # File unreadable - skip (may be binary or permission issue)
+            print(f"Debug: Failed to check {py_file}: {e}", file=sys.stderr)
 
     return issues
 
