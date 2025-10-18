@@ -15,6 +15,7 @@ Provides clean abstractions for:
 """
 
 import subprocess
+import sys
 from pathlib import Path
 from typing import Dict, Optional, List
 from rich.console import Console
@@ -69,7 +70,28 @@ class SubmoduleManager:
         submodule_map = {}
 
         for name, info in context.get('submodules', {}).items():
+            # Validate submodule name to prevent path traversal
+            # Git submodule names should not contain ".." or start with "/"
+            if ".." in name or name.startswith("/") or "\\" in name:
+                self.console.print(
+                    f"[yellow]Warning: Skipping potentially unsafe submodule name: {name}[/yellow]"
+                )
+                continue
+
             submodule_path = self.project_root / name
+
+            # Verify resolved path is within project root (additional safety check)
+            try:
+                resolved = submodule_path.resolve()
+                if not resolved.is_relative_to(self.project_root.resolve()):
+                    self.console.print(
+                        f"[yellow]Warning: Submodule path escapes project root: {name}[/yellow]"
+                    )
+                    continue
+            except (ValueError, OSError):
+                # Path resolution failed
+                continue
+
             # Only include if directory actually exists
             if submodule_path.is_dir():
                 submodule_map[name] = submodule_path
@@ -163,12 +185,29 @@ class SubmoduleManager:
             self.console.print(
                 f"[yellow]Branch '{branch_name}' already exists in {location}[/yellow]"
             )
-            # Ask if user wants to checkout existing branch
-            if Prompt.ask(
-                f"Checkout existing branch?",
-                choices=["y", "n"],
-                default="y"
-            ) == "y":
+
+            # Check if we're in an interactive environment
+            is_interactive = sys.stdin.isatty()
+
+            if is_interactive:
+                # Ask if user wants to checkout existing branch
+                if Prompt.ask(
+                    f"Checkout existing branch?",
+                    choices=["y", "n"],
+                    default="y"
+                ) == "y":
+                    checkout_result = subprocess.run(
+                        ['git', 'checkout', branch_name],
+                        cwd=cwd,
+                        capture_output=True,
+                        text=True,
+                        timeout=10
+                    )
+                    return checkout_result.returncode == 0
+                return False
+            else:
+                # Non-interactive: automatically checkout existing branch
+                self.console.print(f"[cyan]Non-interactive mode: checking out existing branch[/cyan]")
                 checkout_result = subprocess.run(
                     ['git', 'checkout', branch_name],
                     cwd=cwd,
@@ -177,7 +216,6 @@ class SubmoduleManager:
                     timeout=10
                 )
                 return checkout_result.returncode == 0
-            return False
 
         # Ensure submodule is not in detached HEAD state
         if submodule:
@@ -289,6 +327,18 @@ class SubmoduleManager:
             )
         """
         results = {}
+
+        # Validate service names to prevent path traversal
+        invalid_services = []
+        for service in services:
+            if service != "main" and (".." in service or service.startswith("/") or "\\" in service):
+                invalid_services.append(service)
+                results[service] = False
+
+        if invalid_services:
+            self.console.print(
+                f"[red]Error: Invalid service names detected (path traversal attempt): {', '.join(invalid_services)}[/red]"
+            )
 
         # Only create main repo branch if explicitly requested or "main" in services
         if create_main_branch or "main" in services:

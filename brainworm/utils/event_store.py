@@ -343,6 +343,57 @@ class HookEventStore:
             'period': '24h'
         }
 
+    def cleanup_old_events(self, retention_days: int = 90) -> Dict[str, Any]:
+        """Clean up events older than retention period (default 90 days)
+
+        Args:
+            retention_days: Number of days to retain events (default: 90)
+
+        Returns:
+            Dict with cleanup statistics (deleted_count, retention_days, success)
+        """
+        try:
+            # Use connection pool if available
+            if self.db_manager:
+                from .sqlite_manager import get_hooks_sqlite_manager
+                manager = get_hooks_sqlite_manager()
+
+                with manager.connection(self.db_path) as conn:
+                    # Delete events older than retention period
+                    cursor = conn.execute("""
+                        DELETE FROM hook_events
+                        WHERE datetime(timestamp) < datetime('now', '-' || ? || ' days')
+                    """, (retention_days,))
+                    deleted_count = cursor.rowcount
+                    conn.commit()
+
+                    return {
+                        'success': True,
+                        'deleted_count': deleted_count,
+                        'retention_days': retention_days
+                    }
+            else:
+                # Fallback to direct connection
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.execute("""
+                        DELETE FROM hook_events
+                        WHERE datetime(timestamp) < datetime('now', '-' || ? || ' days')
+                    """, (retention_days,))
+                    deleted_count = cursor.rowcount
+                    conn.commit()
+
+                    return {
+                        'success': True,
+                        'deleted_count': deleted_count,
+                        'retention_days': retention_days
+                    }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'retention_days': retention_days
+            }
+
 def create_event_store(brainworm_dir: Path) -> HookEventStore:
     """Create an event store instance"""
     return HookEventStore(brainworm_dir)
