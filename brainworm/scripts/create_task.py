@@ -44,8 +44,8 @@ try:
     from utils.daic_state_manager import DAICStateManager
 except ImportError as e:
     print(f"Error importing brainworm utilities: {e}")
-    print(f"Tried utils path: {utils_path}")
-    print(f"Tried parent path: {utils_path.parent}")
+    print(f"Tried plugin root: {plugin_root}")
+    print(f"Python path: {sys.path[:3]}")
     print("Make sure you're running create_task.py from an installed brainworm system")
     print("Install brainworm via: /plugin install brainworm@<marketplace>")
     sys.exit(1)
@@ -198,6 +198,14 @@ def create_task(
         if services and sm.has_submodules():
             # NEW: Monorepo with services - create branches in submodules only
             console.print(f"[cyan]Detected {len(services)} services: {', '.join(services)}[/cyan]")
+
+            # Validate that all services exist before attempting branch creation
+            available_submodules = sm.list_submodules()
+            invalid_services = [svc for svc in services if svc not in available_submodules]
+            if invalid_services:
+                console.print(f"[red]Error: Invalid service names: {', '.join(invalid_services)}[/red]")
+                console.print(f"[yellow]Available services: {', '.join(available_submodules)}[/yellow]")
+                sys.exit(1)
 
             # Confirm multi-service branch creation
             if interactive:

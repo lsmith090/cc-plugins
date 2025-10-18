@@ -154,7 +154,7 @@ def identify_current_service_context(project_root: Path, task_data: Optional[Dic
     branch_service = None
     try:
         import subprocess
-        result = subprocess.run(['git', 'branch', '--show-current'], 
+        result = subprocess.run(['git', 'branch', '--show-current'],
                               capture_output=True, text=True, cwd=project_root)
         if result.returncode == 0:
             branch_name = result.stdout.strip().lower()
@@ -162,7 +162,8 @@ def identify_current_service_context(project_root: Path, task_data: Optional[Dic
                 if service["name"].lower() in branch_name:
                     branch_service = service
                     break
-    except:
+    except Exception:
+        # Git command failure or service name lookup error - skip branch detection
         pass
     
     # Priority resolution: current directory > task context > git branch > first service
@@ -654,8 +655,11 @@ def get_token_count(text: str) -> int:
         enc = tiktoken.get_encoding('cl100k_base')
         return len(enc.encode(text))
     except ImportError:
-        # Fallback to approximate count if tiktoken not available
-        return len(text.split()) * 1.3
+        # Fallback to character-based estimation when tiktoken not available
+        # For cl100k_base encoding, average is ~3.5 chars/token for mixed content
+        # This is more accurate than word-based counting (1.3 tokens/word)
+        # Conservative estimate: divide by 3.5 to slightly overestimate tokens
+        return int(len(text) / 3.5)
 
 def chunk_transcript(clean_transcript: deque, max_tokens: int = 18000) -> List[List[Dict]]:
     """

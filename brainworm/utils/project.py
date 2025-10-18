@@ -11,6 +11,7 @@ Handles project root detection and context for Claude Code hooks
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -49,9 +50,9 @@ def find_project_root() -> Path:
         if is_valid_project_root(git_root):
             return git_root
     
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
-        # Git not available or not in git repository
-        pass
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError) as e:
+        # Git not available or not in git repository - will try other strategies
+        print(f"Debug: Git project root detection failed: {e}", file=sys.stderr)
     
     # Strategy 3: Walk up from current directory looking for project markers
     current = Path.cwd()
@@ -189,9 +190,10 @@ def get_project_context(project_root: Path) -> Dict[str, Any]:
                     if len(parts) >= 2:
                         submodules[parts[1]] = {'commit': parts[0]}
             context['submodules'] = submodules
-    
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
-        pass
+
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError) as e:
+        # Git submodule status not available - continue with basic context
+        print(f"Debug: Failed to get git submodule status: {e}", file=sys.stderr)
     
     return context
 

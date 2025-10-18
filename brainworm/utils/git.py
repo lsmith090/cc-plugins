@@ -11,6 +11,7 @@ Centralized git context and operations for consistent behavior across hooks.
 """
 
 import subprocess
+import sys
 from pathlib import Path
 from typing import Dict, Any
 
@@ -42,6 +43,7 @@ def get_basic_git_context(project_root: Path) -> Dict[str, Any]:
         )
         if result.returncode == 0:
             context['uncommitted_files'] = len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
-    except Exception:
-        pass
+    except Exception as e:
+        # Git commands failed - continue with partial context
+        print(f"Debug: Failed to get git context: {e}", file=sys.stderr)
     return context

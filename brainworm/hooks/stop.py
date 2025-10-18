@@ -45,9 +45,24 @@ def stop_session_logic(framework, input_data: Dict[str, Any]):
             framework.debug_logger.debug("✓ Session correlation cleared")
 
     except Exception as e:
+        error_type = type(e).__name__
+        error_msg = str(e)
+
+        # Provide actionable error messages based on error type
+        if "Permission" in error_type or "PermissionError" in error_type:
+            action = "Check file permissions on .brainworm/state directory"
+        elif "FileNotFound" in error_type or "NotFound" in error_type:
+            action = "Correlation state may already be cleared"
+        elif "JSONDecodeError" in error_type:
+            action = "Correlation state file may be corrupted, consider removing .brainworm/state/.correlation_state"
+        else:
+            action = "Check .brainworm/debug_*.log for details"
+
         if framework.debug_logger:
-            framework.debug_logger.warning(f"⚠️ Session correlation cleanup failed: {type(e).__name__}")
-        print(f"Warning: Session correlation cleanup failed", file=sys.stderr)
+            framework.debug_logger.warning(
+                f"⚠️ Session correlation cleanup failed: {error_type}: {error_msg}"
+            )
+        print(f"Warning: Session correlation cleanup failed ({error_type}). {action}", file=sys.stderr)
 
 def stop_success_message(framework):
     """Custom success message for stop hook."""

@@ -77,8 +77,9 @@ def get_context_length_from_transcript(transcript_path: str) -> int:
                 most_recent_usage.get('cache_creation_input_tokens', 0)
             )
             return context_length
-    except Exception:
-        pass
+    except Exception as e:
+        # Failed to read transcript for context length - return 0 as fallback
+        print(f"Debug: Failed to get context length: {e}", file=sys.stderr)
     return 0
 
 def check_context_warnings(transcript_path: str, project_root: Path) -> str:
@@ -108,8 +109,9 @@ def check_context_warnings(transcript_path: str, project_root: Path) -> str:
             elif usable_percentage >= 75 and not warning_75_flag.exists():
                 context_warning = f"\n[75% WARNING] {context_length:,}/160,000 tokens used ({usable_percentage:.1f}%). Context is getting low. Be aware of coming context compaction trigger.\n"
                 warning_75_flag.touch()
-    except Exception:
-        pass
+    except Exception as e:
+        # Failed to create context warning flags - continue without warnings
+        print(f"Debug: Failed to check context warnings: {e}", file=sys.stderr)
     
     return context_warning
 
@@ -247,18 +249,37 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
             detected_trigger = detect_trigger_phrases(prompt, trigger_phrases)
 
             if detected_trigger:
-                # Create trigger exception flag to allow DAIC state management
+                # Use file locking to prevent race condition in flag creation/deletion
                 trigger_flag = project_root / '.brainworm' / 'state' / 'trigger_phrase_detected.flag'
-                try:
-                    trigger_flag.touch()
-                    set_daic_mode(project_root, str(DAICMode.IMPLEMENTATION), detected_trigger)
-                    # Clean up trigger flag after successful mode change
-                    trigger_flag.unlink(missing_ok=True)
+                lock_file = project_root / '.brainworm' / 'state' / 'trigger_phrase.lock'
 
-                    if debug_logger:
-                        debug_logger.info(f"⚡ Trigger phrase detected: '{detected_trigger}' → implementation mode")
+                try:
+                    from filelock import FileLock
+                    lock = FileLock(str(lock_file), timeout=5)
+
+                    with lock:
+                        # Create trigger exception flag to allow DAIC state management
+                        trigger_flag.touch()
+                        set_daic_mode(project_root, str(DAICMode.IMPLEMENTATION), detected_trigger)
+                        # Clean up trigger flag after successful mode change
+                        trigger_flag.unlink(missing_ok=True)
+
+                        if debug_logger:
+                            debug_logger.info(f"⚡ Trigger phrase detected: '{detected_trigger}' → implementation mode")
+                except ImportError:
+                    # Fallback without locking (race condition possible but unlikely)
+                    try:
+                        trigger_flag.touch()
+                        set_daic_mode(project_root, str(DAICMode.IMPLEMENTATION), detected_trigger)
+                        trigger_flag.unlink(missing_ok=True)
+                        if debug_logger:
+                            debug_logger.info(f"⚡ Trigger phrase detected: '{detected_trigger}' → implementation mode")
+                    except Exception as e:
+                        trigger_flag.unlink(missing_ok=True)
+                        if debug_logger:
+                            debug_logger.error(f"Failed to switch DAIC mode: {e}")
                 except Exception as e:
-                    # Clean up flag on error
+                    # Clean up flag on error (within locked section if lock acquired)
                     trigger_flag.unlink(missing_ok=True)
                     if debug_logger:
                         debug_logger.error(f"Failed to switch DAIC mode: {e}")
@@ -269,7 +290,7 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
         detected_protocols = detect_protocols(prompt)
         for protocol in detected_protocols:
             protocol_name = protocol.replace('-', ' ')
-            context += f"If the user is asking to {protocol_name}, read and follow sessions/protocols/{protocol}.md protocol.\n"
+            context += f"{protocol_name} protocol found in prompt, read and follow sessions/protocols/{protocol}.md protocol.\n"
 
             # Add protocol-specific subagent reminders
             if protocol == "task-creation":

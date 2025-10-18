@@ -38,20 +38,24 @@ debug_logger = None  # Will be initialized in switch_task()
 
 
 def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
-    """Parse YAML frontmatter from task README.md"""
+    """Parse YAML frontmatter from task README.md with robust edge case handling"""
     try:
         content = readme_path.read_text()
 
-        # Check for frontmatter
-        if not content.startswith('---'):
+        # Check for frontmatter (strip leading whitespace)
+        content_stripped = content.lstrip()
+        if not content_stripped.startswith('---'):
             return None
 
-        # Extract frontmatter (between first two ---)
-        parts = content.split('---', 2)
+        # Extract frontmatter (between first two --- markers)
+        # Use lstrip() content to handle indented frontmatter
+        parts = content_stripped.split('---', 2)
         if len(parts) < 3:
             return None
 
         frontmatter = parts[1].strip()
+        if not frontmatter:  # Empty frontmatter
+            return {}
 
         # Parse simple YAML (key: value format)
         metadata = {}
@@ -60,19 +64,31 @@ def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
             if not line or ':' not in line:
                 continue
 
+            # Split on first colon only (handles values with colons)
             key, value = line.split(':', 1)
             key = key.strip()
             value = value.strip()
 
-            # Strip YAML comments (everything after #)
+            # Skip entries with empty keys
+            if not key:
+                continue
+
+            # Strip YAML comments (everything after #, but not inside lists)
             if '#' in value and not (value.startswith('[') and value.endswith(']')):
                 value = value.split('#')[0].strip()
 
             # Handle lists [item1, item2]
             if value.startswith('[') and value.endswith(']'):
-                value = [v.strip() for v in value[1:-1].split(',')]
+                inner = value[1:-1].strip()
+                # Handle empty lists
+                if not inner:
+                    value = []
+                else:
+                    value = [v.strip() for v in inner.split(',') if v.strip()]
 
-            metadata[key] = value
+            # Store non-empty values
+            if value or value == []:  # Allow empty lists but not empty strings
+                metadata[key] = value
 
         return metadata
 
@@ -217,7 +233,8 @@ def switch_task(task_name: str) -> bool:
                         cwd=submodule_path,  # ← This is the fix!
                         capture_output=True,
                         text=True,
-                        check=False
+                        check=False,
+                        timeout=10  # Prevent hanging on slow git operations
                     )
 
                     if result.returncode != 0:
@@ -233,8 +250,10 @@ def switch_task(task_name: str) -> bool:
                     actual_branch = sm.get_current_branch(submodule)
                     debug_logger.debug(f"Verification: expected_branch='{branch}', actual_branch='{actual_branch}'")
                     if actual_branch != branch:
-                        debug_logger.warning(f"Branch mismatch after checkout: expected '{branch}', got '{actual_branch}'")
-                        console.print(f"[yellow]Warning: Expected branch '{branch}', but submodule is on '{actual_branch}'[/yellow]")
+                        debug_logger.error(f"Branch verification failed: expected '{branch}', got '{actual_branch}'")
+                        console.print(f"[red]Error: Branch verification failed in submodule '{submodule}'[/red]")
+                        console.print(f"[red]Expected '{branch}', but got '{actual_branch}'[/red]")
+                        return False
 
                 except Exception as e:
                     console.print(f"[red]Error executing git checkout: {e}[/red]")
@@ -271,7 +290,8 @@ def switch_task(task_name: str) -> bool:
                             cwd=submodule_path,
                             capture_output=True,
                             text=True,
-                            check=False
+                            check=False,
+                            timeout=10  # Prevent hanging on slow git operations
                         )
 
                         if result.returncode != 0:
@@ -291,7 +311,8 @@ def switch_task(task_name: str) -> bool:
                         cwd=project_root,
                         capture_output=True,
                         text=True,
-                        check=False
+                        check=False,
+                        timeout=10  # Prevent hanging on slow git operations
                     )
 
                     if result.returncode != 0:
@@ -353,7 +374,8 @@ def switch_task(task_name: str) -> bool:
                     ['git', 'branch', '--show-current'],
                     cwd=project_root,
                     capture_output=True,
-                    text=True
+                    text=True,
+                    timeout=5  # Quick operation, shorter timeout
                 )
                 main_branch = main_result.stdout.strip()
                 if main_branch:

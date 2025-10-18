@@ -29,20 +29,24 @@ console = Console()
 
 
 def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
-    """Parse YAML frontmatter from task README.md"""
+    """Parse YAML frontmatter from task README.md with robust edge case handling"""
     try:
         content = readme_path.read_text()
 
-        # Check for frontmatter
-        if not content.startswith('---'):
+        # Check for frontmatter (strip leading whitespace)
+        content_stripped = content.lstrip()
+        if not content_stripped.startswith('---'):
             return None
 
-        # Extract frontmatter (between first two ---)
-        parts = content.split('---', 2)
+        # Extract frontmatter (between first two --- markers)
+        # Use lstrip() content to handle indented frontmatter
+        parts = content_stripped.split('---', 2)
         if len(parts) < 3:
             return None
 
         frontmatter = parts[1].strip()
+        if not frontmatter:  # Empty frontmatter
+            return {}
 
         # Parse simple YAML (key: value format)
         metadata = {}
@@ -51,15 +55,31 @@ def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
             if not line or ':' not in line:
                 continue
 
+            # Split on first colon only (handles values with colons)
             key, value = line.split(':', 1)
             key = key.strip()
             value = value.strip()
 
+            # Skip entries with empty keys
+            if not key:
+                continue
+
+            # Strip YAML comments (everything after #, but not inside lists)
+            if '#' in value and not (value.startswith('[') and value.endswith(']')):
+                value = value.split('#')[0].strip()
+
             # Handle lists [item1, item2]
             if value.startswith('[') and value.endswith(']'):
-                value = [v.strip() for v in value[1:-1].split(',')]
+                inner = value[1:-1].strip()
+                # Handle empty lists
+                if not inner:
+                    value = []
+                else:
+                    value = [v.strip() for v in inner.split(',') if v.strip()]
 
-            metadata[key] = value
+            # Store non-empty values
+            if value or value == []:  # Allow empty lists but not empty strings
+                metadata[key] = value
 
         return metadata
 

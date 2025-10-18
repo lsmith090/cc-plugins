@@ -21,6 +21,7 @@ Usage:
 
 import sys
 import argparse
+import subprocess
 from pathlib import Path
 from typing import List, Optional
 from rich.console import Console
@@ -30,6 +31,21 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.project import find_project_root
 
 console = Console()
+
+
+def validate_branch_exists(project_root: Path, branch: str) -> bool:
+    """Validate that the branch exists in git"""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--verify", branch],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
 
 
 def update_task_state(
@@ -73,7 +89,13 @@ def update_task_state(
         final_task = task if task is not None else current_state.get("current_task")
         final_branch = branch if branch is not None else current_state.get("current_branch")
         final_services = services if services is not None else current_state.get("task_services", [])
-        
+
+        # Validate branch exists if a new branch was provided
+        if branch is not None and final_branch:
+            if not validate_branch_exists(project_root, final_branch):
+                console.print(f"⚠️  [yellow]Warning:[/yellow] Branch '{final_branch}' does not exist in git")
+                console.print("   State will be updated, but you may want to create the branch first")
+
         # Update task state atomically
         result = state_manager.set_task_state(
             task=final_task,

@@ -77,9 +77,13 @@ class HookEventStore:
     def _init_database(self):
         """Initialize SQLite database for event storage with minimal schema"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                # Simplified schema: minimal indexed columns + rich JSON
-                conn.execute("""
+            # Use connection pool if available, otherwise fallback to direct connection
+            if self.db_manager:
+                from .sqlite_manager import get_hooks_sqlite_manager
+                manager = get_hooks_sqlite_manager()
+
+                # Use ensure_schema which handles connection pooling
+                schema_sql = """
                     CREATE TABLE IF NOT EXISTS hook_events (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         hook_name TEXT NOT NULL,
@@ -88,32 +92,52 @@ class HookEventStore:
                         execution_id TEXT,
                         timestamp DATETIME NOT NULL,
                         event_data TEXT NOT NULL
-                    )
-                """)
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp ON hook_events(timestamp);
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_correlation ON hook_events(correlation_id);
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_session ON hook_events(session_id);
+                    CREATE INDEX IF NOT EXISTS idx_hook_events_execution_id ON hook_events(execution_id)
+                """
+                manager.ensure_schema(self.db_path, schema_sql, "hook_events")
+            else:
+                # Fallback to direct connection
+                with sqlite3.connect(self.db_path) as conn:
+                    # Simplified schema: minimal indexed columns + rich JSON
+                    conn.execute("""
+                        CREATE TABLE IF NOT EXISTS hook_events (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            hook_name TEXT NOT NULL,
+                            correlation_id TEXT,
+                            session_id TEXT,
+                            execution_id TEXT,
+                            timestamp DATETIME NOT NULL,
+                            event_data TEXT NOT NULL
+                        )
+                    """)
 
-                # Indexes for efficient querying
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp
-                    ON hook_events(timestamp)
-                """)
+                    # Indexes for efficient querying
+                    conn.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp
+                        ON hook_events(timestamp)
+                    """)
 
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_hook_events_correlation
-                    ON hook_events(correlation_id)
-                """)
+                    conn.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_hook_events_correlation
+                        ON hook_events(correlation_id)
+                    """)
 
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_hook_events_session
-                    ON hook_events(session_id)
-                """)
+                    conn.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_hook_events_session
+                        ON hook_events(session_id)
+                    """)
 
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_hook_events_execution_id
-                    ON hook_events(execution_id)
-                """)
-        except Exception:
+                    conn.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_hook_events_execution_id
+                        ON hook_events(execution_id)
+                    """)
+        except Exception as e:
             # Event storage is optional - continue if database init fails
-            pass
+            print(f"Warning: Failed to initialize event database: {e}", file=sys.stderr)
     
     def log_event(self, event_data: Dict[str, Any]) -> bool:
         """Store a hook event to the database"""
@@ -139,9 +163,10 @@ class HookEventStore:
                     duration_ms = self._extract_duration_ms(event_data)
                     if 'timestamp' in event_data:
                         timestamp = format_for_database(str(event_data['timestamp']))
-                        
-                except Exception:
-                    # Fallback to untyped parsing
+
+                except Exception as e:
+                    # Fallback to untyped parsing when typed parsing fails
+                    print(f"Debug: Typed event parsing failed, using fallback: {e}", file=sys.stderr)
                     hook_name = event_data.get('hook_name', 'unknown')
                     event_type = event_data.get('event_type', 'hook_execution')
                     correlation_id = event_data.get('correlation_id')
@@ -164,17 +189,62 @@ class HookEventStore:
             # Extract minimal indexed fields
             execution_id = event_data.get('execution_id', None)
 
+            # Security: Validate inputs to prevent injection attacks
+            # Note: Using parameterized queries (?) already prevents SQL injection,
+            # but we validate inputs for defense in depth
+            try:
+                from .security_validators import sanitize_for_display
+                # Validate string lengths to prevent DoS via huge inputs
+                if hook_name and len(hook_name) > 100:
+                    hook_name = sanitize_for_display(hook_name, 100)
+                if correlation_id and len(correlation_id) > 100:
+                    correlation_id = sanitize_for_display(correlation_id, 100)
+                if session_id and len(session_id) > 100:
+                    session_id = sanitize_for_display(session_id, 100)
+                if execution_id and len(execution_id) > 100:
+                    execution_id = sanitize_for_display(execution_id, 100)
+            except ImportError:
+                # Fallback: basic length validation
+                if hook_name and len(hook_name) > 100:
+                    hook_name = hook_name[:100]
+                if correlation_id and len(correlation_id) > 100:
+                    correlation_id = correlation_id[:100]
+                if session_id and len(session_id) > 100:
+                    session_id = session_id[:100]
+                if execution_id and len(execution_id) > 100:
+                    execution_id = execution_id[:100]
+
             # Store in database with simplified schema: minimal columns + rich JSON
-            with sqlite3.connect(self.db_path, timeout=1.0) as conn:
-                conn.execute("""
-                    INSERT INTO hook_events
-                    (hook_name, correlation_id, session_id, execution_id,
-                     timestamp, event_data)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (
-                    hook_name, correlation_id, session_id, execution_id,
-                    timestamp, json.dumps(event_data)
-                ))
+            # Using parameterized queries (?) to prevent SQL injection
+            # Use connection pool if available, otherwise fallback to direct connection
+            if self.db_manager:
+                from .sqlite_manager import get_hooks_sqlite_manager
+                manager = get_hooks_sqlite_manager()
+
+                # Use connection pool for better performance
+                with manager.connection(self.db_path) as conn:
+                    conn.execute("""
+                        INSERT INTO hook_events
+                        (hook_name, correlation_id, session_id, execution_id,
+                         timestamp, event_data)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        hook_name, correlation_id, session_id, execution_id,
+                        timestamp, json.dumps(event_data)
+                    ))
+                    conn.commit()
+            else:
+                # Fallback to direct connection
+                with sqlite3.connect(self.db_path, timeout=1.0) as conn:
+                    conn.execute("""
+                        INSERT INTO hook_events
+                        (hook_name, correlation_id, session_id, execution_id,
+                         timestamp, event_data)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        hook_name, correlation_id, session_id, execution_id,
+                        timestamp, json.dumps(event_data)
+                    ))
 
             return True
 
@@ -193,40 +263,80 @@ class HookEventStore:
     def get_recent_events(self, limit: int = 100) -> list:
         """Get recent hook events for monitoring"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute("""
-                    SELECT * FROM hook_events 
-                    ORDER BY timestamp DESC 
-                    LIMIT ?
-                """, (limit,))
-                return [dict(row) for row in cursor.fetchall()]
+            # Use connection pool if available
+            if self.db_manager:
+                from .sqlite_manager import get_hooks_sqlite_manager
+                manager = get_hooks_sqlite_manager()
+
+                with manager.connection(self.db_path) as conn:
+                    cursor = conn.execute("""
+                        SELECT * FROM hook_events
+                        ORDER BY timestamp DESC
+                        LIMIT ?
+                    """, (limit,))
+                    return [dict(row) for row in cursor.fetchall()]
+            else:
+                # Fallback to direct connection
+                with sqlite3.connect(self.db_path) as conn:
+                    conn.row_factory = sqlite3.Row
+                    cursor = conn.execute("""
+                        SELECT * FROM hook_events
+                        ORDER BY timestamp DESC
+                        LIMIT ?
+                    """, (limit,))
+                    return [dict(row) for row in cursor.fetchall()]
         except Exception:
             return []
     
     def get_statistics(self) -> Dict[str, Any]:
         """Get basic statistics about hook performance"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute("""
-                    SELECT
-                        COUNT(*) as total_events,
-                        COUNT(DISTINCT session_id) as unique_sessions,
-                        COUNT(DISTINCT correlation_id) as unique_correlations
-                    FROM hook_events
-                    WHERE datetime(timestamp) > datetime('now', '-1 day')
-                """)  # Last 24 hours using SQLite datetime functions
+            # Use connection pool if available
+            if self.db_manager:
+                from .sqlite_manager import get_hooks_sqlite_manager
+                manager = get_hooks_sqlite_manager()
 
-                row = cursor.fetchone()
-                if row:
-                    return {
-                        'total_events': row[0],
-                        'unique_sessions': row[1],
-                        'unique_correlations': row[2],
-                        'period': '24h'
-                    }
-        except Exception:
-            pass
+                with manager.connection(self.db_path) as conn:
+                    cursor = conn.execute("""
+                        SELECT
+                            COUNT(*) as total_events,
+                            COUNT(DISTINCT session_id) as unique_sessions,
+                            COUNT(DISTINCT correlation_id) as unique_correlations
+                        FROM hook_events
+                        WHERE datetime(timestamp) > datetime('now', '-1 day')
+                    """)  # Last 24 hours using SQLite datetime functions
+
+                    row = cursor.fetchone()
+                    if row:
+                        return {
+                            'total_events': row[0],
+                            'unique_sessions': row[1],
+                            'unique_correlations': row[2],
+                            'period': '24h'
+                        }
+            else:
+                # Fallback to direct connection
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.execute("""
+                        SELECT
+                            COUNT(*) as total_events,
+                            COUNT(DISTINCT session_id) as unique_sessions,
+                            COUNT(DISTINCT correlation_id) as unique_correlations
+                        FROM hook_events
+                        WHERE datetime(timestamp) > datetime('now', '-1 day')
+                    """)  # Last 24 hours using SQLite datetime functions
+
+                    row = cursor.fetchone()
+                    if row:
+                        return {
+                            'total_events': row[0],
+                            'unique_sessions': row[1],
+                            'unique_correlations': row[2],
+                            'period': '24h'
+                        }
+        except Exception as e:
+            # Database query failed - return default stats
+            print(f"Debug: Failed to query event summary: {e}", file=sys.stderr)
 
         return {
             'total_events': 0,
@@ -234,6 +344,57 @@ class HookEventStore:
             'unique_correlations': 0,
             'period': '24h'
         }
+
+    def cleanup_old_events(self, retention_days: int = 90) -> Dict[str, Any]:
+        """Clean up events older than retention period (default 90 days)
+
+        Args:
+            retention_days: Number of days to retain events (default: 90)
+
+        Returns:
+            Dict with cleanup statistics (deleted_count, retention_days, success)
+        """
+        try:
+            # Use connection pool if available
+            if self.db_manager:
+                from .sqlite_manager import get_hooks_sqlite_manager
+                manager = get_hooks_sqlite_manager()
+
+                with manager.connection(self.db_path) as conn:
+                    # Delete events older than retention period
+                    cursor = conn.execute("""
+                        DELETE FROM hook_events
+                        WHERE datetime(timestamp) < datetime('now', '-' || ? || ' days')
+                    """, (retention_days,))
+                    deleted_count = cursor.rowcount
+                    conn.commit()
+
+                    return {
+                        'success': True,
+                        'deleted_count': deleted_count,
+                        'retention_days': retention_days
+                    }
+            else:
+                # Fallback to direct connection
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.execute("""
+                        DELETE FROM hook_events
+                        WHERE datetime(timestamp) < datetime('now', '-' || ? || ' days')
+                    """, (retention_days,))
+                    deleted_count = cursor.rowcount
+                    conn.commit()
+
+                    return {
+                        'success': True,
+                        'deleted_count': deleted_count,
+                        'retention_days': retention_days
+                    }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'retention_days': retention_days
+            }
 
 def create_event_store(brainworm_dir: Path) -> HookEventStore:
     """Create an event store instance"""

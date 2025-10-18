@@ -54,11 +54,15 @@ def split_command_respecting_quotes(command: str) -> List[str]:
     while i < len(command):
         char = command[i]
 
+        # Check if character is escaped (preceded by backslash)
+        is_escaped = i > 0 and command[i-1] == '\\' and (i < 2 or command[i-2] != '\\')
+
         # Handle quotes - toggle state and preserve in output
-        if char == '"' and not in_single_quote:
+        # Only toggle if not escaped
+        if char == '"' and not in_single_quote and not is_escaped:
             in_double_quote = not in_double_quote
             current_part.append(char)
-        elif char == "'" and not in_double_quote:
+        elif char == "'" and not in_double_quote and not is_escaped:
             in_single_quote = not in_single_quote
             current_part.append(char)
         # Handle operators only when not in quotes
@@ -141,8 +145,10 @@ def is_read_only_bash_command(command: str, config: Dict[str, Any]) -> bool:
 
     # PHASE 1: Check for write patterns (output redirection, file modifications)
     write_patterns = [
-        r'>(?!&)(?!\s*/dev/null)',  # Output redirection (except fd redirects and /dev/null)
-        r'>>',                      # Append redirection
+        # Output redirection patterns (improved security)
+        # Match > but exclude specific safe patterns: >&1, >&2, > /dev/null, > /dev/zero
+        r'>(?!&[12]\b)(?!\s*/dev/null\b)(?!\s*/dev/zero\b)',  # Output redirection
+        r'>>',                      # Append redirection always blocked
         r'\btee\b',           # tee command (writes to files)
         r'\bmv\b',            # move/rename
         r'\bcp\b',            # copy
@@ -154,6 +160,9 @@ def is_read_only_bash_command(command: str, config: Dict[str, Any]) -> bool:
         r'\bpip\s+install',   # pip install
         r'-delete\b',         # find -delete flag (SECURITY)
         r'-exec\s+.*rm\b',    # find -exec with rm (SECURITY)
+        r'\bdd\b',            # dd command (can write to disk)
+        r'<\(',               # Process substitution write
+        r'>\(',               # Process substitution write
     ]
 
     # If command has any write patterns, it's not read-only

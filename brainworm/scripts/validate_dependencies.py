@@ -170,8 +170,9 @@ def check_for_deprecated_imports(plugin_root: Path) -> List[str]:
                     issues.append(
                         f"  ❌ {py_file.relative_to(Path.cwd())}: {message}"
                     )
-        except Exception:
-            pass
+        except Exception as e:
+            # File unreadable - skip (may be binary or permission issue)
+            print(f"Debug: Failed to check {py_file}: {e}", file=sys.stderr)
 
     return issues
 
@@ -235,14 +236,37 @@ def main():
 
     args = parser.parse_args()
 
-    # Determine plugin root
-    script_dir = Path(__file__).parent
-    plugin_root = script_dir.parent
+    # Security: Determine plugin root with path validation
+    try:
+        script_file = Path(__file__).resolve()
+        script_dir = script_file.parent
+        plugin_root = script_dir.parent
+
+        # Validate paths are within expected structure
+        # script should be in brainworm/scripts/, plugin_root should be brainworm/
+        if script_dir.name != "scripts":
+            print("Error: Script must be run from brainworm/scripts/ directory", file=sys.stderr)
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error: Failed to determine plugin root: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if args.file:
+        # Security: Validate and resolve file path
+        try:
+            file_path = Path(args.file).resolve()
+            # Ensure file is within plugin root to prevent path traversal
+            file_path.relative_to(plugin_root)
+        except ValueError:
+            print(f"Error: File must be within plugin directory: {args.file}", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error: Invalid file path: {e}", file=sys.stderr)
+            sys.exit(1)
+
         # Validate single file
-        print(f"\n🔍 Validating {args.file}...\n")
-        is_valid, errors = validate_file(args.file, verbose=True)
+        print(f"\n🔍 Validating {file_path.relative_to(plugin_root)}...\n")
+        is_valid, errors = validate_file(file_path, verbose=True)
 
         if errors:
             for error in errors:

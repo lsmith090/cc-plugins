@@ -36,13 +36,31 @@ def determine_tool_success(tool_response: Dict[str, Any]) -> bool:
         return False
 
     if "error" in tool_response:
-        return False
+        # Only treat as failure if error value is truthy
+        error_value = tool_response["error"]
+        if error_value:  # Not None, not empty string, not False
+            return False
 
-    # Check for common failure indicators in response text
+    # Check for common failure indicators in specific fields (not whole response)
+    # This prevents false negatives when words like "error" appear in success messages
+    # (e.g., "Successfully handled error", "No errors found")
     failure_indicators = ["failed", "error", "exception", "timeout"]
-    response_text = str(tool_response).lower()
-    if any(indicator in response_text for indicator in failure_indicators):
-        return False
+
+    # Check specific fields that indicate status
+    check_fields = ["status", "message", "result"]
+    for field in check_fields:
+        if field in tool_response:
+            field_text = str(tool_response[field]).lower()
+            # Look for failure patterns: "failed to", "error occurred", etc.
+            failure_patterns = [
+                "failed to",
+                "error occurred",
+                "exception raised",
+                "timed out",
+                "execution failed",
+            ]
+            if any(pattern in field_text for pattern in failure_patterns):
+                return False
 
     return True
 

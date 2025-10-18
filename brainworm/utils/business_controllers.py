@@ -13,7 +13,10 @@ High-level controllers for common brainworm hook business operations.
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 import uuid
+import logging
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 try:
     from .daic_state_manager import DAICStateManager
@@ -49,7 +52,8 @@ class SubagentContextManager:
                 self.subagent_flag.unlink()
                 return True
             return False
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to cleanup subagent flag for {tool_name}: {e}")
             return False
     
     def set_subagent_context(self, agent_type: str = "unknown") -> bool:
@@ -59,7 +63,8 @@ class SubagentContextManager:
             with open(self.subagent_flag, 'w') as f:
                 f.write(f"{agent_type}\n{datetime.now(timezone.utc).isoformat()}")
             return True
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to set subagent context flag for {agent_type}: {e}")
             return False
     
     def clear_subagent_context(self) -> bool:
@@ -68,7 +73,8 @@ class SubagentContextManager:
             if self.subagent_flag.exists():
                 self.subagent_flag.unlink()
             return True
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to clear subagent context flag: {e}")
             return False
     
     def is_in_subagent_context(self) -> bool:
@@ -162,17 +168,18 @@ class DAICModeController:
         """Get current mode with display formatting."""
         if not self.state_manager or not DAICMode or not ModeDisplayInfo:
             return ModeDisplayInfo.error_display()
-        
+
         try:
             mode = self.state_manager.get_daic_mode()
             display_info = {
                 DAICMode.DISCUSSION: {"emoji": "💭", "color": "purple"},
                 DAICMode.IMPLEMENTATION: {"emoji": "⚡", "color": "green"}
             }
-            
+
             info = display_info.get(mode, {"emoji": "❓", "color": "white"})
             return ModeDisplayInfo.success_display(mode, info["emoji"], info["color"])
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to get DAIC mode display info: {e}")
             return ModeDisplayInfo.error_display()
 
 
@@ -213,8 +220,9 @@ class SessionCorrelationController:
                     from .correlation_manager import CorrelationManager
                     corr_mgr = CorrelationManager(self.project_root)
                     corr_mgr._store_session_correlation(session_id, correlation_id)
-                except Exception:
-                    pass  # Don't fail if correlation_state update fails
+                except Exception as e:
+                    # Don't fail if correlation_state update fails, but log for debugging
+                    logger.warning(f"Failed to sync correlation to .correlation_state: {e}")
 
                 return CorrelationUpdateResult.successful_update(session_id, correlation_id)
             else:
@@ -281,8 +289,11 @@ class SessionCorrelationController:
         return IdGenerationResult(session_id=session_id, correlation_id=correlation_id)
     
     def _generate_short_id(self) -> str:
-        """Generate short UUID for correlation tracking."""
-        return str(uuid.uuid4())[:8]
+        """Generate short UUID for correlation tracking.
+
+        Uses 16 hex characters (64 bits of entropy) for better collision resistance.
+        """
+        return str(uuid.uuid4())[:16]
 
 
 def create_subagent_manager(project_root: Path) -> SubagentContextManager:

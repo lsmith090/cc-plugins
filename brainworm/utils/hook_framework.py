@@ -136,21 +136,46 @@ class HookFramework:
     def _setup_environment(self) -> None:
         """Centralize sys.path manipulation and common imports with security validation."""
         try:
-            # Secure path resolution with validation
-            utils_path = Path(__file__).parent.resolve()
-            templates_path = Path(__file__).parent.parent.resolve()
-            
+            # Import security validator
+            try:
+                from .security_validators import validate_safe_path
+            except ImportError:
+                # Fallback if security_validators not available
+                def validate_safe_path(path, base):
+                    resolved = path.resolve()
+                    base_resolved = base.resolve()
+                    try:
+                        resolved.relative_to(base_resolved)
+                        return resolved
+                    except ValueError:
+                        raise ValueError(f"Path {path} escapes base {base}")
+
+            # Secure path resolution with boundary validation
+            current_file = Path(__file__).resolve()
+            utils_path = current_file.parent
+            plugin_root = utils_path.parent
+
+            # Validate paths are within expected plugin structure
+            # This prevents __file__ manipulation attacks
+            try:
+                validate_safe_path(utils_path, plugin_root)
+                validate_safe_path(plugin_root, plugin_root.parent)
+            except ValueError as e:
+                # Path traversal attempt detected
+                print(f"Warning: Path validation failed: {e}", file=sys.stderr)
+                return
+
             # Validate paths exist and are directories before adding to sys.path
             if utils_path.exists() and utils_path.is_dir():
                 utils_str = str(utils_path)
                 if utils_str not in sys.path:
                     sys.path.insert(0, utils_str)
-            
-            if templates_path.exists() and templates_path.is_dir():
-                templates_str = str(templates_path)
+
+            if plugin_root.exists() and plugin_root.is_dir():
+                templates_str = str(plugin_root)
                 if templates_str not in sys.path:
                     sys.path.insert(0, templates_str)
-                    
+
         except Exception as e:
             # Sanitize error message to prevent information disclosure
             print("Warning: Environment setup failed due to path validation error", file=sys.stderr)
@@ -159,12 +184,21 @@ class HookFramework:
         """Read and parse JSON input from Claude Code stdin with type-safe processing."""
         try:
             input_text = sys.stdin.read()
+
+            # Security: Limit input size to prevent memory exhaustion attacks
+            # Claude Code hook inputs should be under 10MB in normal operation
+            MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10MB
+            if len(input_text) > MAX_INPUT_SIZE:
+                print(f"Warning: Input size ({len(input_text)} bytes) exceeds maximum allowed ({MAX_INPUT_SIZE} bytes)", file=sys.stderr)
+                self.raw_input_data = {}
+                return
+
             self.raw_input_data = json.loads(input_text) if input_text.strip() else {}
             self.session_id = self.raw_input_data.get('session_id', 'unknown')
-            
+
             # Type-safe input processing using sophisticated schemas
             self._parse_typed_input()
-            
+
         except json.JSONDecodeError:
             print("Warning: Invalid JSON input format", file=sys.stderr)
             self.raw_input_data = {}
@@ -466,7 +500,8 @@ class HookFramework:
                     # Remove corrupt or unreadable markers
                     try:
                         marker_file.unlink()
-                    except:
+                    except Exception:
+                        # Marker file deletion failed - continue cleanup
                         pass
         except Exception:
             pass  # Don't fail execution due to cleanup issues

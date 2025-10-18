@@ -484,7 +484,7 @@ def initialize_user_config(project_root: Path) -> None:
     except Exception:
         pass  # Don't fail session start due to user config initialization issues
 
-def cleanup_session_flags(project_root: Path) -> None:
+def cleanup_session_flags(project_root: Path, debug_logger=None) -> None:
     """Clean up flags from previous sessions based on cc-sessions logic"""
     try:
         state_dir = project_root / ".brainworm" / "state"
@@ -493,17 +493,27 @@ def cleanup_session_flags(project_root: Path) -> None:
         warning_75_flag = state_dir / "context-warning-75.flag"
         warning_90_flag = state_dir / "context-warning-90.flag"
 
+        flags_cleaned = []
         if warning_75_flag.exists():
             warning_75_flag.unlink()
+            flags_cleaned.append("75%")
         if warning_90_flag.exists():
             warning_90_flag.unlink()
+            flags_cleaned.append("90%")
 
         # Also clean up any stale subagent context flag
         subagent_flag = state_dir / "in_subagent_context.flag"
         if subagent_flag.exists():
             subagent_flag.unlink()
-    except Exception:
-        pass  # Don't fail session start due to flag cleanup issues
+            flags_cleaned.append("subagent")
+
+        if debug_logger and flags_cleaned:
+            debug_logger.debug(f"Cleaned up flags: {', '.join(flags_cleaned)}")
+
+    except Exception as e:
+        # Log failure but don't crash session start
+        if debug_logger:
+            debug_logger.warning(f"Failed to clean up session flags: {e}")
 
 def session_start_logic(framework, typed_input):
     """Custom logic for session start with auto-setup, user config, and flag cleanup."""
@@ -536,11 +546,11 @@ def session_start_logic(framework, typed_input):
     if framework.debug_logger:
         framework.debug_logger.debug("User config initialized")
 
-    cleanup_session_flags(project_root)
+    cleanup_session_flags(project_root, framework.debug_logger)
 
-    # Debug logging after cleanup
+    # Debug logging after cleanup (cleanup function now logs details)
     if framework.debug_logger:
-        framework.debug_logger.debug("Session flags cleaned up")
+        framework.debug_logger.debug("Session flags cleanup completed")
 
     # FIX #1: Auto-populate session_id in unified state
     # Update unified state with session_id from Claude Code
@@ -558,9 +568,9 @@ def session_start_logic(framework, typed_input):
                 new_short = new_session_id[:8] if len(new_session_id) >= 8 else new_session_id
                 framework.debug_logger.info(f"📝 Updating session_id: {current_short} → {new_short}")
 
-            state_mgr._update_unified_state({
-                'session_id': new_session_id
-            })
+            # Use public API - preserve existing correlation_id
+            current_correlation_id = current_state.get('correlation_id', new_session_id[:16])
+            state_mgr.update_session_correlation(new_session_id, current_correlation_id)
 
             # Verify the update worked
             verified_state = state_mgr.get_unified_state()
@@ -590,7 +600,7 @@ def session_start_logic(framework, typed_input):
                 f.write(f"Error: {str(e)}\n")
                 f.write(traceback.format_exc())
                 f.write(f"{'='*80}\n")
-        except:
+        except Exception:
             pass  # Don't fail if logging fails
 
     # Debug logging - INFO level
