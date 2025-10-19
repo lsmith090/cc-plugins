@@ -237,6 +237,64 @@ class TestDAICCommandParsing:
             result = is_brainworm_system_command(cmd, config)
             assert result == expected, f"{description}: '{cmd}'"
 
+    def test_daic_status_not_blocked_in_discussion_mode(self, config, tmp_path):
+        """
+        REGRESSION TEST: Ensure ./daic status is NOT blocked in discussion mode
+
+        Bug: Lines 141-142 of pre_tool_use.py were blocking ALL ./daic commands
+        in discussion mode, including read-only queries like ./daic status.
+
+        Fix: Check for mode-switching subcommands (implementation, toggle) only,
+        not all daic commands.
+
+        This test validates the complete blocking logic, not just the
+        is_brainworm_system_command check.
+        """
+        from brainworm.hooks.pre_tool_use import should_block_tool_daic
+        from brainworm.utils.hook_types import DAICMode
+
+        # Create a minimal project directory structure
+        project_root = tmp_path / "test_project"
+        state_dir = project_root / ".brainworm" / "state"
+        state_dir.mkdir(parents=True, exist_ok=True)
+
+        # DAIC state: discussion mode
+        daic_state = {
+            "mode": str(DAICMode.DISCUSSION),
+            "timestamp": None,
+            "previous_mode": None
+        }
+
+        # Test cases: (command, should_block, description)
+        test_cases = [
+            # Read-only daic commands - should be ALLOWED in discussion mode
+            ("./daic status", False, "daic status should be allowed (read-only query)"),
+            ("daic status", False, "daic status without ./ should be allowed"),
+            (".brainworm/plugin-launcher daic_command.py status", False, "slash command status should be allowed"),
+
+            # Mode-switching daic commands - should be BLOCKED in discussion mode
+            ("./daic implementation", True, "daic implementation should be blocked"),
+            ("daic implementation", True, "daic implementation without ./ should be blocked"),
+            ("./daic toggle", True, "daic toggle should be blocked"),
+            ("daic toggle", True, "daic toggle without ./ should be blocked"),
+            (".brainworm/plugin-launcher daic_command.py implementation", True, "slash command implementation should be blocked"),
+            (".brainworm/plugin-launcher daic_command.py toggle", True, "slash command toggle should be blocked"),
+
+            # Discussion mode daic command - allowed (you're already there)
+            ("./daic discussion", False, "daic discussion should be allowed (noop in discussion mode)"),
+        ]
+
+        for command, should_block, description in test_cases:
+            raw_input_data = {
+                "tool_name": "Bash",
+                "tool_input": {"command": command}
+            }
+
+            result = should_block_tool_daic(raw_input_data, config, daic_state, project_root)
+
+            assert result.should_block == should_block, \
+                f"REGRESSION - {description}: '{command}' - expected block={should_block}, got block={result.should_block}, reason={result.reason}"
+
     def test_edge_cases_whitespace_and_malformed(self, config):
         """Test edge cases: whitespace, tabs, malformed commands"""
         test_cases = [

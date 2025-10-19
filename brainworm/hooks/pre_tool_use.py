@@ -77,11 +77,14 @@ def is_brainworm_system_command(command: str, config: Dict[str, Any], project_ro
     # Normal restrictive patterns when no trigger phrase
     read_only_system_patterns = [
         r'(\./)?daic\s+status$',  # Only status command, NOT toggle
+        r'(\./)?daic\s+discussion$',  # Discussion mode is always safe (noop in discussion mode)
+        r'\.brainworm/plugin-launcher\s+daic_command\.py\s+status$',  # Slash command status
+        r'\.brainworm/plugin-launcher\s+daic_command\.py\s+discussion$',  # Slash command discussion
         r'uv run \.brainworm/scripts/update_.*\.py\s+--show-current$',  # Only --show-current queries
         r'(\./)?tasks(\s+.*)?$',  # All tasks commands allowed in discussion mode
         r'uv run \.brainworm/scripts/create_task\.py(\s+.*)?$',  # Task creation allowed in discussion mode
     ]
-    
+
     return any(re.search(pattern, command) for pattern in read_only_system_patterns)
 
 
@@ -137,18 +140,37 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
                     debug_logger.debug(f"Slash command check - Has 'daic_command.py': {'daic_command.py' in command}")
                     debug_logger.debug(f"Slash command check - Has 'implementation': {'implementation' in command}")
 
-                # Check for direct daic command: 'daic' or './daic'
+                # Check for direct daic mode-switching command: 'daic' or './daic'
+                # Only block mode-switching subcommands, not read-only queries like 'status'
                 if first_command in ('daic', './daic'):
-                    return ToolBlockingResult.command_block(command, "The 'daic' command is not allowed in discussion mode. You're already in discussion mode.")
+                    # Extract the subcommand (first argument after daic)
+                    parts = command.split()
+                    if len(parts) > 1:
+                        subcommand = parts[1]
+                        # Only block implementation and toggle subcommands
+                        if subcommand in ['implementation', 'toggle']:
+                            return ToolBlockingResult.command_block(
+                                command,
+                                "DAIC mode switching to implementation is not allowed in discussion mode. Use trigger phrases or let the user invoke the command directly."
+                            )
 
                 # Check for slash command via plugin-launcher: '.brainworm/plugin-launcher daic_command.py'
                 if 'plugin-launcher' in first_command and 'daic_command.py' in command:
                     # Extract arguments to check for mode-switching subcommands
-                    if any(arg in command for arg in ['implementation', 'toggle']):
-                        return ToolBlockingResult.command_block(
-                            command,
-                            "DAIC mode switching to implementation is not allowed. Use trigger phrases or let the user invoke the command directly."
-                        )
+                    # Only block implementation and toggle, not status or discussion
+                    parts = command.split()
+                    # Find the index after daic_command.py to get the subcommand
+                    try:
+                        daic_idx = next(i for i, p in enumerate(parts) if 'daic_command.py' in p)
+                        if daic_idx + 1 < len(parts):
+                            subcommand = parts[daic_idx + 1]
+                            if subcommand in ['implementation', 'toggle']:
+                                return ToolBlockingResult.command_block(
+                                    command,
+                                    "DAIC mode switching to implementation is not allowed. Use trigger phrases or let the user invoke the command directly."
+                                )
+                    except StopIteration:
+                        pass  # daic_command.py not found in parts, allow it through
 
         # SECOND: Allow brainworm system management commands even in discussion mode (after mode-switching check)
         if is_discussion_mode and is_brainworm_system_command(command, config, project_root):
