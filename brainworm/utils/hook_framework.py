@@ -36,6 +36,8 @@ from rich.console import Console
 from filelock import FileLock
 
 # Import sophisticated infrastructure systems
+# CRITICAL: These imports are REQUIRED for hook functionality
+# If they fail, the hook MUST fail with a clear error message
 try:
     from .hook_types import (
         BaseHookInput, PreToolUseInput, PostToolUseInput, UserPromptSubmitInput,
@@ -45,25 +47,42 @@ try:
     from .event_logger import SessionEventLogger, create_event_logger
     from .debug_logger import DebugLogger, DebugConfig, create_debug_logger
     from .config import load_config
-except ImportError:
-    # Fallback imports for backward compatibility
-    BaseHookInput = None
-    PreToolUseInput = None
-    PostToolUseInput = None
-    UserPromptSubmitInput = None
-    SessionStartInput = None
-    SessionEndInput = None
-    StopInput = None
-    NotificationInput = None
-    PreToolUseDecisionOutput = None
-    parse_log_event = None
-    get_standard_timestamp = lambda: datetime.now(timezone.utc).isoformat()
-    SessionEventLogger = None
-    create_event_logger = None
-    DebugLogger = None
-    DebugConfig = None
-    create_debug_logger = None
-    load_config = None
+except ImportError as import_error:
+    # FAIL FAST: Print clear error and re-raise
+    # This catches missing dependencies that would cause silent failures
+    import traceback
+
+    error_msg = f"""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                     CRITICAL: HOOK INFRASTRUCTURE FAILURE                    ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ Hook framework failed to import required infrastructure modules.             ║
+║                                                                               ║
+║ Import Error: {str(import_error):<62} ║
+║                                                                               ║
+║ This usually means:                                                           ║
+║  • Missing dependency in inline script metadata (# /// script)               ║
+║  • Common missing: tomli-w>=1.0.0, rich>=13.0.0, filelock>=3.13.0           ║
+║                                                                               ║
+║ 🔧 How to fix:                                                                ║
+║  1. Check the hook script's inline dependencies                              ║
+║  2. Run: python3 scripts/validate_dependencies.py --file path/to/hook.py    ║
+║  3. Add missing dependencies to the script's dependency list                 ║
+║                                                                               ║
+║ 📚 See: brainworm/docs/MISSING_DEPENDENCY_FIX.md                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Detailed traceback:
+"""
+    print(error_msg, file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
+
+    # Re-raise to fail the hook execution
+    # This is INTENTIONAL - we want the hook to fail visibly, not silently
+    raise RuntimeError(
+        f"Hook infrastructure import failed: {import_error}. "
+        "Fix dependency issues before running hooks."
+    ) from import_error
 
 
 class HookFramework:
@@ -275,10 +294,9 @@ class HookFramework:
 
             # Initialize event logger with Claude Code session correlation
             if self.enable_event_logging and create_event_logger:
-                event_logging_enabled = '--event-logging' in sys.argv
                 self.event_logger = create_event_logger(
                     self.project_root, self.hook_name,
-                    enable_event_logging=event_logging_enabled,
+                    enable_event_logging=True,
                     session_id=self.session_id
                 )
         except Exception as e:

@@ -161,10 +161,7 @@ class SessionEventLogger(HookLogger):
     
     
     def enrich_event_data(self, event_data: dict) -> dict:
-        """Add session correlation metadata to event data"""
-        if not self.enable_event_logging:
-            return event_data
-
+        """Add essential session and correlation metadata to event data"""
         enriched = event_data.copy()
 
         # Preserve execution_id if present

@@ -2,6 +2,7 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "rich>=13.0.0",
+#     "tomli-w>=1.0.0",
 #     "filelock>=3.13.0",
 # ]
 # ///
