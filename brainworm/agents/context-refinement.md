@@ -57,7 +57,7 @@ cat "$(pwd)/.brainworm/state/context-refinement/service_context.json"
 
    b. **Wait for transcript files to be ready**:
       ```bash
-      .brainworm/plugin-launcher scripts/wait_for_transcripts.py context-refinement
+      .brainworm/plugin-launcher wait_for_transcripts.py context-refinement
       ```
 
    c. **List all files** in the context-refinement state directory:

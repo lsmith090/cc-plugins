@@ -50,7 +50,7 @@ Follow these steps to understand what happened in current session:
 
 2. **Wait for transcript files to be ready**:
    ```bash
-   .brainworm/plugin-launcher scripts/wait_for_transcripts.py session-docs
+   .brainworm/plugin-launcher wait_for_transcripts.py session-docs
    ```
 
 3. **List all files** in the session-docs state directory:

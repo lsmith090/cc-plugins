@@ -100,7 +100,7 @@ Follow these steps to find and read the transcript files:
 
 2. **Wait for transcript files to be ready**:
    ```bash
-   .brainworm/plugin-launcher scripts/wait_for_transcripts.py logging
+   .brainworm/plugin-launcher wait_for_transcripts.py logging
    ```
 
 3. **List all files** in the logging state directory:
