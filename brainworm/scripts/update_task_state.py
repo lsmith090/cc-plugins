@@ -164,6 +164,13 @@ Examples:
             
             console.print("\n[green]Current Task State:[/green]")
             console.print(f"  Task: {task_state.get('current_task', 'None')}")
+
+            # Show task file path if task is set
+            current_task = task_state.get('current_task')
+            if current_task and current_task != 'None':
+                task_file = f".brainworm/tasks/{current_task}/README.md"
+                console.print(f"  Task File: {task_file}")
+
             console.print(f"  Branch: {task_state.get('current_branch', 'None')}")
             console.print(f"  Services: {', '.join(task_state.get('task_services', []))}")
             console.print(f"  Updated: {task_state.get('updated', 'None')}")
