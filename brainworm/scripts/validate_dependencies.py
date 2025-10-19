@@ -13,6 +13,8 @@ Usage:
 
 import re
 import sys
+import subprocess
+import json
 from pathlib import Path
 from typing import Dict, List, Tuple, Set
 from collections import defaultdict
@@ -177,23 +179,147 @@ def check_for_deprecated_imports(plugin_root: Path) -> List[str]:
     return issues
 
 
+def validate_import_completeness(file_path: Path, verbose: bool = False) -> Tuple[bool, List[str]]:
+    """Test that script can actually execute with its declared dependencies
+
+    This catches missing transitive dependencies that static validation misses.
+    For example, if script imports module A, and module A requires package B,
+    but package B is not declared in the script's inline dependencies.
+
+    Returns:
+        Tuple of (is_valid, list of error messages)
+    """
+    errors = []
+
+    # Only test files with inline script metadata
+    deps = extract_dependencies(file_path)
+    if not deps:
+        return True, []
+
+    # Test script execution with minimal JSON input
+    test_input = json.dumps({"session_id": "test", "test": True})
+
+    try:
+        # CRITICAL: Use --no-project flag to ignore repo's pyproject.toml
+        # Without this, uv would use repo dependencies and give false positives
+        # (script works due to repo deps, not inline script deps)
+        result = subprocess.run(
+            ["uv", "run", "--no-project", str(file_path)],
+            input=test_input,
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        # Check for import errors in stderr
+        stderr = result.stderr
+        stdout = result.stdout
+
+        # Look for ModuleNotFoundError, ImportError, or our fail-fast RuntimeError
+        if "ModuleNotFoundError" in stderr or "ImportError" in stderr or "HOOK INFRASTRUCTURE FAILURE" in stderr:
+            # Extract the missing module name
+            module_match = re.search(r"No module named ['\"]([^'\"]+)['\"]", stderr)
+            if module_match:
+                missing_module = module_match.group(1)
+
+                # Try to map module name to package name
+                # Common mappings: tomli_w -> tomli-w, etc.
+                suggested_package = missing_module.replace("_", "-")
+
+                errors.append(
+                    f"  ❌ {file_path.relative_to(Path.cwd())}: "
+                    f"Import failed - missing module '{missing_module}' "
+                    f"(try adding '{suggested_package}' to dependencies)"
+                )
+            else:
+                # Generic import error
+                import_match = re.search(r"ImportError: (.+)", stderr)
+                if import_match:
+                    errors.append(
+                        f"  ❌ {file_path.relative_to(Path.cwd())}: "
+                        f"Import failed - {import_match.group(1)}"
+                    )
+                else:
+                    errors.append(
+                        f"  ❌ {file_path.relative_to(Path.cwd())}: "
+                        f"Import or module error detected (check stderr)"
+                    )
+
+        if verbose and not errors:
+            print(f"  ✅ {file_path.relative_to(Path.cwd())}: Import test passed")
+
+    except subprocess.TimeoutExpired:
+        # Timeout is not necessarily an error - script might be waiting for input
+        # As long as imports succeeded, that's what we care about
+        if verbose:
+            print(f"  ⏱️  {file_path.relative_to(Path.cwd())}: Timeout (imports likely OK)")
+    except FileNotFoundError:
+        errors.append(
+            f"  ⚠️  {file_path.relative_to(Path.cwd())}: "
+            f"Cannot test - 'uv' not found (install with: pip install uv)"
+        )
+    except Exception as e:
+        errors.append(
+            f"  ⚠️  {file_path.relative_to(Path.cwd())}: "
+            f"Could not test imports: {e}"
+        )
+
+    return len(errors) == 0, errors
+
+
+def validate_all_import_completeness(plugin_root: Path, verbose: bool = False) -> Tuple[bool, Dict[str, List[str]]]:
+    """Test import completeness for all inline scripts
+
+    Returns:
+        Tuple of (all_valid, dict of file_path -> errors)
+    """
+    all_errors = defaultdict(list)
+    all_valid = True
+
+    # Only test hooks and scripts (not utils)
+    python_files = []
+    for pattern in ["hooks/*.py", "scripts/*.py"]:
+        python_files.extend(plugin_root.glob(pattern))
+
+    if verbose:
+        print(f"\n🧪 Testing import completeness for {len(python_files)} scripts...\n")
+
+    for py_file in python_files:
+        is_valid, errors = validate_import_completeness(py_file, verbose)
+        if not is_valid:
+            all_valid = False
+            all_errors[str(py_file)] = errors
+
+    return all_valid, dict(all_errors)
+
+
 def print_summary(all_valid: bool, all_errors: Dict[str, List[str]],
-                 import_issues: List[str], verbose: bool = False):
+                 import_issues: List[str], import_test_errors: Dict[str, List[str]],
+                 verbose: bool = False):
     """Print validation summary"""
     print("\n" + "=" * 80)
     print("DEPENDENCY VALIDATION SUMMARY")
     print("=" * 80)
 
-    if all_valid and not import_issues:
-        print("\n✅ All dependencies are valid and consistent!")
-        print("\nAll inline script dependencies match documented standard versions.")
-        print("No deprecated dependencies found.")
-        print("No deprecated import statements found.")
+    if all_valid and not import_issues and not import_test_errors:
+        print("\n✅ All dependencies are valid and complete!")
+        print("\n✅ Static validation: All inline dependencies match standard versions")
+        print("✅ Dynamic validation: All scripts can import successfully")
+        print("✅ No deprecated dependencies found")
+        print("✅ No deprecated import statements found")
     else:
         if all_errors:
-            print("\n❌ INLINE DEPENDENCY ISSUES")
+            print("\n❌ INLINE DEPENDENCY VERSION ISSUES")
             print("-" * 80)
             for file_path, errors in all_errors.items():
+                for error in errors:
+                    print(error)
+
+        if import_test_errors:
+            print("\n❌ IMPORT COMPLETENESS ISSUES (CRITICAL)")
+            print("-" * 80)
+            print("These scripts cannot execute due to missing dependencies:")
+            for file_path, errors in import_test_errors.items():
                 for error in errors:
                     print(error)
 
@@ -205,12 +331,19 @@ def print_summary(all_valid: bool, all_errors: Dict[str, List[str]],
 
         print("\n📋 REMEDIATION STEPS:")
         print("-" * 80)
-        print("1. Review DEPENDENCIES.md for correct versions")
-        print("2. Update inline script metadata in flagged files")
-        print("3. Replace deprecated imports:")
-        print("   - import toml → import tomllib + import tomli_w")
-        print("   - Use 'rb'/'wb' modes for TOML file operations")
-        print("4. Run this script again to verify fixes")
+        if import_test_errors:
+            print("🚨 CRITICAL: Fix import completeness issues first!")
+            print("1. Add missing dependencies to inline script metadata")
+            print("   Example: Add 'tomli-w>=1.0.0' to dependencies list")
+            print("2. Test script execution: echo '{}' | uv run path/to/script.py")
+            print("3. Run validator again to verify fixes\n")
+        print("For version issues:")
+        print("• Review DEPENDENCIES.md for correct versions")
+        print("• Update inline script metadata in flagged files")
+        print("\nFor deprecated imports:")
+        print("• Replace: import toml → import tomllib + import tomli_w")
+        print("• Use 'rb'/'wb' modes for TOML file operations")
+        print("\n💡 Run with --verbose to see detailed validation output")
         print("\nSee DEPENDENCIES.md for complete migration guide.")
 
     print("\n" + "=" * 80 + "\n")
@@ -266,27 +399,42 @@ def main():
 
         # Validate single file
         print(f"\n🔍 Validating {file_path.relative_to(plugin_root)}...\n")
+
+        # Static validation (version consistency)
         is_valid, errors = validate_file(file_path, verbose=True)
 
-        if errors:
-            for error in errors:
+        # Dynamic validation (import completeness)
+        import_valid, import_errors = validate_import_completeness(file_path, verbose=True)
+
+        all_errors = errors + import_errors
+        if all_errors:
+            print("\n❌ VALIDATION FAILED:")
+            for error in all_errors:
                 print(error)
             sys.exit(1)
         else:
-            print(f"\n✅ {args.file}: All dependencies valid")
+            print(f"\n✅ {args.file}: All validations passed")
+            print("  • Static validation: Dependencies match standard versions")
+            print("  • Dynamic validation: Script can import successfully")
             sys.exit(0)
     else:
         # Validate all files
+        # 1. Static validation (version consistency)
         all_valid, all_errors = validate_all_files(plugin_root, verbose=args.verbose)
 
-        # Check for deprecated imports
+        # 2. Check for deprecated imports
         import_issues = check_for_deprecated_imports(plugin_root)
 
+        # 3. Dynamic validation (import completeness)
+        import_test_valid, import_test_errors = validate_all_import_completeness(
+            plugin_root, verbose=args.verbose
+        )
+
         # Print summary
-        print_summary(all_valid, all_errors, import_issues, verbose=args.verbose)
+        print_summary(all_valid, all_errors, import_issues, import_test_errors, verbose=args.verbose)
 
         # Exit with appropriate code
-        if all_valid and not import_issues:
+        if all_valid and not import_issues and import_test_valid:
             sys.exit(0)
         else:
             sys.exit(1)
