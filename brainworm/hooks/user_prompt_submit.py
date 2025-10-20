@@ -84,7 +84,7 @@ def get_context_length_from_transcript(transcript_path: str) -> int:
     return 0
 
 def check_context_warnings(transcript_path: str, project_root: Path) -> str:
-    """Check and create context usage warnings based on cc-sessions logic"""
+    """Check and create context usage warnings based on transcript context length"""
     context_warning = ""
 
     try:
@@ -285,13 +285,13 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
                     if debug_logger:
                         debug_logger.error(f"Failed to switch DAIC mode: {e}")
 
-                context += f"[DAIC: Implementation Mode Activated] Trigger phrase '{detected_trigger}' detected. You may now implement ONLY the immediately discussed steps. DO NOT take **any** actions beyond what was explicitly agreed upon. When you're done, run the command: ./daic\n"
+                context += f"[DAIC: Implementation Mode Activated] Trigger phrase '{detected_trigger}' detected. You may now implement ONLY the immediately discussed steps. DO NOT take **any** actions beyond what was explicitly agreed upon. When you're done, run the command: ./daic discussion\n"
 
         # Protocol detection with subagent reminders
         detected_protocols = detect_protocols(prompt)
         for protocol in detected_protocols:
             protocol_name = protocol.replace('-', ' ')
-            context += f"{protocol_name} protocol found in prompt, read and follow sessions/protocols/{protocol}.md protocol.\n"
+            context += f"{protocol_name} protocol found in prompt, read and follow .brainworm/protocols/{protocol}.md protocol.\n"
 
             # Add protocol-specific subagent reminders
             if protocol == "task-creation":

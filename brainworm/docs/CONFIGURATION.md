@@ -1,29 +1,34 @@
-# Brainworm Configuration Reference - Core System Setup
+# Configuration
 
-## Overview
+Customize brainworm behavior via `.brainworm/config.toml`.
 
-Brainworm uses `.brainworm/config.toml` for system configuration and auto-generates `.claude/settings.json` during installation. The configuration covers DAIC workflow enforcement, branch management, and local event storage in `.brainworm/events/`.
+## Configuration File
 
-**Important**: Multi-project event aggregation (sources, harvesting, dashboards) is handled by the separate **nautiloid** project, not brainworm. This documentation covers only brainworm's single-project features.
+**Location:** `.brainworm/config.toml`
 
-## Installation
+Created automatically on first session. Edit with any text editor.
 
-See [`CLAUDE.md`](../CLAUDE.md) for installation commands. Configuration files are automatically generated during installation.
-
-## Core Configuration Example
-
-Here's a `.brainworm/config.toml` with brainworm's core features:
+## Complete Reference
 
 ```toml
-# DAIC Workflow Configuration
 [daic]
+# Enable/disable DAIC enforcement
 enabled = true
-default_mode = "discussion"  # Start sessions in discussion mode
 
-# Trigger phrases that switch from discussion to implementation mode
+# Default mode for new sessions
+default_mode = "discussion"  # or "implementation"
+
+# Tools blocked in discussion mode
+blocked_tools = [
+    "Edit",
+    "Write",
+    "MultiEdit",
+    "NotebookEdit"
+]
+
+# Trigger phrases for mode switching
 trigger_phrases = [
     "make it so",
-    "run that", 
     "go ahead",
     "ship it",
     "let's do it",
@@ -31,473 +36,218 @@ trigger_phrases = [
     "implement it"
 ]
 
-# Tools blocked in discussion mode (require user alignment first)
-blocked_tools = [
-    "Edit",
-    "Write", 
-    "MultiEdit",
-    "NotebookEdit"
-]
-
-# Branch Enforcement Settings
-[daic.branch_enforcement]
-enabled = true
-task_prefixes = ["implement-", "fix-", "refactor-", "migrate-", "test-", "docs-"]
-
-[daic.branch_enforcement.branch_prefixes]
-"implement-" = "feature/"
-"fix-" = "fix/"
-"refactor-" = "feature/"
-"migrate-" = "feature/"
-"test-" = "feature/"
-"docs-" = "feature/"
-
-# Read-Only Commands (allowed in discussion mode)
 [daic.read_only_bash_commands]
-basic = [
-    "ls", "ll", "pwd", "cd", "echo", "cat", "head", "tail", "less", "more",
-    "grep", "rg", "find", "which", "whereis", "type", "file", "stat",
-    "du", "df", "tree", "basename", "dirname", "realpath", "readlink",
-    "whoami", "env", "printenv", "date", "cal", "uptime", "wc", "cut", 
-    "sort", "uniq", "comm", "diff", "cmp", "md5sum", "sha256sum"
-]
-git = [
-    "git status", "git log", "git diff", "git show", "git branch", 
-    "git remote", "git fetch", "git describe", "git rev-parse", "git blame"
-]
+# Read-only commands allowed in discussion mode
+basic = ["ls", "cat", "head", "tail", "less", "more", "pwd", "cd", "echo", "env"]
+git = ["git status", "git log", "git diff", "git show", "git branch"]
 docker = ["docker ps", "docker images", "docker logs"]
-package_managers = ["npm list", "npm ls", "pip list", "pip show", "yarn list"]
-network = ["curl", "wget", "ping", "nslookup", "dig"]
+package_managers = ["npm list", "pip list", "cargo tree"]
+network = ["curl", "wget", "ping"]
 text_processing = ["jq", "awk", "sed -n"]
-testing = [
-    "pytest", "python -m pytest", "python -m unittest", "uv run pytest",
-    "npm test", "npm run test", "yarn test", "yarn run test",
-    "npx jest", "npx vitest", "pnpm test",
-    "cargo test", "go test", "mvn test", "gradle test",
-    "rake test", "mix test", "dotnet test", "rspec", "make test"
-]
+testing = ["pytest", "npm test", "cargo test"]
 
+#TODO: This should not exist
+[analytics]
+# Event capture settings
+enabled = true
+capture_tool_timing = true
+capture_full_context = true
+debug_logging = false
+
+[debug]
+# Debug output settings
+enabled = false
+level = "INFO"  # ERROR, WARNING, INFO, DEBUG, TRACE
+format = "text"  # text or json
+outputs = { stderr = true, file = false, framework = false }
 ```
 
-## Configuration Sections
+## Common Customizations
 
-### Multi-Project Event Aggregation
+### Add Custom Trigger Phrases
 
-**Note**: Multi-project data sources, harvesting schedules, and cross-project event aggregation are managed by the separate **nautiloid** project. Nautiloid reads brainworm's local event database (`.brainworm/events/hooks.db`) but configuration for multi-project features belongs in nautiloid's config, not here.
+**Via command:**
+```bash
+/brainworm:add-trigger "do the thing"
+```
 
-For nautiloid documentation, see: https://github.com/lsmith090/nautiloid
+**Via config:**
+```toml
+[daic]
+trigger_phrases = [
+    "make it so",
+    "go ahead",
+    "do the thing"  # Your addition
+]
+```
 
-### DAIC Workflow Configuration (`[daic]`) ✅ IMPLEMENTED
+### Change Default Mode
 
-Configure Discussion → Alignment → Implementation → Check workflow:
+Start sessions in implementation mode:
+
+```toml
+[daic]
+default_mode = "implementation"
+```
+
+**Not recommended** - defeats DAIC purpose.
+
+### Disable DAIC Temporarily
+
+```toml
+[daic]
+enabled = false
+```
+
+All tools work normally. Re-enable when ready:
 
 ```toml
 [daic]
 enabled = true
-default_mode = "discussion"
-trigger_phrases = ["make it so", "ship it", "go ahead"]
-blocked_tools = ["Edit", "Write", "MultiEdit", "NotebookEdit"]
 ```
 
-**Core Options**:
-- `enabled` - Enable DAIC workflow enforcement
-- `default_mode` - Starting mode (`"discussion"` or `"implementation"`)
-- `trigger_phrases` - Phrases that activate implementation mode
-- `blocked_tools` - Tools blocked in discussion mode
+### Add Read-Only Commands
 
-### Read-Only Commands (`[daic.read_only_bash_commands]`) ✅ IMPLEMENTED
-
-Configure commands allowed in discussion mode:
+Allow custom read-only bash commands:
 
 ```toml
 [daic.read_only_bash_commands]
-basic = ["ls", "pwd", "cat", "grep", "find"]
-git = ["git status", "git log", "git diff"]
-docker = ["docker ps", "docker images"]
+custom = ["mycommand status", "mycli info"]
 ```
 
-**Command Categories**:
-- `basic` - Fundamental filesystem and text commands
-- `git` - Git repository inspection commands
-- `docker` - Docker container inspection commands
-- `package_managers` - Package manager listing commands
-- `network` - Network diagnostic commands
-- `text_processing` - Text processing utilities
-- `testing` - Test execution commands (pytest, npm test, cargo test, etc.)
+### Enable Debug Logging
 
-### Debug Logging Configuration (`[debug]`) ✅ IMPLEMENTED
+For troubleshooting:
 
-Configure centralized debug output behavior for all brainworm hooks and utilities:
-
-```toml
-[debug]
-enabled = false
-level = "INFO"
-format = "text"
-
-[debug.outputs]
-stderr = true
-stderr_format = "text"
-file = false
-file_format = "json"
-framework = false
-framework_format = "json"
-```
-
-**Core Options**:
-- `enabled` - Master switch for debug output (default: `false`)
-  - Set to `true` to enable debug logging
-  - Can be temporarily overridden with `--verbose` CLI flag
-- `level` - Debug verbosity level (default: `"INFO"`)
-  - `"ERROR"` - Only errors
-  - `"WARNING"` - Errors + warnings
-  - `"INFO"` - Normal operations (recommended default)
-  - `"DEBUG"` - Detailed debugging information
-  - `"TRACE"` - Everything including internal state
-- `format` - Global default format for debug output (default: `"text"`)
-  - `"text"` - Human-readable format with timestamps
-  - `"json"` - Machine-parseable JSONL format (one JSON object per line)
-  - Can be overridden per output destination
-
-**Output Destinations** (`[debug.outputs]`):
-- `stderr` - Print debug messages to stderr (default: `true`)
-  - Recommended for immediate feedback during development
-  - Integrates with Claude Code terminal output
-  - `stderr_format` - Override format for stderr (default: `"text"`)
-- `file` - Write debug messages to `.brainworm/logs/debug.{log,jsonl}` (default: `false`)
-  - Useful for offline analysis or when stderr is too noisy
-  - Persists across sessions for debugging patterns
-  - File extension automatically chosen: `.log` for text, `.jsonl` for JSON
-  - `file_format` - Override format for file (default: `"json"`)
-- `framework` - Write framework-specific debug to `.brainworm/logs/debug_framework_output.{log,jsonl}` (default: `false`)
-  - Captures JSON communication between hooks and Claude Code
-  - Useful for debugging hook/Claude integration issues
-  - File extension automatically chosen: `.log` for text, `.jsonl` for JSON
-  - `framework_format` - Override format for framework (default: `"json"`)
-
-**CLI Flag Override**:
-
-The `--verbose` flag provides temporary debug override:
-```bash
-# Temporarily enable debug output at DEBUG level
-claude --verbose
-```
-
-When `--verbose` is detected:
-- Debug is automatically enabled (regardless of config)
-- Debug level is set to `DEBUG`
-- Output follows configured destinations
-- Only affects current session (doesn't modify config file)
-
-**Usage Examples**:
-
-**Development debugging** (verbose stderr output):
 ```toml
 [debug]
 enabled = true
 level = "DEBUG"
-
-[debug.outputs]
-stderr = true
-file = false
-framework = false
+outputs = { stderr = true, file = true }
 ```
 
-**Production troubleshooting** (minimal file logging):
+Logs to: `.brainworm/logs/debug.jsonl`
+
+## Configuration Sections
+
+### [daic]
+
+Core DAIC workflow settings.
+
+**enabled** (boolean)
+- Default: `true`
+- Set to `false` to disable DAIC entirely
+
+**default_mode** (string)
+- Default: `"discussion"`
+- Options: `"discussion"` or `"implementation"`
+- Mode for new sessions
+
+**blocked_tools** (array)
+- Default: `["Edit", "Write", "MultiEdit", "NotebookEdit"]`
+- Tools blocked in discussion mode
+
+**trigger_phrases** (array)
+- Default: See above
+- Phrases that switch to implementation mode
+- Case insensitive
+- Substring matching
+
+### [daic.read_only_bash_commands]
+
+Bash commands allowed in discussion mode.
+
+Each key is a category with array of commands:
+
 ```toml
-[debug]
-enabled = true
-level = "WARNING"
-
-[debug.outputs]
-stderr = false
-file = true
-framework = false
+[daic.read_only_bash_commands]
+basic = ["ls", "cat", ...]
+git = ["git status", "git log", ...]
+custom = ["mycommand", ...]
 ```
 
-**Framework integration debugging** (capture Claude Code communication):
-```toml
-[debug]
-enabled = true
-level = "TRACE"
+**How validation works:**
+1. Bash command parsed
+2. Checked against all arrays
+3. Allowed if matches any entry
+4. Exact match OR command + space + args
 
-[debug.outputs]
-stderr = true
-file = true
-framework = true
-```
+### [analytics]
 
-**Machine-parseable JSON logging** (for log analysis tools):
-```toml
-[debug]
-enabled = true
-level = "INFO"
-format = "json"
+Event capture settings.
 
-[debug.outputs]
-stderr = false
-stderr_format = "text"  # Keep stderr human-readable
-file = true
-file_format = "json"  # JSON for analysis
-framework = true
-framework_format = "json"  # JSON for hook debugging
-```
+**enabled** (boolean)
+- Default: `true`
+- Event storage to SQLite
 
-This configuration:
-- Logs to `.brainworm/logs/debug.jsonl` (JSON format)
-- Logs framework output to `.brainworm/logs/debug_framework_output.jsonl`
-- Keeps stderr in text format for terminal readability
-- Enables JSON log parsing with tools like `jq`
+**capture_tool_timing** (boolean)
+- Default: `true`
+- Measure hook execution time
 
-**Debugging Double Logging Issues**:
+**capture_full_context** (boolean)
+- Default: `true`
+- Store complete tool inputs in events
 
-If you observe duplicate log entries:
-1. Set `debug.enabled = true` and `debug.level = "TRACE"`
-2. Enable `debug.outputs.file = true` for persistent logs
-3. Review `.brainworm/logs/debug.log` to identify duplicate sources
-4. Report findings to brainworm issue tracker
+**debug_logging** (boolean)
+- Default: `false`
+- Write JSONL debug logs
 
-**Note**: The centralized debug system eliminates ad-hoc debug statements that previously caused double logging. All hooks and utilities now use the unified debug logger configured here.
+### [debug]
 
-## Configuration Management
+Debug output configuration.
 
-### Interactive Configuration Tool ✅ IMPLEMENTED
+**enabled** (boolean)
+- Default: `false`
+- Enable debug logging
 
-Use the interactive tool for guided setup:
+**level** (string)
+- Default: `"INFO"`
+- Options: `"ERROR"`, `"WARNING"`, `"INFO"`, `"DEBUG"`, `"TRACE"`
 
-```bash
-uv run src/hooks/configure_analytics.py
-```
+**format** (string)
+- Default: `"text"`
+- Options: `"text"` or `"json"`
 
-This tool provides:
-- Project source configuration
-- DAIC workflow setup
-- Event storage settings
-- Configuration validation
+**outputs** (table)
+- `stderr`: Console output
+- `file`: `.brainworm/logs/debug.jsonl`
+- `framework`: Framework logging
 
-### Manual Configuration ✅ IMPLEMENTED
+## User Configuration
 
-1. **Create** `brainworm-config.toml` in project root
-2. **Configure** required sections based on your needs
-3. **Validate** configuration with:
-   ```bash
-   uv run src/hooks/verify_installation.py
-   ```
-
-### Configuration Validation ✅ IMPLEMENTED
-
-Test your configuration:
-
-```bash
-# Verify complete system
-uv run src/hooks/verify_installation.py
-
-# Test DAIC workflow
-./daic status
-
-# View event data
-sqlite3 .brainworm/events/hooks.db "SELECT * FROM hook_events ORDER BY timestamp DESC LIMIT 10"
-```
-
-## Auto-Generated Settings
-
-### `.claude/settings.json` ✅ IMPLEMENTED
-
-Individual project settings use Claude Code's native hook configuration format:
+Additional settings in `.brainworm/user-config.json`:
 
 ```json
 {
-  "hooks": {
-    "PreCompact": [{"hooks": [{"type": "command", "command": "uv run .brainworm/hooks/pre_compact.py"}]}],
-    "SessionStart": [{"hooks": [{"type": "command", "command": "uv run .brainworm/hooks/session_start.py"}]}],
-    "Stop": [{"hooks": [{"type": "command", "command": "uv run .brainworm/hooks/stop.py"}]}],
-    "UserMessages": [{"hooks": [{"type": "command", "command": "uv run .brainworm/hooks/user_messages.py"}]}],
-    "PostToolUse": [{"hooks": [{"type": "command", "command": "uv run .brainworm/hooks/post_tool_use.py"}]}],
-    "PreToolUse": [
-      {"matcher": {"tools": ["Edit", "MultiEdit", "Write", "NotebookEdit"]}, "hooks": [{"type": "command", "command": "uv run .brainworm/hooks/daic_pre_tool_use.py"}]},
-      {"matcher": {"tools": ["Task"]}, "hooks": [{"type": "command", "command": "uv run .brainworm/hooks/transcript_processor.py"}]}
-    ]
+  "developer": {
+    "name": "Your Name",
+    "email": "you@example.com"
   },
-  "statusLine": {
-    "type": "command", 
-    "command": ".brainworm/statusline-script.sh"
+  "preferences": {
+    "daic_default_mode": "discussion",
+    "context_warning_threshold": 75
   }
 }
 ```
 
-**Critical Requirements:**
-- **Task Hook Configuration**: The PreToolUse hook for "Task" tools is essential for transcript processing to work
-- **DAIC Hook Configuration**: The PreToolUse hook for implementation tools enables workflow enforcement
-- Missing either hook configuration prevents core system functionality
+**Auto-populated from:**
+- Git config (`git config user.name`, `git config user.email`)
+- Can be edited manually
 
-Manual editing is rarely needed as installation handles proper setup, but existing installations may need upgrade.
+## Reloading Configuration
 
-## Environment-Specific Configuration
+Config changes take effect:
+- **Next hook execution** - Most settings
+- **Next session** - Some settings (like blocked tools)
 
-### Development Environment
-```toml
-[daic]
-enabled = true
-default_mode = "discussion"
-trigger_phrases = ["make it so", "go ahead", "ship it"]
-blocked_tools = ["Edit", "Write", "MultiEdit", "NotebookEdit"]
-```
+Force reload by restarting Claude Code session.
 
-### Production Environment
-```toml
-[daic]
-enabled = true
-default_mode = "discussion"
-trigger_phrases = ["make it so", "ship it", "let's do it", "execute"]
-blocked_tools = ["Edit", "Write", "MultiEdit", "NotebookEdit"]
-```
+## See Also
 
-### Minimal Environment
-```toml
-[daic]
-enabled = true
-default_mode = "discussion"
-trigger_phrases = ["go ahead"]
-blocked_tools = ["Edit", "Write"]
-```
+- [DAIC Workflow](daic-workflow.md) - Understanding modes
+- [CLI Reference](cli-reference.md) - Commands affected by config
+- [Troubleshooting](troubleshooting.md) - Config issues
 
-## Migration and Upgrades
+---
 
-### Upgrading Existing Installations ✅ IMPLEMENTED
-
-**Simple Upgrade Process** - Plugin marketplace handles intelligent updates:
-
-```bash
-# Upgrade to latest version
-/plugin upgrade brainworm
-```
-
-The enhanced installer automatically:
-- ✅ **Detects missing hook configurations** (like Task → transcript_processor)
-- ✅ **Adds new functionality** to existing settings.json
-- ✅ **Preserves custom configurations** and user modifications
-- ✅ **Creates automatic backups** before making changes
-- ✅ **Reports changes made** ("Added Task matcher to PreToolUse hooks")
-
-### Critical Hook Requirements Validation
-
-**Transcript Processing Requirements:**
-Ensure `.claude/settings.json` contains Task hook configuration:
-```json
-{"matcher": {"tools": ["Task"]}, "hooks": [{"type": "command", "command": "uv run .brainworm/hooks/transcript_processor.py"}]}
-```
-
-**DAIC Workflow Requirements:**
-Ensure PreToolUse hooks include DAIC enforcement:
-```json
-{"matcher": {"tools": ["Edit", "MultiEdit", "Write", "NotebookEdit"]}, "hooks": [{"type": "command", "command": "uv run .brainworm/hooks/daic_pre_tool_use.py"}]}
-```
-
-### Manual Configuration Backup
-```bash
-# Backup configuration
-cp brainworm-config.toml brainworm-config.toml.backup
-
-# Restore if needed
-cp brainworm-config.toml.backup brainworm-config.toml
-```
-
-### Troubleshooting Upgrade Issues
-
-**If transcript processing isn't working after upgrade:**
-1. Check for Task hook in `.claude/settings.json` PreToolUse array
-2. Restart Claude Code for settings to take effect
-3. Test with: Task invocation should create 5 transcript chunks in `.brainworm/state/{subagent_type}/`
-
-**If DAIC workflow isn't enforcing:**
-1. Verify DAIC hook matcher in `.claude/settings.json`
-2. Check `./daic status` shows current mode
-3. Validate with blocked tool attempt in discussion mode
-
-## Brainworm vs Nautiloid Separation
-
-### Brainworm (This Plugin)
-- **Single-project DAIC enforcement**: Discussion → Implementation workflow
-- **Local event storage**: Captures hook events to `.brainworm/events/hooks.db`
-- **Branch management**: Automatic git branch enforcement
-- **Task management**: Task tracking and correlation
-- **Configuration**: `.brainworm/config.toml` (DAIC settings only)
-
-### Nautiloid (Separate Project)
-- **Multi-project aggregation**: Harvests data from multiple brainworm installations
-- **Cross-project event tracking**: Event patterns, developer insights, trends
-- **Dashboards**: Grafana, Metabase, real-time dashboards
-- **Data harvesting**: Scheduled collection across projects
-- **Configuration**: Nautiloid's own config (sources, harvesting, dashboards)
-
-See nautiloid documentation for multi-project event aggregation: https://github.com/lsmith090/nautiloid
-
-## Timeout Policy
-
-Brainworm uses standardized timeouts for subprocess operations to prevent hanging and ensure reliable operation. These timeouts are hardcoded in the codebase for consistency.
-
-### Timeout Values
-
-| Operation Type | Timeout | Files |
-|---|---|---|
-| **Local git operations** | 5 seconds | `git.py`, `project.py`, `daic_state_manager.py` |
-| **Git state changes** | 30 seconds | `switch_task.py`, `git_submodule_manager.py` |
-| **Network operations** | 60 seconds | *None currently* |
-| **User scripts** | 300 seconds | `tasks_command.py`, `create_task.py` |
-| **Hook execution** | Framework-managed | Controlled by Claude Code |
-| **File locks** | 10 seconds | All FileLock usage across codebase |
-
-### Rationale
-
-**Local git operations (5s)**:
-- Fast operations like `git status`, `git rev-parse`, `git config`
-- Should complete in milliseconds on healthy systems
-- 5 seconds allows for slower file systems without indefinite hanging
-
-**Git state changes (30s)**:
-- Operations that modify git state: checkout, submodule update
-- May involve file operations across many files
-- 30 seconds handles large repositories while preventing indefinite hangs
-
-**User scripts (300s)**:
-- Task creation, switching, and management commands
-- May involve user input and git operations
-- 5 minutes allows for slow systems and user interaction
-
-**File locks (10s)**:
-- FileLock timeout for atomic file operations
-- Prevents deadlocks in concurrent hook execution
-- 10 seconds handles normal contention without indefinite blocking
-
-### Timeout Error Handling
-
-When timeouts occur:
-1. **Subprocess timeouts** - `subprocess.TimeoutExpired` exception raised
-2. **File lock timeouts** - `filelock.Timeout` exception raised
-3. **Graceful degradation** - Operations return partial results or safe defaults
-4. **Error logging** - Timeout failures logged to stderr for debugging
-
-### Customization
-
-Timeouts are **not configurable** via `.brainworm/config.toml` to ensure consistent behavior across installations. If you consistently hit timeouts:
-
-1. **Check system performance** - Slow disk I/O, resource constraints
-2. **Check repository size** - Very large git repositories may need optimization
-3. **Report issue** - Consistent timeouts may indicate bugs
-
-Future versions may add configurable timeout multipliers if needed.
-
-## Known Limitations
-
-### Brainworm Scope
-- **Single-project focus**: Only manages the current project's workflow
-- **Local event storage only**: Event database is local to each project
-- **No cross-project insights**: Use nautiloid for aggregated event data
-- **Dynamic Configuration**: Some settings require Claude Code restart
-
-### Configuration Best Practices
-- **Keep it simple**: Brainworm config should only contain DAIC workflow settings
-- **No orphaned sections**: Remove sources/harvesting if copied from old configs
-- **Use defaults**: Most users only need to customize trigger phrases and blocked tools
-
-This configuration system enables brainworm's core DAIC workflow enforcement while maintaining clear separation from multi-project analytics capabilities.
+**[← Back to Documentation Home](README.md)** | **[Next: Protocols & Agents →](protocols-and-agents.md)**

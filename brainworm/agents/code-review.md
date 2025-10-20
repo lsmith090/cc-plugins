@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Use ONLY when explicitly requested by user or when invoked by a protocol in sessions/protocols/. DO NOT use proactively. Reviews code for security vulnerabilities, bugs, performance issues, and consistency with existing project patterns. When using this agent, you must provide files and line ranges where code has been implemented along with the task file the code changes were made to satisfy.
+description: Use ONLY when explicitly requested by user or when invoked by a protocol in .brainworm/protocols/. DO NOT use proactively. Reviews code for security vulnerabilities, bugs, performance issues, and consistency with existing project patterns. When using this agent, you must provide files and line ranges where code has been implemented along with the task file the code changes were made to satisfy.
 tools: Read, Grep, Glob, Bash
 ---
 

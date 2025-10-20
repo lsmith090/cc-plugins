@@ -195,14 +195,6 @@ sqlite3 .brainworm/events/hooks.db "SELECT COUNT(*) FROM hook_events"
 sqlite3 .brainworm/events/hooks.db "SELECT * FROM hook_events ORDER BY timestamp DESC LIMIT 10"
 ```
 
-### Multi-Project Aggregation (Optional)
-
-For cross-project event aggregation and dashboards, see:
-- [Nautiloid Integration Guide](docs/NAUTILOID_INTEGRATION.md)
-- [Nautiloid Repository](https://github.com/lsmith090/nautiloid)
-
-Nautiloid aggregates event data from multiple brainworm projects for analysis.
-
 ## Configuration
 
 ### Customize Trigger Phrases
@@ -239,13 +231,25 @@ Event storage is always enabled and configured automatically. Events are capture
 
 ## Documentation
 
-**Comprehensive guides in `docs/`:**
+**Comprehensive documentation in `docs/`:**
 
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System design and components
-- [DAIC_WORKFLOW.md](docs/DAIC_WORKFLOW.md) - Detailed DAIC methodology
-- [CONFIGURATION.md](docs/CONFIGURATION.md) - Complete configuration reference
-- [NAUTILOID_INTEGRATION.md](docs/NAUTILOID_INTEGRATION.md) - Multi-project event aggregation
-- [END_USER_GUIDE.md](docs/END_USER_GUIDE.md) - Detailed user guide
+**Getting Started:**
+- [Getting Started Guide](docs/getting-started.md) - Installation through first task
+- [DAIC Workflow](docs/daic-workflow.md) - Complete DAIC methodology guide
+- [Task Management](docs/task-management.md) - Task lifecycle and best practices
+
+**Reference:**
+- [CLI Reference](docs/cli-reference.md) - Complete command documentation
+- [Configuration](docs/configuration.md) - Configuration options and customization
+- [Protocols & Agents](docs/protocols-and-agents.md) - Using workflow protocols and specialized agents
+- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+
+**For Contributors:**
+- [Architecture](docs/architecture.md) - System design and technical details
+- [Contributing](docs/contributing.md) - Development setup and guidelines
+- [Technical Reference](docs/reference.md) - Schemas, APIs, and advanced reference
+
+**[→ Browse All Documentation](docs/README.md)**
 
 ## Troubleshooting
 
@@ -314,12 +318,6 @@ MIT License - See [LICENSE](LICENSE) for details.
 **Issues & Questions**:
 - GitHub Issues: https://github.com/lsmith090/cc-plugins/issues
 - Repository: https://github.com/lsmith090/cc-plugins
-
-## Related Projects
-
-**Nautiloid**: Multi-project event aggregation and dashboards
-- Repository: https://github.com/lsmith090/nautiloid
-- Integration: [NAUTILOID_INTEGRATION.md](docs/NAUTILOID_INTEGRATION.md)
 
 ---
 

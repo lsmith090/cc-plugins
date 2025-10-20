@@ -1,277 +1,806 @@
-# Brainworm Architecture - Complete Claude Code Workflow & Intelligence System
+# Architecture
 
-## System Design
+TODO: See me after school. Lots of problems in here 
+Technical architecture and design patterns for brainworm contributors.
 
-Brainworm is a comprehensive Claude Code enhancement system that transforms basic AI assistance into a structured workflow management system with event tracking capabilities. The system provides two core capabilities in a unified architecture:
+## Table of Contents
 
-### Core Capabilities
-1. **DAIC Workflow Enforcement** - Discussion → Alignment → Implementation → Check methodology with intelligent tool blocking
-2. **Event Storage System** - Workflow event capture with session correlation, indexed database storage, and continuity tracking
+- [System Overview](#system-overview)
+- [Core Components](#core-components)
+- [Architectural Patterns](#architectural-patterns)
+- [Data Flow](#data-flow)
+- [State Management](#state-management)
+- [Event Storage](#event-storage)
+- [Hook System](#hook-system)
+- [Integration Points](#integration-points)
+- [Design Decisions](#design-decisions)
 
-## Unified System Architecture
+## System Overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Claude Code Session                     │
-├─────────────────────────────────────────────────────────────┤
-│  DAIC Workflow Enforcement          Event Storage System    │
-│  ┌─ Enhanced Pre-Tool-Use Hook ─────────────────────────┐   │
-│  │  1. Security check                                   │   │
-│  │  2. DAIC enforcement (block tools in discussion)     │   │
-│  │  3. Event capture (log all hook executions)         │   │
-│  │  4. Session correlation tracking                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                              ↓                             │
-│  ┌─ Unified State Management ─┬─ Event Storage          ─┐   │
-│  │  • DAIC mode tracking     │  • Hook event logging     │   │
-│  │  • Task state             │  • Session correlation    │   │
-│  │  • Session correlation    │  • Workflow continuity    │   │
-│  │  • Git branch enforcement │  • Timing metrics         │   │
-│  └────────────────────────────┴────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
+Brainworm is a ~14,000 LOC Claude Code plugin that enforces DAIC workflow methodology while capturing development intelligence for continuous improvement.
+
+**Core Capabilities:**
+- DAIC workflow enforcement (Discussion → Alignment → Implementation → Check)
+- Task management with git integration
+- Session correlation and event storage
+- Specialized subagents for complex operations
+- Zero-configuration auto-setup
+
+**Technology Stack:**
+- Python 3.12+ with PEP 723 inline dependencies
+- SQLite for event storage
+- TOML for configuration
+- Git for version control and branch management
+- Claude Code hook system for integration
+
+**Key Statistics:**
+- 10 hooks for Claude Code integration
+- 21 utility modules
+- 14 CLI scripts
+- 6 specialized subagents
+- 4 workflow protocols
+- 3 slash commands
 
 ## Core Components
 
-### 1. DAIC Workflow System (`src/hooks/templates/`)
+### 1. Hooks System
 
-**Enhanced Hook System**:
-- **`daic_pre_tool_use.py`** - DAIC enforcement + event capture for implementation tools
-- **`transcript_processor.py`** - **CRITICAL**: Intelligent transcript processing for Task tools
-- **`user_messages.py`** - Trigger phrase detection and mode management
-- **`post_tool_use.py`** - Tool execution tracking and event logging
-- **`stop.py`** - Session lifecycle and state persistence
-- **`daic_state_manager.py`** - Unified DAIC + event storage state coordination
+Hooks integrate brainworm with Claude Code's lifecycle events.
 
-**Critical Hook Dependencies**:
-- **Task Hook**: transcript_processor.py MUST be configured for "Task" tools in PreToolUse
-- **DAIC Hook**: daic_pre_tool_use.py MUST be configured for implementation tools
-- **Missing either hook prevents core system functionality**
+**Hook Types:**
 
-**Tool Blocking Engine**:
-- Discussion mode blocks implementation tools (`Edit`, `Write`, `MultiEdit`, `NotebookEdit`)
-- Read-only commands allowed (extensive allowlist for basic, git, docker, etc.)
-- Trigger phrase detection (`"make it so"`, `"ship it"`, `"go ahead"`, etc.)
-- Event logging for workflow tracking and session correlation
+**Session Lifecycle:**
+- `session_start.py` - Initialize environment, create wrappers, setup state
+- `session_end.py` - Cleanup, finalize session
 
-**State Management**:
+**Workflow Control:**
+- `user_prompt_submit.py` - Detect trigger phrases, inject ultrathink
+- `pre_tool_use.py` - Enforce DAIC blocking, validate tool usage
+- `post_tool_use.py` - Capture tool results, manage coordination flags
+
+**Event Capture:**
+- `transcript_processor.py` - Process conversation for agent delivery
+- `tool_start.py` - Record tool execution start
+- `tool_end.py` - Record tool completion and timing
+
+**Documentation:**
+- `claudemd_request.py` - Inject CLAUDE.sessions.md for behavioral guidance
+- `status_line.py` - Provide visual status indicators
+
+**Architecture:**
+All hooks use unified hook framework (`utils/hook_framework.py`) for:
+- Consistent error handling
+- State management
+- Event logging
+- Type safety via `utils/hook_types.py`
+
+### 2. Utility Modules
+
+21 shared utilities provide infrastructure:
+
+**State Management:**
+- `daic_state_manager.py` - Unified session state operations
+- `governance_utils.py` - Task file frontmatter parsing
+- `state_utils.py` - State file I/O with file locking
+
+**DAIC Workflow:**
+- `bash_validator.py` - Parse and validate bash commands for read-only operations
+- `trigger_detection.py` - Detect mode-switching trigger phrases
+
+**Event Storage:**
+- `event_store.py` - SQLite event storage with correlation
+- `event_schema.py` - Event data structures and validation
+
+**Infrastructure:**
+- `config_utils.py` - TOML configuration loading
+- `file_lock.py` - Cross-process file locking
+- `path_utils.py` - Path resolution and validation
+- `plugin_context.py` - Plugin root and context detection
+
+**Hook Framework:**
+- `hook_framework.py` - Unified hook execution framework
+- `hook_types.py` - Type-safe hook I/O schemas
+
+### 3. CLI Scripts
+
+14 CLI scripts provide user interface:
+
+**DAIC Commands:**
+- `daic_command.py` - Main DAIC CLI (status, discussion, implementation, toggle)
+- `daic_discussion.py` - Switch to discussion mode
+- `daic_implementation.py` - Switch to implementation mode
+- `daic_status.py` - Show current DAIC state
+- `daic_toggle.py` - Toggle between modes
+
+**Task Commands:**
+- `tasks_command.py` - Main tasks CLI
+- `create_task.py` - Create new task with branch
+- `switch_task.py` - Atomic task switching
+- `task_status.py` - Show current task
+- `list_tasks.py` - List all tasks with status
+- `clear_task.py` - Clear current task from state
+- `set_task.py` - Manual task state updates
+
+**Utility:**
+- `add_trigger_phrase.py` - Add custom trigger phrase
+- `update_daic_mode.py` - Low-level mode updates
+
+**CLI Framework:**
+All commands use Typer for type-safe CLI interfaces with automatic help generation.
+
+### 4. Specialized Agents
+
+6 agents handle complex operations:
+
+**Agent** | **Purpose** | **Tools** | **When Used**
+---|---|---|---
+context-gathering | Create comprehensive context manifests | Read, Glob, Grep, LS, Bash, Edit, MultiEdit | New task or missing context
+code-review | Security, bugs, performance review | Read, Grep, Glob, Bash | On request or task completion
+logging | Consolidate and organize work logs | Read, Edit, MultiEdit, Bash, Grep, Glob | Context compaction or completion
+context-refinement | Update context with discoveries | Read, Edit, MultiEdit, LS, Glob | End of session if drift found
+service-documentation | Update CLAUDE.md files | Read, Grep, Glob, LS, Edit, MultiEdit, Bash | Context compaction or completion
+session-docs | Create ad-hoc session memories | Read, Write, Bash, Grep, Glob | Proactively during development
+
+**Agent Architecture:**
+- Each operates in separate context window
+- Defined in `.md` files with frontmatter
+- Access to specific tool subsets
+- Return structured results to main session
+
+### 5. Workflow Protocols
+
+4 protocols guide common operations:
+
+**Protocol** | **Purpose** | **Key Steps**
+---|---|---
+task-creation | Create structured tasks | Understand request → Name task → Create with wrapper → Customize → Gather context
+task-startup | Resume work with context | Find task → Review context → Validate → Verify mode → Plan session
+task-completion | Complete with knowledge retention | Verify readiness → Review code → Update logs → Update docs → Cleanup
+context-compaction | Manage context limits | Assess state → Preserve context → Verify state → Extract knowledge → Coordinate transition
+
+**Protocol Storage:**
+- Templates in `templates/protocols/`
+- Copied to `.brainworm/protocols/` on initialization
+- Referenced by CLAUDE.sessions.md
+
+### 6. State Files
+
+**Unified Session State** (`.brainworm/state/unified_session_state.json`):
 ```json
 {
   "daic_mode": "discussion|implementation",
   "current_task": "task-name",
-  "current_branch": "feature/branch",
+  "current_branch": "feature/task-name",
   "task_services": ["service1", "service2"],
   "session_id": "uuid",
   "correlation_id": "correlation-id",
-  "workflow_confidence": null
+  "plugin_root": "/path/to/plugin",
+  "developer": {
+    "name": "Developer Name",
+    "email": "email@example.com"
+  }
 }
 ```
 
-### 2. Specialized Subagent System
+**Coordination Flags** (`.brainworm/state/`):
+- `trigger_phrase_detected.flag` - Trigger phrase found
+- `in_subagent_context.flag` - Subagent executing
 
-**Context-Gathering Agent**:
-- Analyzes requirements for complex tasks
-- Creates comprehensive context manifests
-- Integrates with task creation workflow
-- Provides architectural understanding
+**Purpose:**
+- Single source of truth for session state
+- Atomic updates via file locking
+- Persistent across context compaction
 
-**Code-Review Agent**:
-- Reviews quality and security
-- Follows established code patterns
-- Provides detailed code analysis
-- Identifies potential issues
+## Architectural Patterns
 
-**Logging Agent**:
-- Maintains clean chronological logs
-- Session correlation tracking
-- Event data integration
-- Cross-session continuity
+### 1. Unified Hook Framework
 
-**Context-Refinement Agent**:
-- Updates context with discoveries from work sessions
-- Incorporates session insights
-- Intelligent context optimization
+**Pattern:** All hooks use common framework for consistency.
 
-**Service-Documentation Agent**:
-- Updates service CLAUDE.md files
-- Understands brainworm project structures
-- Pattern-based documentation updates
+**Implementation:**
+```python
+# hooks/example_hook.py
+from hook_framework import execute_hook, HookInput, HookOutput
 
-**Transcript Delivery System**:
-- **`wait_for_transcripts.py`** - Synchronization script for transcript file availability
-- Solves race condition between hook execution and file system writes
-- Implements exponential backoff polling (50ms → 1600ms, 5s timeout)
-- Verifies file stability before returning to subagent
-- Required step in all subagent transcript reading workflows
+def process_hook(input_data: HookInput) -> HookOutput:
+    # Hook logic here
+    return HookOutput(...)
 
-**Subagent Transcript Access Pattern**:
-```bash
-# Step 1: Wait for files to be ready
-.brainworm/plugin-launcher scripts/wait_for_transcripts.py <subagent-type>
-
-# Step 2: Read transcript chunks
-cat "$(pwd)/.brainworm/state/<subagent-type>/current_transcript_"*.json
+if __name__ == "__main__":
+    execute_hook(process_hook)
 ```
 
-### 3. Protocol System
+**Benefits:**
+- Consistent error handling across all hooks
+- Automatic state management
+- Standardized event logging
+- Type safety via schemas
 
-**Task Creation Protocol** (`.brainworm/protocols/task-creation.md`):
-- **Automated wrapper**: `./tasks create [task-name]`
-- Structured task setup with DAIC integration
-- Submodule-aware branch management for super-repo projects
-- Event correlation from task inception
-- Automatic branch creation and state initialization
-- Context-gathering agent invocation
+### 2. Single Source of Truth
 
-**Task Completion Protocol** (`.brainworm/protocols/task-completion.md`):
-- Knowledge retention and documentation
-- Task completion tracking
-- Event data integration for session continuity
-- Clean task closure with context preservation
+**Pattern:** Unified session state eliminates state fragmentation.
 
-**Context Compaction Protocol** (`.brainworm/protocols/context-compaction.md`):
-- Session continuity across context limits
-- State preservation and correlation tracking
-- Context optimization with session preservation
+**Before (Anti-pattern):**
+- Separate files for DAIC mode, task, branch, services
+- Race conditions between updates
+- State drift and inconsistencies
 
-**Task Startup Protocol** (`.brainworm/protocols/task-startup.md`):
-- Proper context loading for existing tasks
-- State synchronization and correlation restoration
-- Session continuity and context restoration
+**After (Current):**
+- Single `unified_session_state.json` file
+- Atomic updates with file locking
+- Managed via `DAICStateManager` class
 
-### 4. Event Storage System
+**Benefits:**
+- No state drift
+- Atomic multi-field updates
+- Clear ownership of state
 
-**Local Event Capture**:
-Brainworm captures hook execution events locally in `.brainworm/events/hooks.db` for session tracking and correlation. This is infrastructure that runs transparently - events are automatically captured with session IDs and correlation IDs to maintain workflow continuity.
+### 3. Event-Driven Architecture
 
-**Storage Details**:
-- SQLite database with minimal schema (5 columns + JSON blob)
-- Session correlation tracking for workflow continuity
-- All data stays local on your filesystem
-- No configuration needed - always enabled
+**Pattern:** Capture all workflow events for learning and continuity.
 
-## Core Principles
+**Flow:**
+1. Hook executes (e.g., `pre_tool_use`)
+2. Hook calls `event_store.log_event()`
+3. Event written to SQLite with correlation
+4. Event available for analytics and resumption
 
-- **Self-Contained** - Everything runs within the project's `.brainworm` directory
-- **Zero Dependencies** - No external services or network requirements
-- **Privacy-First** - All data stays on your local filesystem
-- **Performance-Optimized** - Sub-100ms hook execution with validated event storage performance (29MB local database)
-- **Workflow-Aware** - DAIC methodology enforcement with session tracking
-- **Continuity-Focused** - Session correlation for seamless workflow continuation
+**Schema:**
+```sql
+CREATE TABLE hook_events (
+    id INTEGER PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    correlation_id TEXT,
+    hook_name TEXT NOT NULL,
+    timestamp_ns INTEGER NOT NULL,
+    execution_id TEXT,
+    event_data TEXT,  -- JSON
+    duration_ms INTEGER
+);
+```
 
-## Complete Data Flow
+**Benefits:**
+- Complete workflow history
+- Session correlation for continuity
+- Analytics for pattern learning
+- Debugging and audit trail
+
+### 4. Zero-Configuration Auto-Setup
+
+**Pattern:** Plugin initializes automatically on first use.
+
+**Session Start Flow:**
+1. Check if `.brainworm/` exists
+2. If not, create directory structure
+3. Copy templates (config, protocols)
+4. Initialize state files
+5. Create wrapper scripts
+6. Ready to use
+
+**Benefits:**
+- No manual setup required
+- Consistent initialization
+- Idempotent (safe to re-run)
+
+### 5. Fail-Fast Architecture
+
+**Pattern:** Hooks fail fast with clear errors rather than silent failures.
+
+**Implementation:**
+- Validate inputs before processing
+- Check preconditions explicitly
+- Return structured errors
+- Log failures for debugging
+
+**Benefits:**
+- Easier debugging
+- Clear error messages
+- No silent state corruption
+
+### 6. Type Safety
+
+**Pattern:** Use type hints throughout for correctness.
+
+**Implementation:**
+```python
+from hook_types import PreToolUseInput, PreToolUseOutput
+
+def pre_tool_use(input_data: PreToolUseInput) -> PreToolUseOutput:
+    # Type-checked by mypy/pyright
+    return PreToolUseOutput(
+        permission="allow",
+        user_message="Tool allowed"
+    )
+```
+
+**Benefits:**
+- Catch errors at development time
+- Self-documenting code
+- Editor autocomplete
+
+## Data Flow
+
+### DAIC Workflow Enforcement
 
 ```
-User Interaction
+User Message
     ↓
-DAIC Workflow Enforcement (pre_tool_use)
-    ├─ Security Check
-    ├─ Mode Enforcement (discussion/implementation)
-    ├─ Tool Blocking Logic
-    └─ Event Capture
+user_prompt_submit hook
     ↓
-Tool Execution (if allowed)
+Detect trigger phrases
     ↓
-Post-Tool Event Processing
-    ├─ Event Storage (SQLite + JSONL)
-    ├─ Session Correlation Tracking
-    ├─ Workflow Timing Metrics
-    └─ State Updates
+[If found] Update DAIC mode → implementation
     ↓
-State Management Updates
-    ├─ DAIC State Coordination
-    ├─ Task State Synchronization
-    └─ Session Correlation Maintenance
+Claude prepares tool use
+    ↓
+pre_tool_use hook
+    ↓
+Check DAIC mode + tool name
+    ↓
+[discussion mode + blocked tool] → Return permission: denied
+[implementation mode] → Return permission: allow
+    ↓
+Claude executes or skips tool
+    ↓
+post_tool_use hook
+    ↓
+Log event, cleanup flags
 ```
 
-## File Structure (Complete System)
+### Task Creation Flow
 
 ```
-Project/.brainworm/
-├── hooks/                          # Complete hook system
-│   ├── pre_tool_use.py             # DAIC enforcement + event capture
-│   ├── user_messages.py            # Trigger detection
-│   ├── post_tool_use.py            # Tool execution tracking
-│   ├── stop.py                     # Session lifecycle
-│   ├── session_start.py            # Session initialization
-│   ├── event_store.py              # Core event storage engine
-│   ├── daic_state_manager.py       # Unified state management
-│   └── subagent_stop.py            # Subagent coordination
-├── protocols/                      # Workflow protocols
-│   ├── task-creation.md            # Task setup workflow
-│   ├── task-completion.md          # Task closure workflow
-│   ├── context-compaction.md       # Context management
-│   └── task-startup.md             # Task initialization
-├── state/                          # State management
-│   ├── daic-mode.json              # DAIC workflow mode
-│   └── unified_session_state.json  # Complete session state (includes task tracking)
-├── events/                         # Event storage
-│   └── hooks.db                    # SQLite event database
-├── templates/                      # System templates
-│   ├── TEMPLATE.md                 # Task template
-│   ├── CLAUDE.sessions.md          # Behavioral guidance
-│   └── subagents.md                # Subagent documentation
-└── settings.json                   # Complete system configuration
+User: ./tasks create my-task
+    ↓
+create_task.py
+    ↓
+1. Parse task name
+2. Determine branch type (feature/, fix/, etc.)
+3. Create .brainworm/tasks/my-task/
+4. Copy TEMPLATE.md → README.md
+5. Create git branch
+6. Update unified_session_state.json
+7. Initialize correlation tracking
+    ↓
+Task ready for context gathering
 ```
 
-## Installation & Configuration
+### Event Capture Flow
 
-See [`CLAUDE.md`](../CLAUDE.md) for installation commands and [`docs/CONFIGURATION.md`](CONFIGURATION.md) for detailed configuration options.
+```
+Tool Execution
+    ↓
+tool_start hook → Log start event
+    ↓
+Tool executes
+    ↓
+tool_end hook → Log end event with duration
+    ↓
+Event stored in SQLite
+    ↓
+Tagged with session_id and correlation_id
+    ↓
+Available for analytics and resumption
+```
 
-## Performance Characteristics
+## State Management
 
-**Validated Performance Characteristics** (Current System Status):
+### Unified Session State
 
-- **Hook Execution**: Sub-100ms per event validated (including DAIC enforcement + event capture)
-- **Event Storage**: Optimized database with critical indexes for fast queries
-- **Storage Efficiency**: 29MB local database with proper indexing
-- **Session Correlation**: Validated across all active sessions
-- **Mode Switching**: Near-instantaneous DAIC state transitions
-- **Event Processing**: Optimized storage with minimal overhead
+**Manager:** `utils/daic_state_manager.py`
 
-## Extension Points
+**Operations:**
+- `get_state()` - Read current state
+- `update_daic_mode(mode)` - Update DAIC mode
+- `update_task(task, branch, services)` - Update task info
+- `clear_task()` - Remove current task
+- `update_session_ids(session_id, correlation_id)` - Update IDs
 
-### DAIC Customization
-- Trigger phrase configuration in `config.toml`
-- Tool blocking customization per project
-- Branch enforcement patterns and rules
-- Workflow behavior configuration
+**Concurrency:**
+- File locking via `filelock` library
+- Atomic read-modify-write
+- Safe for concurrent access
 
-### Event Storage Customization
-- Hook customization via `.claude/settings.json`
-- Event capture is automatic and always enabled
-- Optional external aggregation via Nautiloid
+**State Lifecycle:**
+1. Initialized on session start
+2. Updated by hooks and CLI commands
+3. Read by hooks for decisions
+4. Persists across context compaction
+5. Survives session restarts
 
-### Workflow Extensions
-- Custom subagents for specialized tasks
-- New protocols for specialized workflows
-- Extended slash commands for workflow control
-- Additional event tracking capabilities
+### Coordination Flags
 
-## Integration Architecture
+**Purpose:** Inter-hook communication for single session.
 
-### Git Workflow Integration
-- Automatic branch management based on task types
-- Branch enforcement with DAIC mode coordination
-- Git activity tracking in statusline
-- Commit event tracking
+**Examples:**
+- `trigger_phrase_detected.flag` - User said trigger phrase
+- `in_subagent_context.flag` - Subagent is executing
 
-### Multi-Project Event Aggregation (via Nautiloid)
-- Central event database aggregation
-- Cross-project workflow tracking
-- Organizational event analysis
-- Dashboard and visualization support
+**Lifecycle:**
+1. Created by one hook
+2. Read by another hook
+3. Deleted after use
+4. Ephemeral (not persisted)
 
-This architecture enables Brainworm to provide both structured workflow enforcement and comprehensive event tracking, creating a disciplined development system that maintains workflow continuity through session correlation.
+**Location:** `.brainworm/state/`
 
-## Critical Requirements
+## Event Storage
 
-**Hook Configuration**: System requires proper hook configuration in `.claude/settings.json` for:
-- **Task Hook**: Enables transcript processing and context delivery to subagents
-- **DAIC Hook**: Enforces workflow discipline and tool blocking
+### Database Schema
 
-**Installation**: Brainworm is installed via the Claude Code plugin marketplace. All hooks are configured automatically on first session.
+**File:** `.brainworm/events/hooks.db`
 
-**Validation**: Run `uv run src/hooks/verify_installation.py` to verify proper setup.
+**Table:** `hook_events`
 
-See [`docs/CONFIGURATION.md`](CONFIGURATION.md) for detailed configuration requirements.
+```sql
+CREATE TABLE hook_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    correlation_id TEXT,
+    hook_name TEXT NOT NULL,
+    timestamp_ns INTEGER NOT NULL,
+    execution_id TEXT,
+    event_data TEXT,
+    duration_ms INTEGER,
+    INDEX idx_session (session_id),
+    INDEX idx_correlation (correlation_id),
+    INDEX idx_timestamp (timestamp_ns),
+    INDEX idx_hook (hook_name)
+);
+```
+
+**Fields:**
+- `session_id` - Claude Code session identifier
+- `correlation_id` - Task correlation identifier
+- `hook_name` - Which hook logged event
+- `timestamp_ns` - Nanosecond timestamp
+- `execution_id` - Tool execution identifier
+- `event_data` - JSON blob with event details
+- `duration_ms` - Tool execution duration (if applicable)
+
+### Event Types
+
+**DAIC Events:**
+- Mode transitions (discussion ↔ implementation)
+- Trigger phrase detections
+- Tool blocking decisions
+
+**Task Events:**
+- Task creation
+- Task switching
+- Task completion
+
+**Tool Events:**
+- Tool execution start
+- Tool completion with duration
+- Tool results
+
+**Session Events:**
+- Session start
+- Session end
+- Context compaction
+
+### Analytics Integration
+
+Events enable:
+- Workflow pattern analysis
+- Time-in-mode metrics
+- Tool usage statistics
+- Session correlation for continuity
+- Multi-project aggregation (via Nautiloid)
+
+## Hook System
+
+### Hook Registration
+
+**File:** `hooks/hooks.json`
+
+```json
+{
+  "SessionStart": "*",
+  "SessionEnd": "*",
+  "UserPromptSubmit": "*",
+  "PreToolUse": "Edit|Write|MultiEdit|NotebookEdit",
+  "PostToolUse": "Edit|Write|MultiEdit|NotebookEdit",
+  "ToolStart": "*",
+  "ToolEnd": "*",
+  "TranscriptProcessor": "*",
+  "ClaudeMdRequest": "*",
+  "StatusLine": "*"
+}
+```
+
+**Pattern Matching:**
+- `*` - Match all events
+- `Edit|Write|...` - Match specific tools (pipe-separated)
+
+### Hook Execution
+
+**Flow:**
+1. Claude Code detects event (e.g., tool use)
+2. Checks `hooks.json` for matching hooks
+3. Executes hook via `uv run` with PEP 723 dependencies
+4. Passes input via stdin as JSON
+5. Reads output from stdout as JSON
+6. Applies hook result (e.g., block tool, inject message)
+
+**PEP 723 Inline Dependencies:**
+```python
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "rich>=13.0.0",
+#     "tomli-w>=1.0.0",
+#     "filelock>=3.13.0",
+# ]
+# ///
+```
+
+Benefits:
+- Self-contained hook dependencies
+- No global package installation
+- `uv run` handles dependency management
+
+### Hook Types
+
+**Session Hooks:**
+- `SessionStart` - Setup environment
+- `SessionEnd` - Cleanup and finalize
+
+**Prompt Hooks:**
+- `UserPromptSubmit` - Process user input, inject context
+
+**Tool Hooks:**
+- `PreToolUse` - Validate before execution
+- `PostToolUse` - Process after execution
+- `ToolStart` - Log execution start
+- `ToolEnd` - Log completion and timing
+
+**Content Hooks:**
+- `TranscriptProcessor` - Prepare conversation for agents
+- `ClaudeMdRequest` - Inject behavioral guidance
+- `StatusLine` - Provide visual indicators
+
+## Integration Points
+
+### Claude Code Integration
+
+**Via Hooks:**
+- Session lifecycle (start, end)
+- User prompts (inject context, detect triggers)
+- Tool execution (block/allow, log events)
+- Content delivery (inject guidance, status)
+
+**Plugin Directory:**
+```
+your-project/
+├── .claude/
+│   └── plugins/
+│       └── brainworm@medicus-it/
+│           ├── hooks/
+│           ├── agents/
+│           ├── commands/
+│           ├── scripts/
+│           └── utils/
+└── .brainworm/
+    ├── config.toml
+    ├── state/
+    ├── tasks/
+    ├── events/
+    └── protocols/
+```
+
+### Git Integration
+
+**Branch Management:**
+- Automatic branch creation on task creation
+- Branch naming based on task type
+- Branch switching on task switch
+- Submodule support for monorepos
+
+**Operations:**
+- `git checkout -b feature/task-name`
+- `git checkout feature/task-name`
+- `git branch`
+- `git status`
+
+### File System Integration
+
+**Directory Structure:**
+```
+.brainworm/
+├── config.toml              # User configuration
+├── state/
+│   ├── unified_session_state.json
+│   └── *.flag               # Coordination flags
+├── tasks/
+│   └── task-name/
+│       └── README.md        # Task file
+├── events/
+│   └── hooks.db            # SQLite event storage
+├── protocols/              # Protocol templates
+├── logs/                   # Debug logs (optional)
+└── memory/                 # Session memories (optional)
+```
+
+**Wrapper Scripts** (project root):
+- `daic` - DAIC CLI wrapper
+- `tasks` - Tasks CLI wrapper
+- Generated by `session_start` hook
+- Use `.brainworm/plugin-launcher` internally
+
+## Design Decisions
+
+### Why Unified Session State?
+
+**Problem:** Previous architecture had separate state files that could drift.
+
+**Solution:** Single `unified_session_state.json` with atomic updates.
+
+**Trade-offs:**
+- ✅ No state drift
+- ✅ Atomic multi-field updates
+- ✅ Simpler to reason about
+- ❌ Larger file (minimal impact)
+- ❌ Must lock entire file (acceptable)
+
+### Why SQLite for Events?
+
+**Alternatives Considered:**
+- JSONL files - Simple but poor query performance
+- In-memory - Lost on restart
+- External database - Requires setup
+
+**Why SQLite:**
+- ✅ Zero-config embedded database
+- ✅ ACID transactions
+- ✅ Efficient querying and indexing
+- ✅ Portable (single file)
+- ✅ No external dependencies
+
+### Why PEP 723 Inline Dependencies?
+
+**Problem:** Hooks need dependencies but global installation is problematic.
+
+**Solution:** PEP 723 inline script dependencies with `uv run`.
+
+**Benefits:**
+- ✅ Self-contained hooks
+- ✅ No global package pollution
+- ✅ Version pinning per hook
+- ✅ `uv` handles dependency resolution
+- ✅ Fast execution (cached environments)
+
+### Why TOML for Configuration?
+
+**Alternatives:**
+- JSON - No comments, strict syntax
+- YAML - Complex, security issues
+- INI - Limited nested structures
+
+**Why TOML:**
+- ✅ Human-friendly syntax
+- ✅ Comments supported
+- ✅ Strong typing
+- ✅ Nested structures
+- ✅ Python standard library support
+
+### Why Separate Agents?
+
+**Problem:** Complex operations (context gathering, logging) consume main context.
+
+**Solution:** Specialized subagents with separate context windows.
+
+**Benefits:**
+- ✅ Main context preserved
+- ✅ Agents can be thorough without limits
+- ✅ Parallel execution possible
+- ✅ Focused tool access
+- ✅ Clear separation of concerns
+
+### Why Fail-Fast?
+
+**Problem:** Silent failures led to state corruption and hard debugging.
+
+**Solution:** Validate early, fail with clear errors.
+
+**Benefits:**
+- ✅ Bugs caught immediately
+- ✅ Clear error messages
+- ✅ Easier debugging
+- ✅ No silent state corruption
+
+## Performance Considerations
+
+### Event Storage
+
+**Optimization:**
+- Indexed queries on session_id, correlation_id, timestamp
+- Batch inserts where possible
+- Periodic vacuum for database maintenance
+
+**Trade-offs:**
+- Storage grows over time (acceptable)
+- Query performance degrades with millions of events (unlikely)
+
+### State Updates
+
+**Optimization:**
+- File locking minimizes contention
+- JSON is fast to parse
+- State file is small (< 1KB)
+
+**Trade-offs:**
+- File I/O on every update (acceptable)
+- Lock contention with many processes (rare)
+
+### Hook Execution
+
+**Optimization:**
+- `uv` caches dependency environments
+- Hooks execute quickly (< 100ms typical)
+- Parallel hook execution where possible
+
+**Trade-offs:**
+- First run slower (dependency install)
+- Hook count affects total latency
+
+## Testing Strategy
+
+**Test Levels:**
+1. **Unit Tests** - Individual components in isolation
+2. **Integration Tests** - Component interactions with real files/databases
+3. **E2E Tests** - Complete workflows end-to-end
+
+**Test Infrastructure:**
+- Hook test harness for realistic hook execution
+- Event validators for database and JSONL validation
+- Correlation validators for event flow verification
+- Fixtures with realistic session data
+
+**Coverage Focus:**
+- Critical paths (DAIC enforcement, state management)
+- Error handling and edge cases
+- Performance regression prevention
+
+## Security Considerations
+
+**Bash Command Validation:**
+- `bash_validator.py` parses commands for safety
+- Whitelist of read-only commands
+- Blocks destructive operations in discussion mode
+- Quote-aware parsing prevents injection
+
+**State File Access:**
+- File locking prevents race conditions
+- Atomic updates prevent corruption
+- Validation on read prevents malformed state
+
+**Event Storage:**
+- SQL injection prevention via parameterized queries
+- Event data validated before storage
+- No user input directly into SQL
+
+## Scalability
+
+**Current Limits:**
+- Tasks: Unlimited (file-based)
+- Events: Millions (SQLite scales well)
+- State: Single file (acceptable)
+- Hooks: 10 (Claude Code limit)
+
+**Future Considerations:**
+- Event database partitioning (if needed)
+- State sharding (unlikely needed)
+- Hook optimization (if latency becomes issue)
+
+## See Also
+
+- **[Contributing](contributing.md)** - Development workflow and standards
+- **[Reference](reference.md)** - Technical schemas and APIs
+- **[DAIC Workflow](daic-workflow.md)** - User-facing workflow documentation
+- **[Task Management](task-management.md)** - Task system documentation
+
+---
+
+**[← Back to Documentation Home](README.md)** | **[Next: Contributing →](contributing.md)**
