@@ -283,15 +283,6 @@ ls -la .brainworm/events/hooks.db
 echo '{"test": true}' | uv run .brainworm/hooks/stop.py
 ```
 
-## Performance
-
-**Validated Characteristics**:
-- Hook execution: <100ms per event
-- Database queries: <100ms with optimized indexes
-- Storage efficiency: ~29MB local database
-- Session correlation: 95%+ accuracy
-- Zero impact on Claude Code responsiveness
-
 ## Privacy & Security
 
 **Privacy-First Design**:

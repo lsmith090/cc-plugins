@@ -2,7 +2,7 @@
 
 ## Overview
 
-Brainworm uses `.brainworm/config.toml` for system configuration and auto-generates `.claude/settings.json` during installation. The configuration covers DAIC workflow enforcement, branch management, and local event storage.
+Brainworm uses `.brainworm/config.toml` for system configuration and auto-generates `.claude/settings.json` during installation. The configuration covers DAIC workflow enforcement, branch management, and local event storage in `.brainworm/events/`.
 
 **Important**: Multi-project event aggregation (sources, harvesting, dashboards) is handled by the separate **nautiloid** project, not brainworm. This documentation covers only brainworm's single-project features.
 
