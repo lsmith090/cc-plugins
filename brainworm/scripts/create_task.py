@@ -16,12 +16,13 @@ was entirely manual following documented protocols. This script orchestrates:
 - Analytics correlation initialization
 """
 
-import sys
 import argparse
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
+
 from rich.console import Console
-from rich.prompt import Prompt, Confirm
+from rich.prompt import Confirm
 
 # Import brainworm utilities - add plugin root to path
 script_path = Path(__file__).resolve()
@@ -39,9 +40,9 @@ sys.path.insert(0, str(plugin_root))
 
 try:
     # Import with utils. prefix to help with relative imports
-    from utils.project import find_project_root
-    from utils.git_submodule_manager import SubmoduleManager
     from utils.daic_state_manager import DAICStateManager
+    from utils.git_submodule_manager import SubmoduleManager
+    from utils.project import find_project_root
 except ImportError as e:
     print(f"Error importing brainworm utilities: {e}")
     print(f"Tried plugin root: {plugin_root}")
@@ -157,7 +158,7 @@ def create_task(
         branch_name = f"{branch_prefix}/{task_name}"
 
         # 5. Create task directory structure
-        console.print(f"\n[cyan]Creating task directory...[/cyan]")
+        console.print("\n[cyan]Creating task directory...[/cyan]")
         task_dir = project_root / ".brainworm" / "tasks" / task_name
         task_dir.mkdir(parents=True, exist_ok=True)
 
@@ -210,7 +211,7 @@ def create_task(
             # Confirm multi-service branch creation
             if interactive:
                 console.print(f"[yellow]This will create '{branch_name}' in: {', '.join(services)}[/yellow]")
-                console.print(f"[yellow]Main repo will stay on current branch[/yellow]")
+                console.print("[yellow]Main repo will stay on current branch[/yellow]")
                 if not Confirm.ask("Proceed?", default=True):
                     console.print("[yellow]Skipping branch creation[/yellow]")
                 else:
@@ -264,7 +265,7 @@ def create_task(
             console.print("[yellow]Note: Branch not created, you'll need to create it manually[/yellow]")
 
         # 8. Update DAIC state with submodule branch tracking
-        console.print(f"\n[cyan]Updating DAIC state...[/cyan]")
+        console.print("\n[cyan]Updating DAIC state...[/cyan]")
         state_mgr = DAICStateManager(project_root)
 
         # Get current state to preserve session/correlation IDs
@@ -282,16 +283,15 @@ def create_task(
 
         # 9. Success message with next steps
         console.print(f"\n[bold green]✓ Task '{task_name}' created successfully![/bold green]")
-        console.print(f"\n[cyan]Task Details:[/cyan]")
+        console.print("\n[cyan]Task Details:[/cyan]")
         console.print(f"  • Task file: .brainworm/tasks/{task_name}/README.md")
         console.print(f"  • Branch: {branch_name}")
 
         if active_submodule_branches:
             # Multi-service monorepo case
             console.print(f"  • Main repo: [yellow]{main_branch}[/yellow] (unchanged)")
-            console.print(f"  • Service branches:")
+            console.print("  • Service branches:")
             for svc, svc_branch in active_submodule_branches.items():
-                svc_path = sm.get_submodule_path(svc)
                 console.print(f"    - {svc}: [green]{svc_branch}[/green]")
         elif submodule:
             # Single submodule case
@@ -299,12 +299,12 @@ def create_task(
             console.print(f"  • Location: {sm.get_submodule_path(submodule)}")
         else:
             # Main repo case
-            console.print(f"  • Location: main repository")
+            console.print("  • Location: main repository")
 
-        console.print(f"\n[yellow]Next steps:[/yellow]")
+        console.print("\n[yellow]Next steps:[/yellow]")
         console.print("  1. Edit task file to add description and success criteria")
         console.print("  2. Invoke context-gathering agent for comprehensive context:")
-        console.print(f"     [dim]Use Task tool with context-gathering agent, provide task file path[/dim]")
+        console.print("     [dim]Use Task tool with context-gathering agent, provide task file path[/dim]")
         console.print("  3. Start work in discussion mode (already active)")
 
         if active_submodule_branches:

@@ -23,7 +23,7 @@ Usage:
 """
 
 import re
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 
 def split_command_respecting_quotes(command: str) -> List[str]:

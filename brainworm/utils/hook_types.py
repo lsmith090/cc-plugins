@@ -20,10 +20,10 @@ in an 'extra' dict to prevent silent data loss during schema churn.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional, Union, Iterable
-from enum import Enum
 import datetime as _dt
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 # ---------------------------------------------------------------------------
 # Utility helpers
@@ -72,25 +72,25 @@ class DAICMode(Enum):
     """DAIC workflow modes with standardized string values"""
     DISCUSSION = "discussion"
     IMPLEMENTATION = "implementation"
-    
+
     def __str__(self) -> str:
         """Return the string value for backward compatibility"""
         return self.value
-    
+
     @classmethod
     def from_string(cls, mode_str: str) -> 'DAICMode':
         """Parse DAIC mode from string with case insensitivity"""
         if not mode_str:
             raise ValueError("Empty mode string")
-        
+
         mode_lower = mode_str.lower().strip()
         for mode in cls:
             if mode.value.lower() == mode_lower:
                 return mode
-        
+
         raise ValueError(f"Unknown DAIC mode: {mode_str}")
-    
-    @classmethod  
+
+    @classmethod
     def is_valid_mode(cls, mode_str: str) -> bool:
         """Check if a string represents a valid DAIC mode"""
         try:
@@ -113,7 +113,7 @@ class CommandToolInput:
     @staticmethod
     def matches(data: Dict[str, Any]) -> bool:
         return 'command' in data
-    
+
     def to_dict(self) -> Dict[str, Any]:
         result = {'command': self.command}
         if self.description:
@@ -131,7 +131,7 @@ class FileWriteToolInput:
     @staticmethod
     def matches(data: Dict[str, Any]) -> bool:
         return 'file_path' in data and 'content' in data
-    
+
     def to_dict(self) -> Dict[str, Any]:
         result = {'file_path': self.file_path, 'content': self.content}
         if self.description:
@@ -152,13 +152,13 @@ class FileEditToolInput:
     @staticmethod
     def matches(data: Dict[str, Any]) -> bool:
         return 'file_path' in data and any(k in data for k in ('old_string','new_string','oldString','newString','edits'))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         result = {'file_path': self.file_path}
-        for field in ['old_string', 'new_string', 'oldString', 'newString', 'edits']:
-            value = getattr(self, field)
+        for field_name in ['old_string', 'new_string', 'oldString', 'newString', 'edits']:
+            value = getattr(self, field_name)
             if value is not None:
-                result[field] = value
+                result[field_name] = value
         result.update(self.extra)
         return result
 
@@ -211,13 +211,13 @@ class ToolResponse:
         known = {k: raw.get(k) for k in ('filePath','oldString','newString','originalFile','structuredPatch','type')}
         extra = {k:v for k,v in raw.items() if k not in known}
         return ToolResponse(**known, extra=extra)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         result = {}
-        for field in ['filePath', 'oldString', 'newString', 'originalFile', 'structuredPatch', 'type']:
-            value = getattr(self, field)
+        for field_name in ['filePath', 'oldString', 'newString', 'originalFile', 'structuredPatch', 'type']:
+            value = getattr(self, field_name)
             if value is not None:
-                result[field] = value
+                result[field_name] = value
         result.update(self.extra)
         return result
 
@@ -405,7 +405,7 @@ class HookSpecificOutput:
     hookEventName: str
     additionalContext: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         result = {"hookEventName": self.hookEventName}
         if self.additionalContext:
@@ -414,17 +414,17 @@ class HookSpecificOutput:
             result["metadata"] = self.metadata
         return result
 
-@dataclass  
+@dataclass
 class UserPromptContextResponse:
     hookSpecificOutput: HookSpecificOutput
     debug: Optional[Dict[str, Any]] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         result = {"hookSpecificOutput": self.hookSpecificOutput.to_dict()}
         if self.debug:
             result["debug"] = self.debug
         return result
-    
+
     @staticmethod
     def create_context(context: str, debug_info: Dict[str, Any] = None) -> 'UserPromptContextResponse':
         """Factory method for creating UserPromptSubmit context responses"""
@@ -442,7 +442,7 @@ class SessionCorrelationResponse:
     session_id: str
     correlation_id: str
     timestamp: str
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "success": self.success,
@@ -454,11 +454,11 @@ class SessionCorrelationResponse:
 @dataclass
 class DAICModeResult:
     success: bool
-    old_mode: DAICMode  
+    old_mode: DAICMode
     new_mode: DAICMode
     timestamp: str
     trigger: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         result = {
             "success": self.success,
@@ -474,9 +474,9 @@ class DAICModeResult:
 class ToolAnalysisResult:
     success: bool
     error_info: Dict[str, Any]
-    execution_metrics: Dict[str, Any] 
+    execution_metrics: Dict[str, Any]
     risk_factors: List[str]
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "success": self.success,
@@ -493,7 +493,7 @@ class ToolAnalysisResult:
 class PreToolUseDecisionOutput:
     continue_: bool
     stop_reason: Optional[str] = None  # Official spec field
-    suppress_output: Optional[bool] = None  # Official spec capability  
+    suppress_output: Optional[bool] = None  # Official spec capability
     system_message: Optional[str] = None  # Official spec capability
     validation_issues: List[Dict[str, Any]] = field(default_factory=list)
     session_id: Optional[str] = None
@@ -501,29 +501,29 @@ class PreToolUseDecisionOutput:
 
     def to_dict(self) -> Dict[str, Any]:
         result = {'continue': self.continue_}
-        
+
         if self.stop_reason:
             result['stopReason'] = self.stop_reason
         if self.suppress_output is not None:
             result['suppressOutput'] = self.suppress_output
         if self.system_message:
             result['systemMessage'] = self.system_message
-            
+
         # Hook-specific output per Claude Code specification
         hook_specific = {
             "hookEventName": "PreToolUse"
         }
-        
+
         # Add permission decision based on continue status
         if self.continue_:
             hook_specific["permissionDecision"] = "allow"
             if self.stop_reason:
                 hook_specific["permissionDecisionReason"] = self.stop_reason
         else:
-            hook_specific["permissionDecision"] = "deny"  
+            hook_specific["permissionDecision"] = "deny"
             if self.stop_reason:
                 hook_specific["permissionDecisionReason"] = self.stop_reason
-        
+
         result['hookSpecificOutput'] = hook_specific
         return result
 
@@ -532,7 +532,7 @@ class PreToolUseDecisionOutput:
         return PreToolUseDecisionOutput(True, stop_reason=reason, session_id=session_id)
 
     @staticmethod
-    def block(reason: str, validation_issues: Iterable[str | Dict[str, Any]], 
+    def block(reason: str, validation_issues: Iterable[str | Dict[str, Any]],
               session_id: Optional[str] = None, suppress_output: bool = False) -> 'PreToolUseDecisionOutput':
         norm = []
         for v in validation_issues:
@@ -672,7 +672,7 @@ class DeveloperInfo:
     name: Optional[str] = None
     email: Optional[str] = None
     source: str = "unknown"  # git, config, unknown
-    
+
     @staticmethod
     def parse(data: Dict[str, Any]) -> 'DeveloperInfo':
         """Parse developer info from dict (backward compatibility)"""
@@ -681,7 +681,7 @@ class DeveloperInfo:
             email=data.get('email'),
             source=data.get('source', 'unknown')
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dict for serialization"""
         return {
@@ -692,7 +692,7 @@ class DeveloperInfo:
 
 
 # ---------------------------------------------------------------------------
-# Configuration Data Classes  
+# Configuration Data Classes
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -701,14 +701,14 @@ class DeveloperConfig:
     name: str = "Developer"
     email: str = "developer@example.com"
     git_identity_source: str = "auto"  # "auto", "config", "manual"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,
             "email": self.email,
             "git_identity_source": self.git_identity_source
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'DeveloperConfig':
         return cls(
@@ -725,7 +725,7 @@ class PreferencesConfig:
     context_warning_threshold: int = 75
     analytics_participation: bool = True
     statusline_format: str = "full"  # "full", "compact", "minimal"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "daic_default_mode": self.daic_default_mode,
@@ -733,7 +733,7 @@ class PreferencesConfig:
             "analytics_participation": self.analytics_participation,
             "statusline_format": self.statusline_format
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'PreferencesConfig':
         return cls(
@@ -749,13 +749,13 @@ class TeamConfig:
     """Team and organization configuration"""
     organization: str = ""
     project_role: str = "developer"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "organization": self.organization,
             "project_role": self.project_role
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'TeamConfig':
         return cls(
@@ -771,7 +771,7 @@ class UserConfig:
     preferences: PreferencesConfig = field(default_factory=PreferencesConfig)
     team: TeamConfig = field(default_factory=TeamConfig)
     version: str = "1.0"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "developer": self.developer.to_dict(),
@@ -779,7 +779,7 @@ class UserConfig:
             "team": self.team.to_dict(),
             "version": self.version
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UserConfig':
         return cls(
@@ -857,20 +857,20 @@ class BranchEnforcementConfig:
     ])
     branch_prefixes: Dict[str, str] = field(default_factory=lambda: {
         "implement-": "feature/",
-        "fix-": "fix/", 
+        "fix-": "fix/",
         "refactor-": "feature/",
         "migrate-": "feature/",
         "test-": "feature/",
         "docs-": "feature/"
     })
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "enabled": self.enabled,
             "task_prefixes": self.task_prefixes,
             "branch_prefixes": self.branch_prefixes
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'BranchEnforcementConfig':
         return cls(
@@ -886,14 +886,14 @@ class IntelligenceConfig:
     codebase_learning: bool = True
     pattern_recognition: bool = True
     smart_recommendations: bool = True
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "codebase_learning": self.codebase_learning,
             "pattern_recognition": self.pattern_recognition,
             "smart_recommendations": self.smart_recommendations
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'IntelligenceConfig':
         return cls(
@@ -907,10 +907,10 @@ class IntelligenceConfig:
 class TaskDetectionConfig:
     """Configuration for task detection features"""
     enabled: bool = True
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {"enabled": self.enabled}
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'TaskDetectionConfig':
         return cls(enabled=data.get("enabled", True))
@@ -931,7 +931,7 @@ class DAICConfig:
     read_only_bash_commands: ReadOnlyCommandsConfig = field(default_factory=ReadOnlyCommandsConfig)
     intelligence: IntelligenceConfig = field(default_factory=IntelligenceConfig)
     task_detection: TaskDetectionConfig = field(default_factory=TaskDetectionConfig)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "enabled": self.enabled,
@@ -943,7 +943,7 @@ class DAICConfig:
             "intelligence": self.intelligence.to_dict(),
             "task_detection": self.task_detection.to_dict()
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'DAICConfig':
         return cls(
@@ -970,7 +970,7 @@ class OperationResult:
     error_code: Optional[str] = None
     error_message: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         return {
@@ -980,18 +980,18 @@ class OperationResult:
             "error_message": self.error_message,
             "metadata": self.metadata
         }
-    
+
     @classmethod
     def success_result(cls, **metadata) -> 'OperationResult':
         """Factory method for successful operations"""
         return cls(success=True, metadata=metadata)
-    
+
     @classmethod
     def error_result(cls, error_code: str, error_message: str, **metadata) -> 'OperationResult':
         """Factory method for failed operations"""
         return cls(
-            success=False, 
-            error_code=error_code, 
+            success=False,
+            error_code=error_code,
             error_message=error_message,
             metadata=metadata
         )
@@ -1003,7 +1003,7 @@ class DAICModeOperationResult(OperationResult):
     old_mode: Optional[DAICMode] = None
     new_mode: Optional[DAICMode] = None
     trigger: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         result = super().to_dict()
@@ -1013,7 +1013,7 @@ class DAICModeOperationResult(OperationResult):
             "trigger": self.trigger
         })
         return result
-    
+
     @classmethod
     def successful_toggle(cls, old_mode: DAICMode, new_mode: DAICMode, trigger: str = None) -> 'DAICModeOperationResult':
         """Factory method for successful mode toggles"""
@@ -1023,7 +1023,7 @@ class DAICModeOperationResult(OperationResult):
             new_mode=new_mode,
             trigger=trigger
         )
-    
+
     @classmethod
     def successful_set(cls, mode: DAICMode, trigger: str = None) -> 'DAICModeOperationResult':
         """Factory method for successful mode sets"""
@@ -1032,7 +1032,7 @@ class DAICModeOperationResult(OperationResult):
             new_mode=mode,
             trigger=trigger
         )
-    
+
     @classmethod
     def failed_operation(cls, error_code: str, error_message: str) -> 'DAICModeOperationResult':
         """Factory method for failed DAIC operations"""
@@ -1050,7 +1050,7 @@ class ModeDisplayInfo:
     emoji: str = field()
     color: str = field()
     success: bool = field()
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         return {
@@ -1059,7 +1059,7 @@ class ModeDisplayInfo:
             "color": self.color,
             "success": self.success
         }
-    
+
     @classmethod
     def success_display(cls, mode: DAICMode, emoji: str, color: str) -> 'ModeDisplayInfo':
         """Factory method for successful mode display"""
@@ -1069,7 +1069,7 @@ class ModeDisplayInfo:
             color=color,
             success=True
         )
-    
+
     @classmethod
     def error_display(cls, mode: str = "unknown", emoji: str = "❓", color: str = "white") -> 'ModeDisplayInfo':
         """Factory method for error mode display"""
@@ -1088,7 +1088,7 @@ class ToolBlockingResult:
     reason: str = field()
     blocking_type: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         return {
@@ -1097,11 +1097,11 @@ class ToolBlockingResult:
             "blocking_type": self.blocking_type,
             "metadata": self.metadata
         }
-    
+
     def to_tuple(self) -> tuple[bool, str]:
         """Convert to tuple for backward compatibility"""
         return self.should_block, self.reason
-    
+
     @classmethod
     def allow_tool(cls, reason: str = "Tool allowed") -> 'ToolBlockingResult':
         """Factory method for allowing tools"""
@@ -1110,7 +1110,7 @@ class ToolBlockingResult:
             reason=reason,
             blocking_type=None
         )
-    
+
     @classmethod
     def block_tool(cls, reason: str, blocking_type: str = "DAIC_BLOCKED") -> 'ToolBlockingResult':
         """Factory method for blocking tools"""
@@ -1119,7 +1119,7 @@ class ToolBlockingResult:
             reason=reason,
             blocking_type=blocking_type
         )
-    
+
     @classmethod
     def security_block(cls, reason: str) -> 'ToolBlockingResult':
         """Factory method for security-related blocks"""
@@ -1128,7 +1128,7 @@ class ToolBlockingResult:
             reason=reason,
             blocking_type="SECURITY_BLOCKED"
         )
-    
+
     @classmethod
     def discussion_mode_block(cls, tool_name: str, detail: str = None) -> 'ToolBlockingResult':
         """Factory method for discussion mode blocks"""
@@ -1136,14 +1136,14 @@ class ToolBlockingResult:
             reason = f"[DAIC: Tool Blocked] {detail}"
         else:
             reason = f"[DAIC: Tool Blocked] You're in discussion mode. The {tool_name} tool is not allowed. You need to seek alignment first."
-        
+
         return cls(
             should_block=True,
             reason=reason,
             blocking_type="DISCUSSION_MODE_BLOCKED",
             metadata={"blocked_tool": tool_name}
         )
-    
+
     @classmethod
     def command_block(cls, command: str, detail: str = None) -> 'ToolBlockingResult':
         """Factory method for command-specific blocks"""
@@ -1151,7 +1151,7 @@ class ToolBlockingResult:
             reason = f"[DAIC: Command Blocked] {detail}"
         else:
             reason = f"[DAIC: Command Blocked] Potentially modifying Bash command blocked in discussion mode: {command}"
-        
+
         return cls(
             should_block=True,
             reason=reason,
@@ -1169,7 +1169,7 @@ class CorrelationUpdateResult:
     timestamp: str = field(default_factory=_now_iso)
     error: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         result = {
@@ -1183,7 +1183,7 @@ class CorrelationUpdateResult:
         if self.metadata:
             result["metadata"] = self.metadata
         return result
-    
+
     @classmethod
     def successful_update(cls, session_id: str, correlation_id: str) -> 'CorrelationUpdateResult':
         """Factory method for successful correlation updates"""
@@ -1192,7 +1192,7 @@ class CorrelationUpdateResult:
             session_id=session_id,
             correlation_id=correlation_id
         )
-    
+
     @classmethod
     def failed_update(cls, session_id: str, correlation_id: str, error: str) -> 'CorrelationUpdateResult':
         """Factory method for failed correlation updates"""
@@ -1202,7 +1202,7 @@ class CorrelationUpdateResult:
             correlation_id=correlation_id,
             error=error
         )
-    
+
     @classmethod
     def invalid_session_id(cls) -> 'CorrelationUpdateResult':
         """Factory method for invalid session ID error"""
@@ -1212,7 +1212,7 @@ class CorrelationUpdateResult:
             correlation_id="",
             error="Invalid session_id"
         )
-    
+
     @classmethod
     def invalid_correlation_id(cls) -> 'CorrelationUpdateResult':
         """Factory method for invalid correlation ID error"""
@@ -1234,7 +1234,7 @@ class ConsistencyCheckResult:
     task_session: Optional[str] = None
     error: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         result = {
@@ -1249,9 +1249,9 @@ class ConsistencyCheckResult:
         if self.metadata:
             result["metadata"] = self.metadata
         return result
-    
+
     @classmethod
-    def consistent_state(cls, unified_session: str = None, unified_correlation: str = None, 
+    def consistent_state(cls, unified_session: str = None, unified_correlation: str = None,
                         task_session: str = None) -> 'ConsistencyCheckResult':
         """Factory method for consistent state"""
         return cls(
@@ -1260,9 +1260,9 @@ class ConsistencyCheckResult:
             unified_correlation=unified_correlation,
             task_session=task_session
         )
-    
+
     @classmethod
-    def inconsistent_state(cls, inconsistencies: List[str], unified_session: str = None, 
+    def inconsistent_state(cls, inconsistencies: List[str], unified_session: str = None,
                           unified_correlation: str = None, task_session: str = None) -> 'ConsistencyCheckResult':
         """Factory method for inconsistent state"""
         return cls(
@@ -1272,7 +1272,7 @@ class ConsistencyCheckResult:
             unified_correlation=unified_correlation,
             task_session=task_session
         )
-    
+
     @classmethod
     def check_failed(cls, error: str) -> 'ConsistencyCheckResult':
         """Factory method for failed consistency checks"""
@@ -1289,7 +1289,7 @@ class IdGenerationResult:
     correlation_id: str = field()
     timestamp: str = field(default_factory=_now_iso)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         return {
@@ -1298,7 +1298,7 @@ class IdGenerationResult:
             "timestamp": self.timestamp,
             "metadata": self.metadata
         }
-    
+
     def to_tuple(self) -> Tuple[str, str]:
         """Convert to tuple for backward compatibility"""
         return self.session_id, self.correlation_id
@@ -1346,7 +1346,7 @@ def to_json_serializable(obj: Any) -> Any:
 
 def get_standard_timestamp() -> str:
     """Get current timestamp in standard ISO 8601 format with UTC timezone.
-    
+
     This is the canonical format for all timestamps in the brainworm system.
     Format: "2025-08-11T13:34:27.254010+00:00"
     """
@@ -1354,25 +1354,25 @@ def get_standard_timestamp() -> str:
 
 def parse_standard_timestamp(ts: str) -> _dt.datetime:
     """Parse standard timestamp with fallback for legacy formats.
-    
+
     Args:
         ts: Timestamp string in ISO 8601 format or legacy numeric format
-        
+
     Returns:
         datetime object in UTC timezone
-        
+
     Raises:
         ValueError: If timestamp cannot be parsed
     """
     if not ts:
         raise ValueError("Empty timestamp")
-        
+
     # Try ISO format first
     try:
         return _dt.datetime.fromisoformat(ts.replace('Z', '+00:00'))
     except (ValueError, AttributeError):
         pass
-    
+
     # Fallback to numeric timestamp parsing
     try:
         timestamp_val = float(ts)
@@ -1384,21 +1384,21 @@ def parse_standard_timestamp(ts: str) -> _dt.datetime:
         return _dt.datetime.fromtimestamp(timestamp_val, _dt.timezone.utc)
     except (ValueError, TypeError):
         pass
-    
+
     raise ValueError(f"Cannot parse timestamp: {ts}")
 
 def format_for_database(ts: str) -> str:
     """Ensure timestamp is in correct format for database storage.
-    
+
     Args:
         ts: Timestamp in any supported format
-        
+
     Returns:
         ISO 8601 timestamp string suitable for database storage
     """
     if not ts:
         return get_standard_timestamp()
-        
+
     try:
         # Parse and re-format to ensure consistency
         parsed = parse_standard_timestamp(ts)

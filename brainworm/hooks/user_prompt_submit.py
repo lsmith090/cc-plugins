@@ -17,15 +17,16 @@ Provides Claude with contextual guidance based on user prompts.
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import json
-import re
 from datetime import datetime, timezone
-from typing import Dict, Any, List
-from utils.hook_framework import HookFramework
+from typing import Any, Dict, List
+
 from utils.business_controllers import create_daic_controller
-from utils.hook_types import UserPromptContextResponse, DAICMode
+from utils.hook_framework import HookFramework
+from utils.hook_types import DAICMode, UserPromptContextResponse
 
 
 def get_basic_prompt_info(prompt: str) -> Dict[str, Any]:
@@ -44,13 +45,13 @@ def get_context_length_from_transcript(transcript_path: str) -> int:
         import os
         if not os.path.exists(transcript_path):
             return 0
-            
+
         with open(transcript_path, 'r') as f:
             lines = f.readlines()
-        
+
         most_recent_usage = None
         most_recent_timestamp = None
-        
+
         # Parse each JSONL entry
         for line in lines:
             try:
@@ -58,7 +59,7 @@ def get_context_length_from_transcript(transcript_path: str) -> int:
                 # Skip sidechain entries (subagent calls)
                 if data.get('isSidechain', False):
                     continue
-                    
+
                 # Check if this entry has usage data
                 if data.get('message', {}).get('usage'):
                     entry_time = data.get('timestamp')
@@ -68,7 +69,7 @@ def get_context_length_from_transcript(transcript_path: str) -> int:
                         most_recent_usage = data['message']['usage']
             except json.JSONDecodeError:
                 continue
-        
+
         # Calculate context length from most recent usage
         if most_recent_usage:
             context_length = (
@@ -85,23 +86,23 @@ def get_context_length_from_transcript(transcript_path: str) -> int:
 def check_context_warnings(transcript_path: str, project_root: Path) -> str:
     """Check and create context usage warnings based on cc-sessions logic"""
     context_warning = ""
-    
+
     try:
         if not transcript_path:
             return context_warning
-        
+
         context_length = get_context_length_from_transcript(transcript_path)
         if context_length > 0:
             # Calculate percentage of usable context (160k practical limit before auto-compact)
             usable_percentage = (context_length / 160000) * 100
-            
+
             # Check for warning flag files to avoid repeating warnings
             state_dir = project_root / ".brainworm" / "state"
             state_dir.mkdir(parents=True, exist_ok=True)
-            
+
             warning_75_flag = state_dir / "context-warning-75.flag"
             warning_90_flag = state_dir / "context-warning-90.flag"
-            
+
             # Token warnings (only show once per session)
             if usable_percentage >= 90 and not warning_90_flag.exists():
                 context_warning = f"\n[90% WARNING] {context_length:,}/160,000 tokens used ({usable_percentage:.1f}%). CRITICAL: Run context compaction to wrap up this session cleanly!\n"
@@ -112,7 +113,7 @@ def check_context_warnings(transcript_path: str, project_root: Path) -> str:
     except Exception as e:
         # Failed to create context warning flags - continue without warnings
         print(f"Debug: Failed to check context warnings: {e}", file=sys.stderr)
-    
+
     return context_warning
 
 
@@ -123,7 +124,7 @@ def get_daic_state(project_root: Path) -> Dict[str, Any]:
     try:
         controller = create_daic_controller(project_root)
         mode_info = controller.get_mode_with_display()
-        
+
         return {
             "mode": mode_info.mode,
             "timestamp": None,  # Not tracked in this interface
@@ -139,7 +140,7 @@ def set_daic_mode(project_root: Path, mode: str, trigger: str = None) -> Dict[st
     try:
         controller = create_daic_controller(project_root)
         result = controller.set_mode(mode, trigger=trigger)
-        
+
         return {
             "mode": str(result.new_mode) if result.success and result.new_mode else str(DAICMode.DISCUSSION),
             "timestamp": result.timestamp if result.success else datetime.now(timezone.utc).isoformat(),
@@ -285,7 +286,7 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
                         debug_logger.error(f"Failed to switch DAIC mode: {e}")
 
                 context += f"[DAIC: Implementation Mode Activated] Trigger phrase '{detected_trigger}' detected. You may now implement ONLY the immediately discussed steps. DO NOT take **any** actions beyond what was explicitly agreed upon. When you're done, run the command: ./daic\n"
-        
+
         # Protocol detection with subagent reminders
         detected_protocols = detect_protocols(prompt)
         for protocol in detected_protocols:
@@ -308,7 +309,7 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
         # Add ultrathink if not in API mode
         if not config.get("api_mode", False) and not prompt.strip().startswith('/'):
             context = "[[ ultrathink ]]\n" + context
-    
+
     # Return processing results
     return {
         "context": context,
@@ -364,7 +365,7 @@ def main() -> None:
         HookFramework("user_prompt_submit", enable_event_logging=True) \
             .with_custom_logic(user_prompt_submit_framework_logic) \
             .execute()
-        
+
     except Exception:
         # Emergency fallback - always provide some JSON
         print(json.dumps({"context": ""}))

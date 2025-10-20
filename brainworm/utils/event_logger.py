@@ -17,10 +17,9 @@ Enriches events with session context before storage.
 
 import json
 import sys
-import time
 import uuid
 from pathlib import Path
-from typing import Dict, Any, Optional
+
 from rich.console import Console
 
 # Import FileLock with fallback for atomic file operations
@@ -31,7 +30,7 @@ except ImportError:
 
 # Import type definitions with fallback
 try:
-    from .hook_types import parse_log_event, PreToolUseLogEvent, PostToolUseLogEvent, get_standard_timestamp
+    from .hook_types import PostToolUseLogEvent, PreToolUseLogEvent, get_standard_timestamp, parse_log_event
 except ImportError:
     parse_log_event = None
     PreToolUseLogEvent = None
@@ -53,7 +52,7 @@ except ImportError:
             def __init__(self, project_root, hook_name):
                 self.project_root = project_root
                 self.hook_name = hook_name
-            
+
             def log_event(self, event_data):
                 return True
 
@@ -93,7 +92,7 @@ class SessionEventLogger(HookLogger):
         super().__init__(project_root, hook_name)
         self.enable_event_logging = enable_event_logging
         self.session_id = session_id or self._get_fallback_session_id()
-        
+
         # Use correlation manager for workflow-level correlation instead of random IDs
         self.correlation_id = get_workflow_correlation_id(project_root, self.session_id)
 
@@ -113,18 +112,18 @@ class SessionEventLogger(HookLogger):
             pass  # Don't fail hook execution if state update fails
 
         self.timing_data = {}  # Keep for backward compatibility
-        
+
         # Shared timing storage directory
         self.timing_dir = project_root / '.brainworm' / 'timing'
         self.timing_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Initialize event store for database logging
         try:
             self.event_store = HookEventStore(project_root / '.brainworm')
         except Exception:
             # Graceful fallback if event store initialization fails
             self.event_store = None
-        
+
     def _get_fallback_session_id(self) -> str:
         """
         Generate fallback session ID if not provided by Claude Code.
@@ -158,15 +157,15 @@ class SessionEventLogger(HookLogger):
         # Strategy 3: Generate new stable session ID
         # Use longer ID (16 chars) for better uniqueness
         return f"fallback-{str(uuid.uuid4())[:16]}"
-    
-    
+
+
     def enrich_event_data(self, event_data: dict) -> dict:
         """Add essential session and correlation metadata to event data"""
         enriched = event_data.copy()
 
         # Preserve execution_id if present
         execution_id = event_data.get('execution_id')
-        
+
         # Use typed event parsing if available for better metadata extraction
         if parse_log_event:
             try:
@@ -205,13 +204,13 @@ class SessionEventLogger(HookLogger):
                 'workflow_phase': self._detect_workflow_phase(event_data),
                 'project_root': str(self.project_root),
             })
-        
+
         return enriched
-    
+
     def _detect_workflow_phase(self, event_data: dict) -> str:
         """Detect current workflow phase"""
         hook_name = event_data.get('hook_name', self.hook_name)
-        
+
         if hook_name == 'user_prompt_submit':
             return 'prompt_analysis'
         elif hook_name == 'pre_tool_use':
@@ -220,7 +219,7 @@ class SessionEventLogger(HookLogger):
             return 'tool_completion'
         else:
             return 'unknown'
-    
+
     def log_event(self, event_data: dict, debug: bool = False) -> bool:
         """Log enriched event to event store database"""
         try:
@@ -246,14 +245,14 @@ class SessionEventLogger(HookLogger):
                     return False
             else:
                 if debug:
-                    print(f"Warning: Event store not available", file=sys.stderr)
+                    print("Warning: Event store not available", file=sys.stderr)
                 return False
 
         except Exception as e:
             if debug:
                 print(f"Warning: Analytics logging failed: {e}", file=sys.stderr)
             return False
-    
+
     def log_pre_tool_execution(self, input_data: dict, debug: bool = False) -> bool:
         """Log pre-tool execution with timing"""
         # Store timing checkpoint
@@ -262,10 +261,10 @@ class SessionEventLogger(HookLogger):
             'tool_name': input_data.get('tool_name'),
             'correlation_id': self.correlation_id
         }
-        
+
         # Store in instance for backward compatibility
         self.timing_data[self.session_id] = timing_info
-        
+
         # Also write to shared timing storage for cross-hook coordination
         try:
             timing_file = self.timing_dir / f"{self.session_id}.json"
@@ -284,7 +283,7 @@ class SessionEventLogger(HookLogger):
         except Exception as e:
             if debug:
                 print(f"Warning: Failed to write timing file: {e}", file=sys.stderr)
-        
+
         event_data = {
             'hook_name': 'pre_tool_use',
             'tool_name': input_data.get('tool_name'),
@@ -292,14 +291,14 @@ class SessionEventLogger(HookLogger):
             'session_id': input_data.get('session_id'),
             'timing': timing_info  # Include timing data in logged event
         }
-        
+
         return self.log_event(event_data, debug)
-    
+
     def log_post_tool_execution(self, input_data: dict, debug: bool = False) -> bool:
         """Log post-tool execution with duration"""
         # Calculate execution duration
         timing_info = {}
-        
+
         # Try to read from shared timing storage first
         timing_file = self.timing_dir / f"{self.session_id}.json"
         try:
@@ -339,7 +338,7 @@ class SessionEventLogger(HookLogger):
                     'start_timestamp': start_time
                 }
                 del self.timing_data[self.session_id]
-        
+
         event_data = {
             'hook_name': 'post_tool_use',
             'tool_name': input_data.get('tool_name'),
@@ -348,9 +347,9 @@ class SessionEventLogger(HookLogger):
             'session_id': input_data.get('session_id'),
             'timing': timing_info
         }
-        
+
         return self.log_event(event_data, debug)
-    
+
     def log_user_prompt(self, prompt_data: dict, debug: bool = False) -> bool:
         """Log user prompt with intent analysis"""
         event_data = {
@@ -358,12 +357,12 @@ class SessionEventLogger(HookLogger):
             'prompt': prompt_data.get('prompt', ''),
             'session_id': prompt_data.get('session_id'),
         }
-        
+
         if self.enable_event_logging:
             event_data['intent_analysis'] = self._analyze_intent(prompt_data.get('prompt', ''))
-        
+
         return self.log_event(event_data, debug)
-    
+
     def _calculate_duration_ms(self, start_time_iso: str) -> float:
         """Calculate duration between ISO timestamp and now in milliseconds."""
         try:
@@ -375,11 +374,11 @@ class SessionEventLogger(HookLogger):
         except Exception:
             # Fallback to zero if calculation fails
             return 0.0
-    
+
     def _analyze_intent(self, prompt: str) -> dict:
         """Basic intent classification"""
         prompt_lower = prompt.lower()
-        
+
         intent_keywords = {
             'bug_fix': ['fix', 'bug', 'error', 'issue', 'broken'],
             'feature_development': ['add', 'create', 'implement', 'build', 'new'],
@@ -388,17 +387,17 @@ class SessionEventLogger(HookLogger):
             'testing': ['test', 'spec', 'validate', 'verify'],
             'debugging': ['debug', 'investigate', 'trace', 'analyze']
         }
-        
+
         scores = {}
         for intent, keywords in intent_keywords.items():
             scores[intent] = sum(1 for keyword in keywords if keyword in prompt_lower)
-        
+
         if max(scores.values()) == 0:
             return {'primary_intent': 'general_inquiry', 'confidence': 0.3}
-        
+
         primary_intent = max(scores.keys(), key=lambda k: scores[k])
         confidence = min(0.9, scores[primary_intent] * 0.3)
-        
+
         return {
             'primary_intent': primary_intent,
             'confidence': confidence,

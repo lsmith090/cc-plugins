@@ -17,7 +17,6 @@ Usage:
 
 import re
 from pathlib import Path
-from typing import Optional
 
 
 def validate_safe_path(path: Path, base_dir: Path, allow_symlinks: bool = False) -> Path:
@@ -161,7 +160,7 @@ def validate_identifier(identifier: str, max_length: int = 100,
 
     if not re.match(pattern, identifier):
         raise ValueError(
-            f"Invalid identifier: must contain only alphanumeric characters"
+            "Invalid identifier: must contain only alphanumeric characters"
             + (" and hyphens" if allow_hyphen else "")
             + (" and underscores" if allow_underscore else "")
         )

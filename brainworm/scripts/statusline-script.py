@@ -12,13 +12,12 @@ Provides comprehensive session information with DAIC workflow and analytics inte
 Converted from bash version for better maintainability and consistent output
 """
 
-import sys
 import json
-import os
 import re
 import subprocess
+import sys
 from pathlib import Path
-from typing import Dict, Any, Optional, Tuple
+from typing import Any, Dict
 
 # Import DAICMode enum if available
 try:
@@ -58,16 +57,15 @@ def get_project_root(cwd: str) -> Path:
 
 def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
     """Calculate context breakdown and progress with colored progress bar"""
-    
+
     # Get basic info from input
-    cwd = input_data.get('workspace', {}).get('current_dir') or input_data.get('cwd', '')
     model_name = input_data.get('model', {}).get('display_name', 'Claude')
     transcript_path = input_data.get('transcript_path', '')
-    
+
     # Determine usable context limit based on API mode and model
     api_mode_enabled = False
     config_path = project_root / ".brainworm" / "config.toml"
-    
+
     if config_path.exists():
         try:
             import toml
@@ -80,30 +78,30 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
         except Exception:
             # Config file read error, TOML parse error, etc. - use defaults
             pass
-    
+
     # Set context limit based on API mode and model
     if api_mode_enabled and "Sonnet" in model_name:
         context_limit = SONNET_API_MODE_USABLE_TOKENS
     else:
         context_limit = STANDARD_USABLE_TOKENS
-    
+
     # Parse transcript to get real token usage
     total_tokens = 0
     if transcript_path and Path(transcript_path).exists():
         try:
             with open(transcript_path, 'r') as f:
                 lines = f.readlines()[-100:]
-            
+
             most_recent_usage = None
             most_recent_timestamp = None
-            
+
             for line in lines:
                 try:
                     data = json.loads(line.strip())
                     # Skip sidechain entries (subagent calls)
                     if data.get('isSidechain', False):
                         continue
-                    
+
                     # Check for usage data in main-chain messages
                     if data.get('message', {}).get('usage'):
                         timestamp = data.get('timestamp')
@@ -113,7 +111,7 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
                 except Exception:
                     # Malformed JSON line in transcript - skip
                     continue
-            
+
             # Calculate context length (input + cache tokens only, NOT output)
             if most_recent_usage:
                 total_tokens = (
@@ -124,23 +122,23 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
         except Exception:
             # Transcript file read error or parsing failure - use defaults
             pass
-    
+
     # Default values when no transcript available - still add default context
     if total_tokens == 0:
         total_tokens = DEFAULT_STARTUP_TOKENS
-    
+
     # Calculate progress percentage
     progress_pct = min(100.0, total_tokens * 100 / context_limit)
     progress_pct_int = int(progress_pct)
-    
+
     # Format token count in 'k' format
     formatted_tokens = f"{total_tokens // 1000}k"
     formatted_limit = f"{context_limit // 1000}k"
-    
+
     # Create progress bar (capped at 100%) with Ayu Dark colors
     filled_blocks = min(10, progress_pct_int // 10)
     empty_blocks = 10 - filled_blocks
-    
+
     # Ayu Dark colors (converted to closest ANSI 256)
     if progress_pct_int < 50:
         bar_color = "\033[38;5;114m"  # AAD94C green
@@ -148,16 +146,16 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
         bar_color = "\033[38;5;215m"  # FFB454 orange
     else:
         bar_color = "\033[38;5;203m"  # F26D78 red
-    
+
     gray_color = "\033[38;5;242m"     # Dim for empty blocks
     text_color = "\033[38;5;250m"     # BFBDB6 light gray
     reset = "\033[0m"
-    
+
     # Build progress bar
     progress_bar = bar_color + "█" * filled_blocks
     progress_bar += gray_color + "░" * empty_blocks
     progress_bar += f"{reset} {text_color}{progress_pct:.1f}% ({formatted_tokens}/{formatted_limit}){reset}"
-    
+
     return progress_bar
 
 def get_task_display(project_root: Path) -> str:
@@ -165,9 +163,9 @@ def get_task_display(project_root: Path) -> str:
     blue = "\033[38;5;111m"    # 73B8FF modified blue for Tasks label
     cyan = "\033[38;5;117m"    # Light cyan for task name
     reset = "\033[0m"
-    
+
     task_name = "None"
-    
+
     # Get current task from unified state
     unified_state_file = project_root / ".brainworm" / "state" / "unified_session_state.json"
 
@@ -191,7 +189,7 @@ def _count_open_tasks(project_root: Path) -> int:
     """Count open tasks by scanning filesystem (fallback method)"""
     open_count = 0
     tasks_dir = project_root / ".brainworm" / "tasks"
-    
+
     if tasks_dir.exists():
         for task_path in tasks_dir.iterdir():
             if task_path.is_dir():
@@ -221,9 +219,9 @@ def get_daic_mode(project_root: Path) -> str:
     """Get DAIC mode with color from unified state"""
     # Use unified state as single source of truth
     unified_state_file = project_root / ".brainworm" / "state" / "unified_session_state.json"
-    
+
     mode = DAICMode.DISCUSSION  # default
-    
+
     if unified_state_file.exists():
         try:
             with open(unified_state_file, 'r') as f:
@@ -233,7 +231,7 @@ def get_daic_mode(project_root: Path) -> str:
         except Exception:
             # State file read error or JSON parsing failure - use default
             pass
-    
+
     if mode == DAICMode.DISCUSSION:
         purple = "\033[38;5;183m"  # D2A6FF constant purple
         reset = "\033[0m"
@@ -337,9 +335,9 @@ def get_working_directory(input_data: Dict[str, Any]) -> str:
     """Get current working directory with color"""
     cyan = "\033[38;5;117m"    # Light cyan for directory
     reset = "\033[0m"
-    
+
     cwd = input_data.get('workspace', {}).get('current_dir') or input_data.get('cwd', '')
-    
+
     if cwd:
         return f"{cyan}{cwd}{reset}"
     else:
@@ -351,9 +349,9 @@ def get_user_preferences(project_root: Path) -> Dict[str, Any]:
         "statusline_format": "full",
         "context_warning_threshold": 75
     }
-    
+
     user_config_file = project_root / ".brainworm" / "user-config.json"
-    
+
     if user_config_file.exists():
         try:
             with open(user_config_file, 'r') as f:
@@ -362,30 +360,30 @@ def get_user_preferences(project_root: Path) -> Dict[str, Any]:
                 return {**default_prefs, **preferences}
         except (FileNotFoundError, json.JSONDecodeError):
             pass
-    
+
     return default_prefs
 
 def main() -> None:
     """Main function to build and output the complete statusline"""
-    
+
     # Read JSON input from stdin
     input_data = read_input()
-    
+
     # Get project root
     cwd = input_data.get('workspace', {}).get('current_dir') or input_data.get('cwd', '')
     project_root = get_project_root(cwd)
-    
+
     # Get user preferences
     prefs = get_user_preferences(project_root)
     statusline_format = prefs.get('statusline_format', 'full')
-    
+
     # Build all components
     progress_info = calculate_context(input_data, project_root)
     working_dir_info = get_working_directory(input_data)
     daic_info = get_daic_mode(project_root)
     git_info = get_git_display(project_root)
     task_info = get_task_display(project_root)
-    
+
     # Output based on user preference
     if statusline_format == "minimal":
         # Single line with essential info only

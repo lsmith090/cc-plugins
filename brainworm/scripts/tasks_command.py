@@ -19,12 +19,14 @@ Works in both discussion and implementation modes.
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import subprocess
 from typing import List, Optional
-from rich.console import Console
+
 import typer
+from rich.console import Console
 from utils.project import find_project_root
 
 console = Console()

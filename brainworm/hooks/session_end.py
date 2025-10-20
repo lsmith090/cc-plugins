@@ -13,11 +13,14 @@ Handles session end with correlation cleanup.
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import subprocess
-from typing import Dict, Any
+from typing import Any, Dict
+
 from utils.hook_framework import HookFramework
+
 
 def session_end_logic(framework, input_data: Dict[str, Any]):
     """Custom logic for session end with snapshot creation.
@@ -39,7 +42,7 @@ def session_end_logic(framework, input_data: Dict[str, Any]):
         snapshot_script = framework.project_root / ".brainworm" / "scripts" / "snapshot_session.py"
         if snapshot_script.exists():
             if framework.debug_logger:
-                framework.debug_logger.debug(f"📸 Creating session end snapshot")
+                framework.debug_logger.debug("📸 Creating session end snapshot")
 
             subprocess.run([
                 str(snapshot_script),

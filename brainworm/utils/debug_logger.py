@@ -9,13 +9,12 @@ Centralized Debug Logging System for Brainworm
 Provides unified, configuration-driven debug output control.
 """
 
-import sys
 import json
-from pathlib import Path
-from datetime import datetime, timezone
-from typing import Optional
+import sys
 from dataclasses import dataclass, field
-
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Optional
 
 # Debug level hierarchy (lower number = higher priority)
 DEBUG_LEVELS = {

@@ -9,30 +9,33 @@
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import tomllib  # Python 3.12+ built-in (read-only)
+
 import tomli_w  # For writing TOML files
 from utils.project import find_project_root
+
 
 def add_trigger_phrase() -> None:
     if len(sys.argv) < 2:
         print("Error: No trigger phrase provided", file=sys.stderr)
         print("Usage: add_trigger.py 'phrase'", file=sys.stderr)
         sys.exit(1)
-    
+
     phrase = " ".join(sys.argv[1:]).strip()
     if not phrase:
         print("Error: No trigger phrase provided", file=sys.stderr)
         sys.exit(1)
-    
+
     project_root = find_project_root()
     config_file = project_root / ".brainworm" / "config.toml"
-    
+
     if not config_file.exists():
         print(f"Error: {config_file} not found", file=sys.stderr)
         sys.exit(1)
-    
+
     try:
         # Use file locking to prevent race conditions in read-modify-write
         try:

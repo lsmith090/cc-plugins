@@ -21,11 +21,11 @@ Integration Points:
 """
 
 import json
-import tomllib  # Python 3.12+ built-in (read-only)
 import sys
-from pathlib import Path
+import tomllib  # Python 3.12+ built-in (read-only)
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List, Union
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 # Import file management infrastructure
 try:
@@ -34,15 +34,14 @@ except ImportError:
     AtomicFileWriter = None
 
 # Import type definitions
-from .hook_types import DeveloperInfo, DAICMode, UserConfig, DAICConfig, ToolBlockingResult
-
 # Import bash validation utilities
 from .bash_validator import is_read_only_bash_command as validate_bash_command
+from .hook_types import DAICConfig, DAICMode, DeveloperInfo, ToolBlockingResult, UserConfig
 
 
 class DAICStateManager:
     """Unified state manager combining DAIC workflow with analytics correlation"""
-    
+
     def __init__(self, project_root: Path):
         self.project_root = project_root
         # Use .brainworm for all brainworm functionality
@@ -63,13 +62,13 @@ class DAICStateManager:
         """Ensure all required directories exist"""
         self.state_dir.mkdir(parents=True, exist_ok=True)
         self.events_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def load_config(self) -> Dict[str, Any]:
         """Load brainworm configuration using shared canonical config"""
         try:
             # Import config loader from same directory (we're already in utils/)
             from .config import load_config
-            
+
             # Use shared loader with verbose support
             verbose = '--verbose' in sys.argv
             return load_config(self.project_root, verbose=verbose)
@@ -79,13 +78,13 @@ class DAICStateManager:
                 with open(self.config_file, 'rb') as f:
                     return tomllib.load(f)
             return {"daic": {"enabled": True}}
-    
+
     def load_daic_config(self) -> DAICConfig:
         """Load DAIC configuration as typed dataclass"""
         config = self.load_config()
         daic_data = config.get("daic", {})
         return DAICConfig.from_dict(daic_data)
-    
+
     def load_user_config(self) -> UserConfig:
         """Load user preferences configuration with defaults"""
         if self.user_config_file.exists():
@@ -96,12 +95,12 @@ class DAICStateManager:
             except (json.JSONDecodeError, FileNotFoundError):
                 return UserConfig()  # Returns default config
         return UserConfig()  # Returns default config
-    
+
     def save_user_config(self, config: UserConfig):
         """Save user configuration with timestamp update"""
         config_dict = config.to_dict()
         config_dict["updated"] = datetime.now(timezone.utc).isoformat()
-        
+
         if AtomicFileWriter:
             with AtomicFileWriter(self.user_config_file) as f:
                 json.dump(config_dict, f, indent=2)
@@ -109,7 +108,7 @@ class DAICStateManager:
             # Fallback to manual atomic write
             with open(self.user_config_file, 'w') as f:
                 json.dump(config_dict, f, indent=2)
-    
+
     def get_developer_info(self) -> DeveloperInfo:
         """Get developer information from user config or git"""
         user_config = self.load_user_config()
@@ -141,13 +140,13 @@ class DAICStateManager:
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError) as e:
                 # Git config not available - fall back to config file
                 print(f"Debug: Failed to get developer info from git: {e}", file=sys.stderr)
-        
+
         return DeveloperInfo(
             name=user_config.developer.name,
             email=user_config.developer.email,
             source="config"
         )
-    
+
     def get_daic_mode(self) -> DAICMode:
         """Get current DAIC mode (DAICMode enum)"""
         unified_state = self.get_unified_state()
@@ -157,11 +156,11 @@ class DAICStateManager:
         except ValueError:
             # Fallback to discussion mode if invalid
             return DAICMode.DISCUSSION
-    
+
     def is_discussion_mode(self) -> bool:
         """Check if currently in discussion mode (blocks tools)"""
         return self.get_daic_mode() == DAICMode.DISCUSSION
-    
+
     def set_daic_mode(self, mode: Union[str, DAICMode]) -> bool:
         """Set DAIC mode - accepts string or DAICMode enum"""
         # Convert input to DAICMode enum
@@ -172,35 +171,35 @@ class DAICStateManager:
                 daic_mode = DAICMode.from_string(mode)
         except ValueError:
             return False
-        
+
         try:
             # Get previous mode from unified state
             unified_state = self.get_unified_state()
             previous_mode_str = unified_state.get("daic_mode")
-            
+
             timestamp = datetime.now(timezone.utc).isoformat()
-            
+
             # Update unified state only (single source of truth)
             self._update_unified_state({
-                "daic_mode": str(daic_mode), 
+                "daic_mode": str(daic_mode),
                 "daic_timestamp": timestamp,
                 "previous_daic_mode": previous_mode_str
             })
-            
+
             # Log transition for analytics
             self.log_daic_transition(previous_mode_str, str(daic_mode))
-            
+
             return True
         except Exception:
             return False
-    
+
     def toggle_daic_mode(self) -> str:
         """Toggle between discussion and implementation modes"""
         current_mode = self.get_daic_mode()
         new_mode = DAICMode.IMPLEMENTATION if current_mode == DAICMode.DISCUSSION else DAICMode.DISCUSSION
         success = self.set_daic_mode(new_mode)
         return str(new_mode) if success else str(current_mode)
-    
+
     def get_task_state(self) -> Dict[str, Any]:
         """Get current task state from unified state (single source of truth)"""
         unified_state = self.get_unified_state()
@@ -214,7 +213,7 @@ class DAICStateManager:
             "correlation_id": unified_state.get("correlation_id"),
             "session_id": unified_state.get("session_id")
         }
-    
+
     def set_task_state(self, task: str, branch: str, services: List[str],
                       correlation_id: Optional[str] = None, session_id: Optional[str] = None,
                       active_submodule_branches: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
@@ -256,7 +255,7 @@ class DAICStateManager:
             "correlation_id": correlation_id,
             "session_id": session_id
         }
-    
+
     def get_unified_state(self) -> Dict[str, Any]:
         """Get complete unified session state"""
         default_unified = {
@@ -276,7 +275,7 @@ class DAICStateManager:
             },
             "last_updated": None
         }
-        
+
         # Check if unified state file exists
         try:
             if self.unified_state_file.exists():
@@ -286,13 +285,13 @@ class DAICStateManager:
         except (FileNotFoundError, json.JSONDecodeError) as e:
             # State file doesn't exist or is corrupted - will create default
             print(f"Debug: Failed to load unified state: {e}", file=sys.stderr)
-        
+
         # Return default state if no unified state exists
         default_unified["last_updated"] = datetime.now(timezone.utc).isoformat()
         self._save_unified_state(default_unified)
         return default_unified
-    
-    
+
+
     def _update_unified_state(self, updates: Dict[str, Any]):
         """Update specific fields in unified state with pre-validation"""
         # Pre-validate updates before merging to catch bad data early
@@ -303,13 +302,13 @@ class DAICStateManager:
         current_state.update(updates)
         current_state["last_updated"] = datetime.now(timezone.utc).isoformat()
         self._save_unified_state(current_state)
-    
+
     def _save_unified_state(self, state: Dict[str, Any]):
         """Save unified state to file with atomic operation and validation"""
         # Validate state before saving
         if not self._validate_state(state):
             raise ValueError("Invalid state data - cannot save")
-        
+
         # Use atomic write operation to prevent corruption
         if AtomicFileWriter:
             with AtomicFileWriter(self.unified_state_file) as f:
@@ -321,7 +320,7 @@ class DAICStateManager:
                 # Write to temporary file first
                 with open(temp_file, 'w') as f:
                     json.dump(state, f, indent=2)
-                
+
                 # Atomic rename to final location
                 temp_file.replace(self.unified_state_file)
             except Exception as e:
@@ -329,7 +328,7 @@ class DAICStateManager:
                 if temp_file.exists():
                     temp_file.unlink()
                 raise e
-    
+
     def _validate_updates(self, updates: Dict[str, Any]) -> bool:
         """
         Pre-validate state updates before merging with current state.
@@ -449,47 +448,47 @@ class DAICStateManager:
             return False
 
         return True
-    
+
     def update_session_correlation(self, session_id: str, correlation_id: str):
         """Update session correlation data"""
         self._update_unified_state({
             "session_id": session_id,
             "correlation_id": correlation_id
         })
-    
+
     def should_block_tool(self, tool_name: str, tool_input: Dict[str, Any]) -> ToolBlockingResult:
         """
         Determine if a tool should be blocked based on DAIC state and configuration
         Returns ToolBlockingResult with blocking decision and reason
         """
         daic_config = self.load_daic_config()
-        
+
         if not daic_config.enabled:
             return ToolBlockingResult.allow_tool("DAIC enforcement disabled")
-        
+
         is_discussion = self.is_discussion_mode()
-        
+
         # Block configured tools in discussion mode
         if is_discussion and tool_name in daic_config.blocked_tools:
             return ToolBlockingResult.discussion_mode_block(tool_name)
-        
+
         # Handle Bash commands specially
         if tool_name == "Bash":
             command = tool_input.get("command", "").strip()
-            
-            # Block daic command in discussion mode  
+
+            # Block daic command in discussion mode
             if is_discussion and 'daic' in command:
                 return ToolBlockingResult.command_block(
-                    command, 
+                    command,
                     "The 'daic' command is not allowed in discussion mode. You're already in discussion mode."
                 )
-            
+
             # Check if command is read-only
             if is_discussion and not self._is_read_only_bash_command(command, daic_config):
                 return ToolBlockingResult.command_block(command)
-        
+
         return ToolBlockingResult.allow_tool()
-    
+
     def _is_read_only_bash_command(self, command: str, daic_config: DAICConfig) -> bool:
         """
         Check if a bash command is read-only and safe in discussion mode.
@@ -512,7 +511,7 @@ class DAICStateManager:
 
         # Use shared validator with fixed prefix matching logic
         return validate_bash_command(command, config_dict)
-    
+
     def log_daic_transition(self, from_mode: str, to_mode: str, trigger: str = None,
                            session_id: str = None, correlation_id: str = None):
         """Log DAIC mode transitions for analytics
@@ -521,7 +520,7 @@ class DAICStateManager:
         Falls back to unified state if not provided (which should now be populated by Fixes #1 and #2).
         """
         unified_state = self.get_unified_state()
-        transition_event = {
+        {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "from_mode": from_mode,
             "to_mode": to_mode,

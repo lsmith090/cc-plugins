@@ -13,7 +13,7 @@ Centralized git context and operations for consistent behavior across hooks.
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 def get_basic_git_context(project_root: Path) -> Dict[str, Any]:
@@ -27,7 +27,7 @@ def get_basic_git_context(project_root: Path) -> Dict[str, Any]:
         )
         if result.returncode == 0:
             context['branch'] = result.stdout.strip()
-        
+
         # Current commit
         result = subprocess.run(
             ['git', 'rev-parse', '--short', 'HEAD'],
@@ -35,7 +35,7 @@ def get_basic_git_context(project_root: Path) -> Dict[str, Any]:
         )
         if result.returncode == 0:
             context['commit'] = result.stdout.strip()
-        
+
         # Uncommitted file count
         result = subprocess.run(
             ['git', 'status', '--porcelain'],

@@ -24,29 +24,35 @@ Usage Examples:
     HookFramework("pre_tool_use").with_custom_logic(custom_logic).execute()
 """
 
+import hashlib
 import json
 import sys
 import time
 import uuid
-import hashlib
 from pathlib import Path
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional, Callable, Union
-from rich.console import Console
+from typing import Any, Callable, Dict, Optional, Union
+
 from filelock import FileLock
+from rich.console import Console
 
 # Import sophisticated infrastructure systems
 # CRITICAL: These imports are REQUIRED for hook functionality
 # If they fail, the hook MUST fail with a clear error message
 try:
-    from .hook_types import (
-        BaseHookInput, PreToolUseInput, PostToolUseInput, UserPromptSubmitInput,
-        SessionStartInput, SessionEndInput, StopInput, NotificationInput,
-        PreToolUseDecisionOutput, parse_log_event, get_standard_timestamp
-    )
-    from .event_logger import SessionEventLogger, create_event_logger
-    from .debug_logger import DebugLogger, DebugConfig, create_debug_logger
     from .config import load_config
+    from .debug_logger import DebugConfig, DebugLogger, create_debug_logger
+    from .event_logger import SessionEventLogger, create_event_logger
+    from .hook_types import (
+        BaseHookInput,
+        NotificationInput,
+        PostToolUseInput,
+        PreToolUseDecisionOutput,
+        PreToolUseInput,
+        SessionEndInput,
+        SessionStartInput,
+        StopInput,
+        UserPromptSubmitInput,
+    )
 except ImportError as import_error:
     # FAIL FAST: Print clear error and re-raise
     # This catches missing dependencies that would cause silent failures
@@ -85,10 +91,15 @@ Detailed traceback:
     ) from import_error
 
 
+# Security: Maximum input size to prevent memory exhaustion attacks
+# Claude Code hook inputs should be under 10MB in normal operation
+MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10MB
+
+
 class HookFramework:
     """
     Unified framework for all brainworm Claude Code hooks.
-    
+
     Eliminates massive code duplication by providing centralized handling of:
     - Input reading and JSON parsing
     - Project root discovery
@@ -97,10 +108,10 @@ class HookFramework:
     - Rich console output and success messages
     - Error handling and graceful failures
     - Command line argument processing
-    
+
     Reduces individual hook files from 60-80 lines to 5-10 lines.
     """
-    
+
     def __init__(self, hook_name: str, enable_event_logging: bool = True, security_critical: bool = False,
                  prevent_duplicate_execution: bool = True, lock_duration_seconds: int = 10):
         """
@@ -138,12 +149,12 @@ class HookFramework:
         self.custom_logic_fn: Optional[Callable] = None
         self.success_handler_fn: Optional[Callable] = None
         self.decision_output: Optional[PreToolUseDecisionOutput] = None
-        
+
         # New framework execution modes
         self.json_response: Optional[Dict[str, Any]] = None
         self.exit_code: int = 0
         self.exit_message: str = ""
-        
+
         # Infrastructure systems
         self.enable_event_logging = enable_event_logging
         self.security_critical = security_critical
@@ -151,7 +162,7 @@ class HookFramework:
         self.debug_logger: Optional[DebugLogger] = None
 
         self._setup_environment()
-    
+
     def _setup_environment(self) -> None:
         """Centralize sys.path manipulation and common imports with security validation."""
         try:
@@ -195,18 +206,16 @@ class HookFramework:
                 if templates_str not in sys.path:
                     sys.path.insert(0, templates_str)
 
-        except Exception as e:
+        except Exception:
             # Sanitize error message to prevent information disclosure
             print("Warning: Environment setup failed due to path validation error", file=sys.stderr)
-    
+
     def _read_input(self) -> None:
         """Read and parse JSON input from Claude Code stdin with type-safe processing."""
         try:
             input_text = sys.stdin.read()
 
             # Security: Limit input size to prevent memory exhaustion attacks
-            # Claude Code hook inputs should be under 10MB in normal operation
-            MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10MB
             if len(input_text) > MAX_INPUT_SIZE:
                 print(f"Warning: Input size ({len(input_text)} bytes) exceeds maximum allowed ({MAX_INPUT_SIZE} bytes)", file=sys.stderr)
                 self.raw_input_data = {}
@@ -221,11 +230,11 @@ class HookFramework:
         except json.JSONDecodeError:
             print("Warning: Invalid JSON input format", file=sys.stderr)
             self.raw_input_data = {}
-        except Exception as e:
+        except Exception:
             # Sanitize error message to prevent information disclosure
             print("Warning: Input reading failed due to processing error", file=sys.stderr)
             self.raw_input_data = {}
-    
+
     def _parse_typed_input(self) -> None:
         """Parse input using type-safe schemas from hook_types.py."""
         if not self.raw_input_data:
@@ -257,7 +266,7 @@ class HookFramework:
             else:
                 print(f"Warning: Type-safe parsing failed for {self.hook_name}, using raw input", file=sys.stderr)
             # Continue with raw input
-    
+
     def _discover_project_root(self) -> None:
         """Discover project root with fallback strategy."""
         try:
@@ -266,14 +275,14 @@ class HookFramework:
         except (ImportError, RuntimeError):
             # Fallback to current directory
             self.project_root = Path.cwd()
-        except Exception as e:
+        except Exception:
             # Sanitize error message to prevent information disclosure
             print("Warning: Project root discovery failed, using current directory", file=sys.stderr)
             self.project_root = Path.cwd()
-        
+
         # Initialize sophisticated infrastructure systems now that we have project root
         self._initialize_infrastructure()
-    
+
     def _initialize_infrastructure(self) -> None:
         """Initialize event logging and debug logging infrastructure."""
         if not self.project_root:
@@ -299,10 +308,10 @@ class HookFramework:
                     enable_event_logging=True,
                     session_id=self.session_id
                 )
-        except Exception as e:
+        except Exception:
             # Sanitize error message to prevent information disclosure
             print("Warning: Infrastructure initialization failed, using fallback systems", file=sys.stderr)
-    
+
     def _process_event_logging(self) -> bool:
         """Process event logging with session correlation."""
         if not self.event_logger:
@@ -330,7 +339,7 @@ class HookFramework:
 
             return success
 
-        except Exception as e:
+        except Exception:
             # Sanitize error message to prevent information disclosure
             error_msg = "Warning: Event logging failed"
             if self.security_critical:
@@ -341,26 +350,26 @@ class HookFramework:
                 error_msg += ", continuing without event logging"
                 print(error_msg, file=sys.stderr)
                 return False
-    
+
     def _show_success(self) -> None:
         """Display success message with standardized formatting."""
         if self.debug_logger and self.debug_logger.is_enabled():
             if self.success_handler_fn:
                 try:
                     self.success_handler_fn(self)
-                except Exception as e:
+                except Exception:
                     # Sanitize error message to prevent information disclosure
                     print("Warning: Custom success handler failed, using standard message", file=sys.stderr)
                     # Fall back to standard message
                     self._standard_success_message()
             else:
                 self._standard_success_message()
-    
+
     def _standard_success_message(self) -> None:
         """Show standard success message."""
         session_short = self.session_id[:8] if len(self.session_id) >= 8 else self.session_id
         print(f"✅ {self.hook_name} completed: {session_short}", file=sys.stderr)
-    
+
     def _handle_error(self, error: Exception) -> None:
         """Centralized error handling with consistent formatting."""
         print(f"Error in {self.hook_name} hook: {error}", file=sys.stderr)
@@ -542,15 +551,15 @@ class HookFramework:
     def with_custom_logic(self, logic_fn: Callable[['HookFramework', Any], None]) -> 'HookFramework':
         """
         Add custom business logic to be executed within the framework.
-        
+
         BREAKING CHANGE: Custom logic functions MUST accept (framework, typed_input) parameters.
-        
+
         Args:
             logic_fn: Function that accepts (framework, typed_input) and performs custom logic
-            
+
         Returns:
             Self for method chaining
-            
+
         Example:
             def pre_tool_use_logic(framework: HookFramework, typed_input: PreToolUseInput):
                 tool_name = typed_input.tool_name
@@ -558,71 +567,71 @@ class HookFramework:
                     framework.block_tool("DAIC violation", [f"Tool {tool_name} blocked"])
                 else:
                     framework.approve_tool()
-            
+
             HookFramework("pre_tool_use").with_custom_logic(pre_tool_use_logic).execute()
         """
         self.custom_logic_fn = logic_fn
         return self
-    
+
     def with_success_handler(self, handler_fn: Callable) -> 'HookFramework':
         """
         Add custom success message handler.
-        
+
         Args:
             handler_fn: Function that handles success output
-            
+
         Returns:
             Self for method chaining
         """
         self.success_handler_fn = handler_fn
         return self
-    
+
     def set_json_response(self, response_data: Dict[str, Any]) -> 'HookFramework':
         """
         DEPRECATED: Use set_typed_response() for type-safe response handling.
-        
+
         Args:
             response_data: Dictionary to be serialized as JSON to stdout
-            
+
         Returns:
             Self for method chaining
         """
         self.json_response = response_data
         return self
-        
+
     def set_typed_response(self, response_schema) -> 'HookFramework':
         """
         Set typed response using schema classes for Claude Code compliance.
-        
+
         Args:
             response_schema: Schema object with .to_dict() method (e.g. UserPromptContextResponse)
-            
+
         Returns:
             Self for method chaining
         """
         if not hasattr(response_schema, 'to_dict'):
             raise ValueError(f"Response schema must have .to_dict() method, got: {type(response_schema)}")
-        
+
         self.json_response = response_schema.to_dict()
         return self
-    
-    # DEPRECATED METHOD REMOVED: set_exit_decision() 
+
+    # DEPRECATED METHOD REMOVED: set_exit_decision()
     # Use approve_tool() or block_tool() for type-safe decisions
-    
+
     def approve_tool(self, reason: Optional[str] = None) -> 'HookFramework':
         """
         Approve tool execution (for pre_tool_use hooks).
-        
+
         Args:
             reason: Optional reason for approval
-            
+
         Returns:
             Self for method chaining
         """
         if PreToolUseDecisionOutput:
             self.decision_output = PreToolUseDecisionOutput.approve(reason, self.session_id)
         return self
-    
+
     def block_tool(self, reason: str, validation_issues: list = None, suppress_output: bool = False) -> 'HookFramework':
         """
         Block tool execution (for pre_tool_use hooks).
@@ -643,7 +652,7 @@ class HookFramework:
         # Exit code 2 triggers blocking behavior in Claude Code
         self.exit_code = 2
         return self
-    
+
     def _output_decision(self) -> None:
         """Output decision for pre_tool_use hooks using official Claude Code format."""
         if self.hook_name in ('pre_tool_use', 'daic_pre_tool_use') and self.decision_output:
@@ -651,10 +660,10 @@ class HookFramework:
                 decision_dict = self.decision_output.to_dict()
                 # Secure JSON output with ASCII encoding to prevent injection
                 print(json.dumps(decision_dict, ensure_ascii=True, separators=(',', ':')))
-            except Exception as e:
+            except Exception:
                 # Sanitize error message to prevent information disclosure
                 print("Warning: Decision output formatting failed", file=sys.stderr)
-    
+
     def _output_json_response(self) -> None:
         """Output JSON response for hooks that provide context to Claude."""
         if self.json_response:
@@ -673,7 +682,7 @@ class HookFramework:
                 print(json.dumps(fallback_response))
                 if self.debug_logger and self.debug_logger.is_enabled():
                     self.debug_logger.warning(f"JSON response formatting failed: {e}", execution_id=self.execution_id)
-    
+
     def execute(self) -> None:
         """
         Execute the complete hook lifecycle.
@@ -722,7 +731,7 @@ class HookFramework:
                     self.custom_logic_fn(self, self.raw_input_data)
 
                     if self.debug_logger:
-                        self.debug_logger.debug(f"Custom logic completed successfully", execution_id=self.execution_id)
+                        self.debug_logger.debug("Custom logic completed successfully", execution_id=self.execution_id)
                 except Exception as e:
                     if self.debug_logger:
                         self.debug_logger.error(f"Custom logic failed: {type(e).__name__}: {str(e)}", execution_id=self.execution_id)
@@ -736,7 +745,7 @@ class HookFramework:
             # 5. Output decision or JSON response
             self._output_decision()
             self._output_json_response()
-            
+
             # 7. Show success message (eliminates 5 lines per hook)
             self._show_success()
 
@@ -747,7 +756,7 @@ class HookFramework:
             if self.exit_message:
                 print(self.exit_message, file=sys.stderr)
             sys.exit(self.exit_code)
-            
+
         except Exception as e:
             self._handle_error(e)
 

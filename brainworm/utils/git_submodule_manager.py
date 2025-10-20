@@ -17,20 +17,20 @@ Provides clean abstractions for:
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
+
 from rich.console import Console
 from rich.prompt import Prompt
 
 # Import existing project utilities for submodule detection
 try:
-    from .project import get_project_context, find_project_root
+    from .project import find_project_root, get_project_context
 except (ImportError, ValueError):
     # Fallback for direct execution or when used as standalone
     import sys
-    import os
     current_dir = Path(__file__).parent if '__file__' in globals() else Path.cwd()
     sys.path.insert(0, str(current_dir))
-    from project import get_project_context, find_project_root
+    from project import find_project_root, get_project_context
 
 
 class SubmoduleManager:
@@ -192,7 +192,7 @@ class SubmoduleManager:
             if is_interactive:
                 # Ask if user wants to checkout existing branch
                 if Prompt.ask(
-                    f"Checkout existing branch?",
+                    "Checkout existing branch?",
                     choices=["y", "n"],
                     default="y"
                 ) == "y":
@@ -207,7 +207,7 @@ class SubmoduleManager:
                 return False
             else:
                 # Non-interactive: automatically checkout existing branch
-                self.console.print(f"[cyan]Non-interactive mode: checking out existing branch[/cyan]")
+                self.console.print("[cyan]Non-interactive mode: checking out existing branch[/cyan]")
                 checkout_result = subprocess.run(
                     ['git', 'checkout', branch_name],
                     cwd=cwd,
@@ -270,7 +270,7 @@ class SubmoduleManager:
 
         # Detached HEAD - try to checkout a default branch
         self.console.print(
-            f"[yellow]Submodule is in detached HEAD state, "
+            "[yellow]Submodule is in detached HEAD state, "
             "attempting to checkout default branch...[/yellow]"
         )
 

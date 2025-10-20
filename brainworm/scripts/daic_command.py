@@ -18,13 +18,15 @@ Can be run via Bash tool: `daic` or `daic discussion` or `daic implementation`
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import json
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
-from rich.console import Console
+from typing import Any, Dict
+
 import typer
+from rich.console import Console
 from utils.project import find_project_root
 
 console = Console()

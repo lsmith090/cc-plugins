@@ -7,11 +7,9 @@ Event storage system with session correlation and SQLite persistence.
 
 import json
 import sqlite3
-import time
-from pathlib import Path
-from typing import Dict, Any, Optional
-from datetime import datetime
 import sys
+from pathlib import Path
+from typing import Any, Dict
 
 # Add parent to path for hook_types
 sys.path.insert(0, str(Path(__file__).parent))
@@ -24,7 +22,16 @@ except ImportError:
 
 # Import type definitions with fallback
 try:
-    from .hook_types import parse_log_event, BaseLogEvent, get_standard_timestamp, format_for_database, DeveloperInfo, PreToolUseLogEvent, PostToolUseLogEvent, UserPromptSubmitLogEvent
+    from .hook_types import (
+        BaseLogEvent,
+        DeveloperInfo,
+        PostToolUseLogEvent,
+        PreToolUseLogEvent,
+        UserPromptSubmitLogEvent,
+        format_for_database,
+        get_standard_timestamp,
+        parse_log_event,
+    )
 except ImportError:
     parse_log_event = None
     BaseLogEvent = None
@@ -36,7 +43,7 @@ except ImportError:
     def get_standard_timestamp():
         from datetime import datetime, timezone
         return datetime.now(timezone.utc).isoformat()
-    
+
     def format_for_database(ts):
         return ts if ts else get_standard_timestamp()
 
@@ -58,7 +65,7 @@ class HookEventStore:
             self.db_manager = None
 
         self._init_database()
-    
+
     def _extract_duration_ms(self, event_data: Dict[str, Any]) -> float:
         """Extract duration from various possible structures in event data"""
         # Check for direct duration_ms field first
@@ -73,7 +80,7 @@ class HookEventStore:
 
         # Default to 0 if no duration data found
         return 0.0
-    
+
     def _init_database(self):
         """Initialize SQLite database for event storage with minimal schema"""
         try:
@@ -138,7 +145,7 @@ class HookEventStore:
         except Exception as e:
             # Event storage is optional - continue if database init fails
             print(f"Warning: Failed to initialize event database: {e}", file=sys.stderr)
-    
+
     def log_event(self, event_data: Dict[str, Any]) -> bool:
         """Store a hook event to the database"""
         try:
@@ -147,20 +154,18 @@ class HookEventStore:
                 try:
                     typed_event = parse_log_event(event_data)
                     hook_name = typed_event.hook_name or 'unknown'
-                    event_type = 'hook_execution'  # Default for typed events
                     correlation_id = typed_event.correlation_id
                     session_id = typed_event.session_id
-                    success = True  # Default for typed events
-                    duration_ms = self._extract_duration_ms(event_data)  # Extract from timing data
+                    self._extract_duration_ms(event_data)  # Extract from timing data
                     timestamp = get_standard_timestamp()  # Use standard ISO format
 
                     # Override with any direct fields from event_data
                     if 'event_type' in event_data:
-                        event_type = event_data['event_type']
+                        event_data['event_type']
                     if 'success' in event_data:
-                        success = event_data['success']
+                        event_data['success']
                     # Extract duration using helper function to handle nested timing structure
-                    duration_ms = self._extract_duration_ms(event_data)
+                    self._extract_duration_ms(event_data)
                     if 'timestamp' in event_data:
                         timestamp = format_for_database(str(event_data['timestamp']))
 
@@ -168,24 +173,24 @@ class HookEventStore:
                     # Fallback to untyped parsing when typed parsing fails
                     print(f"Debug: Typed event parsing failed, using fallback: {e}", file=sys.stderr)
                     hook_name = event_data.get('hook_name', 'unknown')
-                    event_type = event_data.get('event_type', 'hook_execution')
+                    event_data.get('event_type', 'hook_execution')
                     correlation_id = event_data.get('correlation_id')
                     session_id = event_data.get('session_id')
-                    success = event_data.get('success', True)
-                    duration_ms = self._extract_duration_ms(event_data)
+                    event_data.get('success', True)
+                    self._extract_duration_ms(event_data)
                     raw_timestamp = event_data.get('timestamp')
                     timestamp = format_for_database(str(raw_timestamp)) if raw_timestamp else get_standard_timestamp()
             else:
                 # Fallback to untyped parsing
                 hook_name = event_data.get('hook_name', 'unknown')
-                event_type = event_data.get('event_type', 'hook_execution')
+                event_data.get('event_type', 'hook_execution')
                 correlation_id = event_data.get('correlation_id')
                 session_id = event_data.get('session_id')
-                success = event_data.get('success', True)
-                duration_ms = self._extract_duration_ms(event_data)
+                event_data.get('success', True)
+                self._extract_duration_ms(event_data)
                 raw_timestamp = event_data.get('timestamp')
                 timestamp = format_for_database(str(raw_timestamp)) if raw_timestamp else get_standard_timestamp()
-            
+
             # Extract minimal indexed fields
             execution_id = event_data.get('execution_id', None)
 
@@ -248,18 +253,18 @@ class HookEventStore:
 
             return True
 
-        except Exception as e:
+        except Exception:
             # Event storage failure should not break hooks
             return False
-    
+
     def process_hook_event(self, event_data: Dict[str, Any]) -> bool:
         """Process a hook event with type-aware processing"""
         # Add timestamp normalization for typed events
         if parse_log_event and not event_data.get('logged_at'):
             event_data['logged_at'] = get_standard_timestamp()
-            
+
         return self.log_event(event_data)
-    
+
     def get_recent_events(self, limit: int = 100) -> list:
         """Get recent hook events for monitoring"""
         try:
@@ -287,7 +292,7 @@ class HookEventStore:
                     return [dict(row) for row in cursor.fetchall()]
         except Exception:
             return []
-    
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get basic statistics about hook performance"""
         try:

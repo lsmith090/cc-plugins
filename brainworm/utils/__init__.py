@@ -11,13 +11,13 @@ Claude Code Hooks Utilities
 Shared utilities for eliminating code duplication across hooks
 """
 
-from .project import find_project_root, is_valid_project_root, get_project_context
 from .hook_logging import HookLogger
-from .input_handling import read_hook_input, validate_hook_input, extract_tool_info
+from .input_handling import extract_tool_info, read_hook_input, validate_hook_input
+from .project import find_project_root, get_project_context, is_valid_project_root
 
 __all__ = [
     'find_project_root',
-    'is_valid_project_root', 
+    'is_valid_project_root',
     'get_project_context',
     'HookLogger',
     'read_hook_input',

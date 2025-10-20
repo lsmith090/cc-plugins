@@ -114,7 +114,7 @@ def verify_duration_tracking(project_root: Path) -> None:
             if timing:
                 print(f"  Timing data present: {json.dumps(timing, indent=4)}")
             else:
-                print(f"  No timing data in event_data")
+                print("  No timing data in event_data")
 
     conn.close()
 
@@ -127,16 +127,16 @@ def verify_duration_tracking(project_root: Path) -> None:
 
     if events_with_duration > 0:
         avg_duration = total_duration_ms / events_with_duration
-        print(f"\n✅ Duration tracking is WORKING!")
+        print("\n✅ Duration tracking is WORKING!")
         print(f"   Average duration: {avg_duration:.2f} ms ({avg_duration/1000:.3f} seconds)")
-        print(f"\n📝 For nautiloid: Extract duration using:")
-        print(f"   event_data['timing']['execution_duration_ms']")
+        print("\n📝 For nautiloid: Extract duration using:")
+        print("   event_data['timing']['execution_duration_ms']")
     else:
-        print(f"\n❌ No events with duration data found")
-        print(f"   Possible issues:")
-        print(f"   1. Timing coordination between pre/post hooks failing")
-        print(f"   2. Timing files not being written to .brainworm/timing/")
-        print(f"   3. Events logged before duration tracking was implemented")
+        print("\n❌ No events with duration data found")
+        print("   Possible issues:")
+        print("   1. Timing coordination between pre/post hooks failing")
+        print("   2. Timing files not being written to .brainworm/timing/")
+        print("   3. Events logged before duration tracking was implemented")
 
         # Check timing directory
         timing_dir = project_root / '.brainworm' / 'timing'

@@ -17,17 +17,16 @@ Critical tool blocking functionality for Claude Code integration.
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import json
 import re
-from datetime import datetime, timezone
-from typing import Dict, Any, Tuple
-from utils.hook_framework import HookFramework
-from utils.business_controllers import create_daic_controller, create_subagent_manager
-from utils.hook_types import DAICMode, ToolBlockingResult
-from utils.bash_validator import is_read_only_bash_command, split_command_respecting_quotes
+from typing import Any, Dict
 
+from utils.bash_validator import is_read_only_bash_command, split_command_respecting_quotes
+from utils.business_controllers import create_daic_controller, create_subagent_manager
+from utils.hook_framework import HookFramework
+from utils.hook_types import DAICMode, ToolBlockingResult
 
 # Removed - now using shared function from utils.git
 
@@ -43,7 +42,7 @@ def get_daic_state(project_root: Path) -> Dict[str, Any]:
     try:
         controller = create_daic_controller(project_root)
         mode_info = controller.get_mode_with_display()
-        
+
         return {
             "mode": mode_info.mode,
             "timestamp": None,
@@ -73,7 +72,7 @@ def is_brainworm_system_command(command: str, config: Dict[str, Any], project_ro
             ]
             if any(re.search(pattern, command) for pattern in trigger_exception_patterns):
                 return True
-    
+
     # Normal restrictive patterns when no trigger phrase
     read_only_system_patterns = [
         r'(\./)?daic\s+status$',  # Only status command, NOT toggle
@@ -95,11 +94,11 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
     Returns ToolBlockingResult with blocking decision and reason
     """
     daic_config = config.get("daic", {})
-    
+
     # Check if DAIC is enabled
     if not daic_config.get("enabled", True):
         return ToolBlockingResult.allow_tool("DAIC enforcement disabled")
-    
+
     # Check for subagent context - disable DAIC enforcement during subagent execution
     try:
         subagent_manager = create_subagent_manager(project_root)
@@ -111,16 +110,16 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
         subagent_flag = state_dir / 'in_subagent_context.flag'
         if subagent_flag.exists():
             return ToolBlockingResult.allow_tool("DAIC enforcement disabled during subagent execution")
-    
+
     tool_name = raw_input_data.get("tool_name", "")
     tool_input = raw_input_data.get("tool_input", {})
     is_discussion_mode = daic_state.get("mode", str(DAICMode.DISCUSSION)) == str(DAICMode.DISCUSSION)
-    
+
     # Block configured tools in discussion mode
     blocked_tools = daic_config.get("blocked_tools", [])
     if is_discussion_mode and tool_name in blocked_tools:
         return ToolBlockingResult.discussion_mode_block(tool_name)
-    
+
     # Handle Bash commands specially
     if tool_name == "Bash":
         command = tool_input.get("command", "").strip()
@@ -189,7 +188,7 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
         state_dir = project_root / '.brainworm' / 'state'
         subagent_flag = state_dir / 'in_subagent_context.flag'
         in_subagent_context = subagent_flag.exists()
-    
+
     if in_subagent_context and tool_name in ["Write", "Edit", "MultiEdit"]:
         file_path_str = tool_input.get("file_path", "")
         if file_path_str:
@@ -216,20 +215,20 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
                     "[Subagent Boundary Violation] Invalid file path",
                     "INVALID_PATH"
                 )
-    
+
     return ToolBlockingResult.allow_tool("Tool allowed by DAIC")
 
 
 def basic_security_check(raw_input_data: Dict[str, Any]) -> bool:
     """Basic security check - only block obviously dangerous operations"""
     tool_name = raw_input_data.get('tool_name', '')
-    
+
     if tool_name == 'Bash':
         command = raw_input_data.get('tool_input', {}).get('command', '')
         # Only block obviously destructive commands
         dangerous_patterns = ['rm -rf /', 'format c:', 'del /s /q C:\\']
         return not any(pattern in command for pattern in dangerous_patterns)
-    
+
     return True  # Allow all other operations
 
 
@@ -237,15 +236,15 @@ def extract_metadata(raw_input_data: Dict[str, Any]) -> Dict[str, Any]:
     """Extract relevant metadata from tool input"""
     metadata = {}
     tool_input = raw_input_data.get('tool_input', {})
-    
+
     # Extract file path if available
     if file_path := tool_input.get('file_path'):
         metadata['file_path'] = file_path
-    
+
     # Extract command if it's a Bash operation
     if command := tool_input.get('command'):
         metadata['command'] = command
-    
+
     return metadata
 
 
@@ -269,7 +268,6 @@ def pre_tool_use_framework_logic(framework, input_data: Dict[str, Any]):
     daic_state = get_daic_state(project_root)
 
     # Extract data from dict - simple and direct
-    session_id = input_data.get('session_id', 'unknown')
     tool_name = input_data.get('tool_name', 'unknown')
     tool_input = input_data.get('tool_input', {})
 

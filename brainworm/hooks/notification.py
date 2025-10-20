@@ -22,10 +22,13 @@ Reduces from 83 lines to 8 lines (90% reduction).
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from utils.hook_framework import HookFramework
+
 
 def notification_logic(framework, input_data: Dict[str, Any]):
     """Logic for notification processing.

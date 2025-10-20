@@ -16,11 +16,13 @@ branch, and other metadata. Highlights the current active task.
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import json
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, Optional
+
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text

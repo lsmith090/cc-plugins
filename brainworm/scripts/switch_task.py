@@ -25,13 +25,15 @@ Usage:
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import subprocess
-from typing import Dict, Optional, List
+from typing import Dict, Optional
+
 from rich.console import Console
-from utils.git_submodule_manager import SubmoduleManager
 from utils.debug_logger import create_debug_logger, get_default_debug_config
+from utils.git_submodule_manager import SubmoduleManager
 
 console = Console()
 debug_logger = None  # Will be initialized in switch_task()
@@ -120,9 +122,9 @@ def switch_task(task_name: str) -> bool:
         bool: True if successful
     """
     try:
-        from utils.project import find_project_root
-        from utils.daic_state_manager import DAICStateManager
         from utils.config import load_config
+        from utils.daic_state_manager import DAICStateManager
+        from utils.project import find_project_root
 
         project_root = find_project_root()
 
@@ -262,7 +264,7 @@ def switch_task(task_name: str) -> bool:
             elif services:
                 # Multi-service task - checkout branches in multiple submodules
                 debug_logger.info(f"Detected multi-service task: services={services}")
-                console.print(f"[yellow]Switching multiple services to their task branches...[/yellow]")
+                console.print("[yellow]Switching multiple services to their task branches...[/yellow]")
 
                 sm = SubmoduleManager(project_root)
                 state_mgr_temp = DAICStateManager(project_root)
@@ -317,7 +319,7 @@ def switch_task(task_name: str) -> bool:
 
                     if result.returncode != 0:
                         debug_logger.error(f"Git checkout failed in main repo: {result.stderr.strip()}")
-                        console.print(f"[red]Error: Git checkout failed[/red]")
+                        console.print("[red]Error: Git checkout failed[/red]")
                         console.print(f"[red]{result.stderr.strip()}[/red]")
                         return False
 

@@ -13,19 +13,19 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 
 
 def find_project_root() -> Path:
     """
     Find the project root directory using multiple strategies.
-    
+
     This function implements the battle-tested project detection logic
     extracted from existing hooks, with optimizations for performance.
-    
+
     Returns:
         Path: The project root directory
-        
+
     Raises:
         RuntimeError: If the project root cannot be found
     """
@@ -34,7 +34,7 @@ def find_project_root() -> Path:
         root_path = Path(env_root).resolve()
         if root_path.exists() and is_valid_project_root(root_path):
             return root_path
-    
+
     # Strategy 2: Use git to find the root of the repository
     try:
         result = subprocess.run(
@@ -45,15 +45,15 @@ def find_project_root() -> Path:
             timeout=5  # Add timeout for performance
         )
         git_root = Path(result.stdout.strip()).resolve()
-        
+
         # Verify this is a valid project using basic validation
         if is_valid_project_root(git_root):
             return git_root
-    
+
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError) as e:
         # Git not available or not in git repository - will try other strategies
         print(f"Debug: Git project root detection failed: {e}", file=sys.stderr)
-    
+
     # Strategy 3: Walk up from current directory looking for project markers
     current = Path.cwd()
     while current != current.parent:
@@ -61,16 +61,16 @@ def find_project_root() -> Path:
         if is_valid_project_root(current):
             return current
         current = current.parent
-    
+
     # Strategy 4: Use current working directory as fallback if it has basic project markers
     if is_valid_project_root(Path.cwd()):
         return Path.cwd()
-    
+
     # Strategy 5: Use parent directory if current doesn't qualify
     parent = Path.cwd().parent
     if parent.exists() and is_valid_project_root(parent):
         return parent
-    
+
     raise RuntimeError(
         "Could not find project root. "
         "Ensure you're running from within a project directory with .git, .brainworm, .claude, or other markers."
@@ -80,16 +80,16 @@ def find_project_root() -> Path:
 def is_valid_project_root(path: Path) -> bool:
     """
     Check if path is a valid project root using generic validation.
-    
+
     Args:
         path: Path to check
-        
+
     Returns:
         bool: True if path is a valid project root
     """
     if not (path.exists() and path.is_dir()):
         return False
-    
+
     # Prioritize git root, but check if it's a submodule
     git_path = path / '.git'
     if git_path.exists():
@@ -107,7 +107,7 @@ def is_valid_project_root(path: Path) -> bool:
             except Exception:
                 pass
         return True
-    
+
     # For .brainworm directories, prefer ones with hooks installed (main project)
     if (path / '.brainworm').exists():
         brainworm_dir = path / '.brainworm'
@@ -120,7 +120,7 @@ def is_valid_project_root(path: Path) -> bool:
             if (current / '.git').exists():
                 return False  # Prefer git root over submodule .brainworm
             current = current.parent
-    
+
     # Fallback: For .claude directories, prefer ones with hooks installed (main project)
     if (path / '.claude').exists():
         claude_dir = path / '.claude'
@@ -133,7 +133,7 @@ def is_valid_project_root(path: Path) -> bool:
             if (current / '.git').exists():
                 return False  # Prefer git root over submodule .claude
             current = current.parent
-    
+
     # Common project markers
     return (
         (path / 'package.json').exists() or
@@ -146,10 +146,10 @@ def is_valid_project_root(path: Path) -> bool:
 def get_project_context(project_root: Path) -> Dict[str, Any]:
     """
     Get project context information for hooks.
-    
+
     Args:
         project_root: Path to project root
-        
+
     Returns:
         Dict containing project context information
     """
@@ -158,7 +158,7 @@ def get_project_context(project_root: Path) -> Dict[str, Any]:
         'git_info': {},
         'submodules': {}
     }
-    
+
     # Git information
     try:
         # Get current branch
@@ -168,7 +168,7 @@ def get_project_context(project_root: Path) -> Dict[str, Any]:
         )
         if result.returncode == 0:
             context['git_info']['branch'] = result.stdout.strip()
-        
+
         # Get latest commit
         result = subprocess.run(
             ['git', 'rev-parse', '--short', 'HEAD'],
@@ -176,7 +176,7 @@ def get_project_context(project_root: Path) -> Dict[str, Any]:
         )
         if result.returncode == 0:
             context['git_info']['commit'] = result.stdout.strip()
-        
+
         # Check for submodules
         result = subprocess.run(
             ['git', 'submodule', 'status'],
@@ -194,22 +194,22 @@ def get_project_context(project_root: Path) -> Dict[str, Any]:
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError) as e:
         # Git submodule status not available - continue with basic context
         print(f"Debug: Failed to get git submodule status: {e}", file=sys.stderr)
-    
+
     return context
 
 
 def get_project_context_with_details(project_root: Path) -> Dict[str, Any]:
     """
     Get project context with development-specific information.
-    
+
     Args:
         project_root: Path to project root
-        
+
     Returns:
         Dict containing enhanced project context
     """
     context = get_project_context(project_root)
-    
+
     # Detect project type
     project_type = 'unknown'
     if (project_root / 'package.json').exists():
@@ -222,16 +222,16 @@ def get_project_context_with_details(project_root: Path) -> Dict[str, Any]:
         project_type = 'php'
     elif (project_root / '.brainworm').exists() or (project_root / '.claude').exists():
         project_type = 'claude_code'
-    
+
     context['project_type'] = project_type
-    
+
     # Check for common development files
     dev_files = []
     common_files = ['README.md', 'CLAUDE.md', '.gitignore', 'LICENSE', 'CHANGELOG.md']
     for file_name in common_files:
         if (project_root / file_name).exists():
             dev_files.append(file_name)
-    
+
     context['dev_files'] = dev_files
-    
+
     return context

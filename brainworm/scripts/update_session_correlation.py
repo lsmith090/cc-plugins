@@ -13,15 +13,16 @@ Session Correlation Update Script - Hooks Framework
 Provides atomic session correlation updates using business controllers.
 """
 
-import sys
 import argparse
+import sys
 from pathlib import Path
+
 from rich.console import Console
 
 # Add plugin root to path for utils access
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils.project import find_project_root
 from utils.business_controllers import create_session_controller
+from utils.project import find_project_root
 
 console = Console()
 
@@ -33,10 +34,10 @@ def update_session_correlation(
     show_current: bool = False
 ) -> dict:
     """Update session correlation using SessionCorrelationController"""
-    
+
     try:
         controller = create_session_controller(project_root)
-        
+
         if show_current:
             # Show current state with consistency check
             consistency_result = controller.check_consistency()
@@ -55,7 +56,7 @@ def update_session_correlation(
                 console.print("  Use this tool to synchronize session IDs")
 
             return consistency_result
-        
+
         # Generate IDs if not provided
         if session_id is None or correlation_id is None:
             generated_session, generated_correlation = controller.generate_ids()
@@ -68,10 +69,10 @@ def update_session_correlation(
 
         # Validate provided IDs (generated IDs are always valid)
         if session_id and len(session_id) < 4:
-            console.print(f"❌ [red]Invalid session ID:[/red] Must be at least 4 characters")
+            console.print("❌ [red]Invalid session ID:[/red] Must be at least 4 characters")
             sys.exit(1)
         if correlation_id and len(correlation_id) < 4:
-            console.print(f"❌ [red]Invalid correlation ID:[/red] Must be at least 4 characters")
+            console.print("❌ [red]Invalid correlation ID:[/red] Must be at least 4 characters")
             sys.exit(1)
 
         # Update session correlation atomically
@@ -79,7 +80,7 @@ def update_session_correlation(
 
         # FIX #4: result is a CorrelationUpdateResult dataclass, not a dict
         if result.success:
-            console.print(f"✅ [green]Session correlation updated:[/green]")
+            console.print("✅ [green]Session correlation updated:[/green]")
             console.print(f"  Session ID: {result.session_id}")
             console.print(f"  Correlation ID: {result.correlation_id}")
         else:
@@ -87,7 +88,7 @@ def update_session_correlation(
             sys.exit(1)
 
         return result
-        
+
     except Exception as e:
         console.print(f"❌ [red]Error updating session correlation:[/red] {e}")
         sys.exit(1)
@@ -106,21 +107,21 @@ Examples:
   uv run update_session_correlation.py --show-current  # Show current state
         """
     )
-    
+
     parser.add_argument("--session-id", help="Session ID to set")
     parser.add_argument("--correlation-id", help="Correlation ID to set")
-    parser.add_argument("--show-current", action="store_true", 
+    parser.add_argument("--show-current", action="store_true",
                        help="Show current session correlation state")
-    
+
     args = parser.parse_args()
-    
+
     # Find project root
     try:
         project_root = find_project_root()
     except Exception as e:
         console.print(f"❌ [red]Error finding project root:[/red] {e}")
         sys.exit(1)
-    
+
     # Update session correlation
     update_session_correlation(
         project_root=project_root,

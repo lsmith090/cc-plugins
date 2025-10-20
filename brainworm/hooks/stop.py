@@ -16,11 +16,14 @@ Handles session stop with correlation cleanup.
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from typing import Dict, Any
-from utils.hook_framework import HookFramework
+from typing import Any, Dict
+
 from utils.correlation_manager import CorrelationManager
+from utils.hook_framework import HookFramework
+
 
 def stop_session_logic(framework, input_data: Dict[str, Any]):
     """Custom logic for session stop with correlation cleanup.

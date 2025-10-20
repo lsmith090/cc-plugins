@@ -38,7 +38,10 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
-ignore = ["E501"]
+ignore = [
+    "E501",   # Line too long (we set line-length = 120)
+    "N815",   # Variable in class scope should not be mixedCase (Claude Code API requires camelCase)
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

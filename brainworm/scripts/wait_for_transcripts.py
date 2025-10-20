@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 from typing import List, Optional
 
+
 def find_project_root() -> Path:
     """Find project root by looking for .brainworm directory."""
     current = Path.cwd()

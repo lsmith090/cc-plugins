@@ -11,13 +11,13 @@ Usage:
     python3 scripts/validate_dependencies.py --file path.py     # Validate specific file
 """
 
-import re
-import sys
-import subprocess
 import json
-from pathlib import Path
-from typing import Dict, List, Tuple, Set
+import re
+import subprocess
+import sys
 from collections import defaultdict
+from pathlib import Path
+from typing import Dict, List, Tuple
 
 # Standard dependency versions from DEPENDENCIES.md
 STANDARD_VERSIONS = {
@@ -213,7 +213,6 @@ def validate_import_completeness(file_path: Path, verbose: bool = False) -> Tupl
 
         # Check for import errors in stderr
         stderr = result.stderr
-        stdout = result.stdout
 
         # Look for ModuleNotFoundError, ImportError, or our fail-fast RuntimeError
         if "ModuleNotFoundError" in stderr or "ImportError" in stderr or "HOOK INFRASTRUCTURE FAILURE" in stderr:

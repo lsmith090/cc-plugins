@@ -14,16 +14,17 @@ Provides safe, atomic task state updates for agents and scripts instead of direc
 Eliminates race conditions and ensures consistency across all state files.
 
 Usage:
-    uv run update_task_state.py --task="new-feature" --branch="feature/xyz" 
+    uv run update_task_state.py --task="new-feature" --branch="feature/xyz"
     uv run update_task_state.py --task="new-feature" --services="hooks,analytics"
     uv run update_task_state.py --clear-task
 """
 
-import sys
 import argparse
 import subprocess
+import sys
 from pathlib import Path
 from typing import List, Optional
+
 from rich.console import Console
 
 # Add plugin root to path for utils access
@@ -61,26 +62,26 @@ def update_task_state(
     To actually switch branches, use git checkout manually.
     This is useful for fixing state mismatches or updating metadata.
     """
-    
+
     try:
         # Import DAICStateManager
         sys.path.insert(0, str(Path(__file__).parent.parent))
         from utils.daic_state_manager import DAICStateManager
-        
+
         state_manager = DAICStateManager(project_root)
-        
+
         if clear_task:
             # Clear current task
             result = state_manager.set_task_state(
                 task=None,
-                branch=None, 
+                branch=None,
                 services=[],
                 correlation_id=state_manager.get_unified_state().get("correlation_id"),
                 session_id=state_manager.get_unified_state().get("session_id")
             )
             console.print("✅ [green]Task state cleared[/green]")
             return result
-        
+
         # Get current state for partial updates
         current_state = state_manager.get_task_state()
         current_unified = state_manager.get_unified_state()
@@ -104,7 +105,7 @@ def update_task_state(
             correlation_id=current_unified.get("correlation_id"),
             session_id=current_unified.get("session_id")
         )
-        
+
         # Success feedback
         if task:
             console.print(f"✅ [green]Task updated:[/green] {task}")
@@ -112,9 +113,9 @@ def update_task_state(
             console.print(f"✅ [green]Branch updated:[/green] {branch}")
         if services:
             console.print(f"✅ [green]Services updated:[/green] {', '.join(services)}")
-            
+
         return result
-        
+
     except Exception as e:
         console.print(f"❌ [red]Error updating task state:[/red] {e}")
         sys.exit(1)
@@ -128,40 +129,40 @@ def main() -> None:
         epilog="""
 Examples:
   uv run update_task_state.py --task="consolidate-state" --branch="feature/state"
-  uv run update_task_state.py --services="hooks,analytics" 
+  uv run update_task_state.py --services="hooks,analytics"
   uv run update_task_state.py --clear-task
         """
     )
-    
+
     parser.add_argument("--task", help="Task name to set")
     parser.add_argument("--branch", help="Git branch to set in state (does not run git checkout)")
     parser.add_argument("--services", help="Comma-separated list of services")
     parser.add_argument("--clear-task", action="store_true", help="Clear current task")
     parser.add_argument("--show-current", action="store_true", help="Show current task state")
-    
+
     args = parser.parse_args()
-    
+
     # Parse services if provided
     services = None
     if args.services:
         services = [s.strip() for s in args.services.split(",") if s.strip()]
-    
+
     # Find project root
     try:
         project_root = find_project_root()
     except Exception as e:
         console.print(f"❌ [red]Error finding project root:[/red] {e}")
         sys.exit(1)
-    
+
     # Show current state if requested
     if args.show_current:
         try:
             sys.path.insert(0, str(Path(__file__).parent.parent))
             from utils.daic_state_manager import DAICStateManager
-            
+
             state_manager = DAICStateManager(project_root)
             task_state = state_manager.get_task_state()
-            
+
             console.print("\n[green]Current Task State:[/green]")
             console.print(f"  Task: {task_state.get('current_task', 'None')}")
 
@@ -181,7 +182,7 @@ Examples:
             console.print(f"❌ [red]Error showing current state:[/red] {e}")
             sys.exit(1)
         return
-    
+
     # Update task state
     update_task_state(
         project_root=project_root,

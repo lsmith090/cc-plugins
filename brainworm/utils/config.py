@@ -12,11 +12,11 @@ Configuration Utilities for Brainworm Hook System
 Centralized configuration loading with canonical defaults.
 """
 
-import sys
 import tomllib  # Python 3.12+ built-in (read-only)
-import tomli_w  # For writing TOML files
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+import tomli_w  # For writing TOML files
 
 
 def get_canonical_default_config() -> Dict[str, Any]:
@@ -93,29 +93,29 @@ def write_default_config(config_file: Path) -> None:
 
 def load_config(project_root: Path, verbose: bool = False) -> Dict[str, Any]:
     """Load brainworm configuration with canonical defaults
-    
+
     Args:
         project_root: Project root directory
         verbose: Enable verbose error reporting
-        
+
     Returns:
         Complete configuration dictionary
     """
     config_file = project_root / ".brainworm" / "config.toml"
     default_config = get_canonical_default_config()
-    
+
     # If config file doesn't exist, create it with defaults
     if not config_file.exists():
         if verbose:
             print(f"Creating default config at {config_file}")
         write_default_config(config_file)
         return default_config
-    
+
     # Load existing config
     try:
         with open(config_file, 'rb') as f:
             config = tomllib.load(f)
-        
+
         # Merge defaults with loaded config (preserves user customizations)
         merged_config = {}
         for section_name, section_defaults in default_config.items():
@@ -129,9 +129,9 @@ def load_config(project_root: Path, verbose: bool = False) -> Dict[str, Any]:
             else:
                 # Use defaults for missing sections
                 merged_config[section_name] = section_defaults
-        
+
         return merged_config
-        
+
     except Exception as e:
         if verbose:
             print(f"Warning: Could not load config from {config_file}: {e}")
@@ -141,18 +141,18 @@ def load_config(project_root: Path, verbose: bool = False) -> Dict[str, Any]:
 
 def update_config_value(project_root: Path, key: str, value: Any, create_if_missing: bool = True) -> bool:
     """Update a configuration value safely with atomic write.
-    
+
     Args:
         project_root: Project root directory
         key: Configuration key (e.g., 'api_mode' or 'daic.enabled')
         value: New value to set
         create_if_missing: Whether to create config file if it doesn't exist
-        
+
     Returns:
         bool: True if update succeeded
     """
     config_file = project_root / ".brainworm" / "config.toml"
-    
+
     try:
         # Load or create config
         if config_file.exists():
@@ -162,7 +162,7 @@ def update_config_value(project_root: Path, key: str, value: Any, create_if_miss
             config = get_canonical_default_config()
         else:
             return False
-        
+
         # Handle nested keys (e.g., 'daic.enabled')
         keys = key.split('.')
         current = config
@@ -170,33 +170,33 @@ def update_config_value(project_root: Path, key: str, value: Any, create_if_miss
             if key_part not in current:
                 current[key_part] = {}
             current = current[key_part]
-        
+
         # Set the value
         current[keys[-1]] = value
-        
+
         # Use atomic writer for safer file operations
         from .file_manager import AtomicFileWriter
         with AtomicFileWriter(config_file, mode='wb', create_backup=True) as f:
             tomli_w.dump(config, f)
-        
+
         return True
-        
+
     except Exception:
         return False
 
 
 def toggle_config_value(project_root: Path, key: str) -> tuple[bool, bool, bool]:
     """Toggle a boolean configuration value.
-    
+
     Args:
         project_root: Project root directory
         key: Configuration key to toggle
-        
+
     Returns:
         tuple: (success, old_value, new_value)
     """
     config_file = project_root / ".brainworm" / "config.toml"
-    
+
     try:
         # Load current config
         if config_file.exists():
@@ -204,7 +204,7 @@ def toggle_config_value(project_root: Path, key: str) -> tuple[bool, bool, bool]
                 config = tomllib.load(f)
         else:
             config = get_canonical_default_config()
-        
+
         # Get current value (handle nested keys)
         keys = key.split('.')
         current = config
@@ -212,33 +212,33 @@ def toggle_config_value(project_root: Path, key: str) -> tuple[bool, bool, bool]
             if key_part not in current:
                 current[key_part] = {}
             current = current[key_part]
-        
+
         # Get current value (default to False for boolean toggles)
         old_value = current.get(keys[-1], False)
         new_value = not old_value
-        
+
         # Update value
         success = update_config_value(project_root, key, new_value)
         return success, old_value, new_value
-        
+
     except Exception:
         return False, False, False
 
 
 def get_config_value(project_root: Path, key: str, default: Any = None) -> Any:
     """Get a configuration value with optional default.
-    
+
     Args:
         project_root: Project root directory
         key: Configuration key (e.g., 'api_mode' or 'daic.enabled')
         default: Default value if key not found
-        
+
     Returns:
         Configuration value or default
     """
     try:
         config = load_config(project_root)
-        
+
         # Handle nested keys
         keys = key.split('.')
         current = config
@@ -247,8 +247,8 @@ def get_config_value(project_root: Path, key: str, default: Any = None) -> Any:
                 current = current[key_part]
             else:
                 return default
-        
+
         return current
-        
+
     except Exception:
         return default

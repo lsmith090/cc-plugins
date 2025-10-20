@@ -16,12 +16,14 @@ Captures tool execution results with event logging and subagent cleanup.
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from typing import Dict, Any
+from typing import Any, Dict
 
-from utils.hook_framework import HookFramework
 from utils.business_controllers import create_subagent_manager
+from utils.hook_framework import HookFramework
+
 
 def determine_tool_success(tool_response: Dict[str, Any]) -> bool:
     """Determine if tool execution was successful based on response indicators."""
@@ -45,7 +47,7 @@ def determine_tool_success(tool_response: Dict[str, Any]) -> bool:
     # Check for common failure indicators in specific fields (not whole response)
     # This prevents false negatives when words like "error" appear in success messages
     # (e.g., "Successfully handled error", "No errors found")
-    failure_indicators = ["failed", "error", "exception", "timeout"]
+    # Common failure indicators: "failed", "error", "exception", "timeout"
 
     # Check specific fields that indicate status
     check_fields = ["status", "message", "result"]
