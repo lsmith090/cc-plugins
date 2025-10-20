@@ -134,6 +134,9 @@ def is_read_only_bash_command(command: str, config: Dict[str, Any]) -> bool:
         >>> is_read_only_bash_command("git commit", config)
         False
     """
+    # Normalize tabs to spaces before processing
+    command = command.replace('\t', ' ')
+
     daic_config = config.get("daic", {})
     read_only_commands = daic_config.get("read_only_bash_commands", {})
 
