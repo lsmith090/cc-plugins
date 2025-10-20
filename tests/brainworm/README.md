@@ -76,14 +76,48 @@ Full system workflow tests simulating real usage scenarios.
 - **Markers**: `@pytest.mark.e2e`, `@pytest.mark.slow`
 - **Characteristics**: Complete workflows, real project structures, actual hook execution
 - **Coverage**: Complete user journeys, system behavior validation
+- **Infrastructure**: Uses HookTestHarness for realistic hook sequence execution
+
+**Test Scenarios**:
+- **Basic Session Lifecycle**: SessionStart → PreToolUse → PostToolUse → SessionEnd
+- **DAIC Enforcement**: Tool blocking in discussion mode, allowing in implementation mode
+- **Trigger Phrase Detection**: Mode switching via trigger phrases
+- **Multi-Tool Workflows**: Multiple tool invocations with proper correlation
+- **Event Consistency**: Database and JSONL event storage consistency
 
 **Examples**:
 ```bash
 # Run E2E tests (requires --runslow flag)
 pytest -m e2e --runslow
 
-# Run specific E2E workflow
-pytest tests/e2e/test_complete_analytics_workflow.py
+# Run specific E2E test class
+pytest tests/e2e/test_complete_session.py::TestBasicSessionLifecycle -v --runslow
+
+# Run specific test
+pytest tests/e2e/test_complete_session.py::TestDAICWorkflow::test_discussion_mode_blocks_write_tools --runslow
+```
+
+**E2E Test Pattern with HookTestHarness**:
+```python
+from hook_test_harness import HookTestHarness, HookEvent
+
+def test_complete_workflow(tmp_path, brainworm_plugin_root):
+    # Setup harness
+    harness = HookTestHarness(tmp_path / "project", brainworm_plugin_root)
+
+    # Execute hook sequence
+    events = [
+        HookEvent("session_start", None, {}),
+        HookEvent("pre_tool_use", "Read", {"file_path": "/test.py"}),
+        HookEvent("post_tool_use", "Read", {"file_path": "/test.py"}),
+    ]
+    results = harness.execute_sequence(events)
+
+    # Validate results
+    validation = harness.validate_database_events()
+    assert validation["event_count"] > 0
+    assert validation["has_session_id"]
+    assert validation["has_correlation_id"]
 ```
 
 ### Performance Tests (`tests/performance/`)
@@ -276,6 +310,115 @@ Complete testing dependency specification including:
 - Interactive debugging (`ipdb`, `pdbpp`)
 - Rich console output (`rich`)
 
+## Testing Infrastructure
+
+### Hook Test Harness (`tests/integration/hook_test_harness.py`)
+
+Comprehensive framework for testing hook execution in realistic environments.
+
+**Purpose**:
+- Execute hooks via subprocess (validates PEP 723 dependencies)
+- Manage project structure (.brainworm directories, state files, config)
+- Validate hook outputs (stdout, stderr, return codes)
+- Query and validate event storage (SQLite database)
+- Enable debug logging for test troubleshooting
+
+**Key Features**:
+- **Realistic Execution**: Hooks run via `uv run` with subprocess, just like in production
+- **State Management**: Creates unified_session_state.json, config.toml, directory structure
+- **Event Validation**: Query database events, validate correlation IDs and session IDs
+- **DAIC Control**: Set DAIC mode for testing enforcement behavior
+- **Debug Logging**: Enable/disable debug output for test analysis
+
+**Usage Example**:
+```python
+from hook_test_harness import HookTestHarness, HookEvent
+
+# Create harness
+harness = HookTestHarness(
+    project_root=tmp_path / "test_project",
+    brainworm_plugin_root=plugin_root
+)
+
+# Execute single hook
+result = harness.execute_hook(
+    hook_name="pre_tool_use",
+    tool_name="Read",
+    tool_input={"file_path": "/test.py"},
+    timeout=10,
+    expect_success=True
+)
+
+# Execute sequence
+events = [
+    HookEvent("session_start", None, {}),
+    HookEvent("pre_tool_use", "Read", {"file_path": "/test.py"}),
+    HookEvent("post_tool_use", "Read", {"file_path": "/test.py"}),
+]
+results = harness.execute_sequence(events)
+
+# Validate events stored
+db_events = harness.get_database_events()
+validation = harness.validate_database_events()
+assert validation["event_count"] > 0
+assert validation["has_session_id"]
+assert validation["has_correlation_id"]
+
+# Enable debug logging for troubleshooting
+harness.enable_debug_logging(format="json", outputs={"file": True})
+debug_logs = harness.get_debug_logs(format="json")
+```
+
+**API Reference**:
+- `execute_hook(hook_name, tool_name, tool_input, timeout, expect_success)` - Execute single hook
+- `execute_sequence(events)` - Execute list of HookEvent objects
+- `set_daic_mode(mode)` - Set DAIC mode ("discussion" or "implementation")
+- `get_database_events(session_id)` - Query events from hooks.db
+- `validate_database_events()` - Validate event completeness and consistency
+- `enable_debug_logging(format, outputs)` - Enable debug logging
+- `get_debug_logs(format)` - Read debug logs
+
+### Event Validators (`tests/validation/`)
+
+Utilities for validating event storage correctness.
+
+**DatabaseValidator** (`db_validator.py`):
+- Validates SQLite database event storage (`.brainworm/events/hooks.db`)
+- Checks required fields (session_id, correlation_id, hook_name, timestamp_ns, execution_id)
+- Validates hook names are recognized
+- Checks timestamp ordering
+- Verifies correlation ID consistency
+
+**JSONLValidator** (`jsonl_validator.py`):
+- Validates JSONL event logs
+- Checks JSON schema compliance
+- Validates event ordering
+- Verifies log file integrity
+
+**CorrelationValidator** (`correlation_validator.py`):
+- Validates correlation flows between PreToolUse and PostToolUse
+- Checks that pre/post hooks are properly paired
+- Validates correlation ID propagation
+- Analyzes correlation patterns
+
+**Usage Example**:
+```python
+from validation.db_validator import DatabaseValidator
+from validation.correlation_validator import CorrelationValidator
+
+# Database validation
+db_validator = DatabaseValidator(db_path)
+db_validator.assert_event_count(session_id, expected=5)
+db_validator.assert_all_events_have_required_fields(session_id)
+db_validator.assert_correlation_ids_valid(session_id)
+
+# Correlation validation
+corr_validator = CorrelationValidator()
+events = db_validator.get_events(session_id=session_id)
+corr_validator.assert_pre_post_paired(events)
+analysis = corr_validator.analyze_correlation_flow(events)
+```
+
 ## Test Data and Fixtures
 
 ### `tests/fixtures/`
@@ -370,6 +513,131 @@ The testing infrastructure supports GitHub Actions with:
 **Release Testing**:
 ```bash
 ./run_tests.sh --clean --install-deps --performance --security
+```
+
+## Best Practices for Hook Testing
+
+### PEP 723 Dependency Testing
+
+All brainworm hooks use PEP 723 inline script dependencies. Tests MUST validate these dependencies work correctly.
+
+**Why Subprocess Execution**:
+- Validates hooks run with declared dependencies only
+- Catches missing transitive dependencies (e.g., forgetting `tomli-w` when importing hook_framework)
+- Tests hooks in production-like environment
+- Verifies `uv run` can resolve all dependencies
+
+**Hook Test Pattern**:
+```python
+import subprocess
+import json
+
+def test_hook_with_dependencies(tmp_path, brainworm_plugin_root):
+    """Test hook executes correctly with PEP 723 dependencies"""
+    hook_script = brainworm_plugin_root / "hooks" / "pre_tool_use.py"
+
+    # Build hook input
+    hook_input = {
+        "session_id": "test-session",
+        "correlation_id": "test-corr",
+        "tool_name": "Read",
+        "tool_input": {"file_path": "/test.py"}
+    }
+
+    # Execute via subprocess (validates dependencies)
+    result = subprocess.run(
+        ["uv", "run", str(hook_script)],
+        input=json.dumps(hook_input).encode(),
+        capture_output=True,
+        timeout=10,
+        cwd=tmp_path
+    )
+
+    # Validate execution
+    assert result.returncode == 0, f"Hook failed:\n{result.stderr.decode()}"
+
+    # Parse output
+    if result.stdout:
+        output = json.loads(result.stdout.decode())
+        # Validate hook output structure
+        assert "session_id" in output or "continue" in output
+```
+
+**Common Pitfalls**:
+1. **Missing Transitive Dependencies**: If hook imports `hook_framework`, must include `tomli-w>=1.0.0`
+2. **Version Mismatches**: Use exact versions from DEPENDENCIES.md
+3. **Import-Only Testing**: Unit tests that import hooks directly don't validate PEP 723 dependencies
+4. **Timeout Issues**: Set reasonable timeouts (10s) to catch hanging hooks
+
+**Dependency Validation in CI**:
+```yaml
+- name: Validate dependencies
+  run: cd brainworm && python3 scripts/validate_dependencies.py --verbose
+```
+
+This runs BEFORE tests, ensuring all hooks have complete dependency declarations.
+
+### Event Storage Testing
+
+**Always validate both storage mechanisms**:
+- SQLite database (`.brainworm/events/hooks.db`)
+- JSONL logs (if enabled)
+
+**Validation Pattern**:
+```python
+def test_event_storage(harness):
+    # Execute hook
+    harness.execute_hook("pre_tool_use", "Read", {"file_path": "/test.py"})
+
+    # Validate database storage
+    db_events = harness.get_database_events()
+    assert len(db_events) > 0
+
+    # Validate required fields
+    for event in db_events:
+        assert event["session_id"] == harness.session_id
+        assert event["correlation_id"] is not None
+        assert event["hook_name"] in ["pre_tool_use", "post_tool_use"]
+        assert event["timestamp"] is not None
+
+    # Use validators for comprehensive checks
+    validation = harness.validate_database_events()
+    assert validation["has_session_id"]
+    assert validation["has_correlation_id"]
+```
+
+### DAIC Workflow Testing
+
+**Test both blocking and allowing behavior**:
+
+```python
+def test_daic_enforcement(harness):
+    # Test blocking in discussion mode
+    harness.set_daic_mode("discussion")
+    result = harness.execute_hook(
+        "pre_tool_use",
+        "Write",
+        {"file_path": "/new.py", "content": "code"},
+        expect_success=False  # Expect blocking
+    )
+
+    # Validate blocking decision
+    if result.stdout:
+        output = json.loads(result.stdout.decode())
+        assert output.get("continue") == False
+        assert output["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "discussion" in output["stopReason"].lower()
+
+    # Test allowing in implementation mode
+    harness.set_daic_mode("implementation")
+    result = harness.execute_hook(
+        "pre_tool_use",
+        "Write",
+        {"file_path": "/new.py", "content": "code"},
+        expect_success=True  # Should allow
+    )
+
+    assert result.returncode == 0
 ```
 
 ## Development Workflow
