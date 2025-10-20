@@ -1,45 +1,79 @@
 # Claude Code Plugins Marketplace
 
-Private marketplace for Claude Code plugins.
+Private marketplace for distributing Claude Code plugins. Install plugins to enhance your Claude Code development workflow with structured discipline, enhanced capabilities, and workflow continuity.
+
+## Quick Start
+
+Add this marketplace to Claude Code:
+
+```bash
+/plugin marketplace add https://github.com/lsmith090/cc-plugins
+```
+
+List available plugins:
+
+```bash
+/plugin list
+```
+
+Install a plugin:
+
+```bash
+/plugin install <plugin-name>@medicus-it
+```
 
 ## Available Plugins
 
 ### brainworm
+
 DAIC workflow enforcement and event storage system for Claude Code.
 
-**Installation:**
-```
-/plugin marketplace add https://github.com/lsmith090/cc-plugins
-/plugin install brainworm@medicus-it
-```
+**Install**: `/plugin install brainworm@medicus-it`
 
-**Features:**
-- DAIC workflow enforcement (Discussion → Alignment → Implementation → Check)
-- Event storage system with session correlation
-- Intelligent trigger phrase detection
-- Comprehensive hook system (PreToolUse, PostToolUse, SessionStart, SessionEnd, etc.)
-- Task management and workflow continuity
-- Specialized subagents for code review, logging, documentation
+**Documentation**: [brainworm/](./brainworm/)
 
-**Repository:** https://github.com/lsmith090/cc-plugins
+**Version**: 1.0.0
 
 ### mcp-servers
+
 Curated collection of Model Context Protocol (MCP) servers for enhanced Claude Code capabilities.
 
-**Installation:**
+**Install**: `/plugin install mcp-servers@medicus-it`
+
+**Documentation**: [mcp-servers/](./mcp-servers/)
+
+**Version**: 1.0.0
+
+## Repository Structure
+
 ```
-/plugin marketplace add https://github.com/lsmith090/cc-plugins
-/plugin install mcp-servers@medicus-it
+cc-plugins/
+├── brainworm/              # DAIC workflow plugin
+├── mcp-servers/            # MCP server collection
+├── tests/                  # Test infrastructure (not distributed)
+├── CLAUDE.md               # Development guidelines
+└── README.md               # This file
 ```
 
-**Features:**
-- Context7 MCP server for up-to-date documentation
-- Automatic server startup on session start
-- Zero-configuration with sensible defaults
-- Optional API key support for higher rate limits
-- Expandable with additional curated MCP servers
+Each plugin directory contains:
+- `.claude-plugin/` - Plugin metadata
+- `hooks/` - Hook implementations
+- `commands/` - Slash commands
+- `README.md` - Plugin documentation
+- `CHANGELOG.md` - Version history
 
-**Included MCP Servers:**
-- **Context7**: Fetches current, version-specific documentation from official sources
+## Contributing
 
-**Repository:** https://github.com/lsmith090/cc-plugins
+See [CLAUDE.md](./CLAUDE.md) for complete contribution guidelines including:
+- Adding new plugins
+- Testing requirements
+- Documentation standards
+- Release process
+
+## Support
+
+**Issues**: https://github.com/lsmith090/cc-plugins/issues
+
+**Development**: See [CLAUDE.md](./CLAUDE.md)
+
+**Plugin Documentation**: See individual plugin directories

@@ -5,27 +5,40 @@ All notable changes to the mcp-servers plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2025-01-13
+## [1.0.0] - 2025-01-15
 
 ### Added
-- Initial release of mcp-servers plugin
-- Context7 MCP server integration for up-to-date documentation
-- Automatic MCP server startup on session initialization
+
+**Context7 MCP Server Integration**
+- Automatic Context7 MCP server startup on session start
+- Fetches current, version-specific documentation from official sources
 - Zero-configuration setup with sensible defaults
-- Optional API key support for Context7 higher rate limits
-- Comprehensive documentation (README.md, CLAUDE.md)
-- Plugin manifest with MCP server configuration
+- Optional API key support for higher rate limits
+- Seamless integration with Claude Code's MCP system
+
+**SessionStart Hook**
+- Automatic MCP server initialization on Claude Code startup
+- Environment variable management for API keys
+- Server health checking
+- Graceful error handling and user feedback
+
+**Configuration**
+- Zero-configuration by default
+- Optional API key configuration via environment variables
+- Server settings customization support
+- Expandable architecture for additional MCP servers
+
+**Documentation**
+- Installation and setup guide
+- Configuration reference
+- API key setup instructions
+- Troubleshooting guide
 
 ### Features
-- **Context7 Integration**: Fetch current, version-specific documentation from official sources
-- **Automatic Loading**: MCP servers start automatically when plugin is enabled
-- **Environment Variables**: Support for optional configuration via `CONTEXT7_API_KEY`
-- **Extensible Architecture**: Ready for additional MCP servers to be added
 
-### Documentation
-- User-facing README with installation and usage instructions
-- CLAUDE.md with development guidelines and architecture notes
-- Troubleshooting section for common issues
-- Contributing guidelines for adding new MCP servers
+- **Zero-Configuration**: Works out of the box with no manual setup required
+- **Privacy-Conscious**: Optional API key usage, works without authentication
+- **Extensible**: Architecture supports adding additional curated MCP servers
+- **Reliable**: Health checking and graceful degradation on failures
 
 [1.0.0]: https://github.com/lsmith090/cc-plugins/releases/tag/mcp-servers-v1.0.0

@@ -306,19 +306,6 @@ echo '{"test": true}' | uv run .brainworm/hooks/stop.py
 - Safe file operations only
 - Sanitized error messages
 
-## Version History
-
-Current version: **1.5.2**
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history and updates.
-
-Recent highlights:
-- **1.5.2**: DAIC command parsing fixes, enhanced security patterns
-- **1.5.0**: Comprehensive type system implementation
-- **1.4.0**: Hooks framework hybrid architecture
-- **1.3.0**: Unified project detection, enhanced agent system
-- **1.0.0**: DAIC + Event Storage integration (Major Release)
-
 ## Contributing
 
 Brainworm is part of the cc-plugins marketplace. Contributions welcome!
