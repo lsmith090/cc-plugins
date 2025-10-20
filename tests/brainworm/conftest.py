@@ -54,7 +54,6 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.integration)
         elif "e2e" in relative_path.parts:
             item.add_marker(pytest.mark.e2e)
-            item.add_marker(pytest.mark.slow)
         elif "performance" in relative_path.parts:
             item.add_marker(pytest.mark.performance)
             item.add_marker(pytest.mark.slow)

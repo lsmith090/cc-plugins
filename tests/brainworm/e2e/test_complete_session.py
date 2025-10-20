@@ -193,13 +193,18 @@ class TestDAICWorkflow:
             try:
                 output = json.loads(result.stdout.decode())
 
-                # Should contain blocking decision
-                assert "block" in output, "No blocking decision in output"
-                assert output["block"] == True, "Write should be blocked in discussion mode"
+                # Should contain blocking decision (continue: false)
+                assert "continue" in output, "No continue field in output"
+                assert output["continue"] == False, "Write should be blocked in discussion mode"
+
+                # Should have hookSpecificOutput with permissionDecision
+                assert "hookSpecificOutput" in output, "No hookSpecificOutput in output"
+                assert output["hookSpecificOutput"]["permissionDecision"] == "deny", \
+                    "permissionDecision should be deny"
 
                 # Should have message explaining why
-                assert "message" in output, "No message explaining block"
-                assert "discussion" in output["message"].lower(), \
+                assert "stopReason" in output, "No stopReason explaining block"
+                assert "discussion" in output["stopReason"].lower(), \
                     "Block message should mention discussion mode"
 
             except json.JSONDecodeError:
