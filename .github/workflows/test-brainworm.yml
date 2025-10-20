@@ -2,7 +2,7 @@ name: Test Brainworm Plugin
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
     paths:
       - 'brainworm/**'
       - 'tests/brainworm/**'
@@ -11,6 +11,7 @@ on:
     paths:
       - 'brainworm/**'
       - 'tests/brainworm/**'
+  workflow_dispatch:
 
 jobs:
   test:

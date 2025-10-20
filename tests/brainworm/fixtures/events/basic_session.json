@@ -1,0 +1,61 @@
+{
+  "description": "Basic Claude Code session with Read tool execution",
+  "session_id": "fixture-session-001",
+  "correlation_id_base": "fixture-corr-001",
+  "events": [
+    {
+      "session_id": "fixture-session-001",
+      "correlation_id": "fixture-corr-001-session-start",
+      "hook_name": "session_start",
+      "tool_name": null,
+      "timestamp_ns": 1700000000000000000,
+      "execution_id": "exec-001-start",
+      "schema_version": "2.0",
+      "workflow_phase": "session_initialization",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T00:00:00.000000"
+    },
+    {
+      "session_id": "fixture-session-001",
+      "correlation_id": "fixture-corr-001-read-1",
+      "hook_name": "pre_tool_use",
+      "tool_name": "Read",
+      "tool_input": {
+        "file_path": "/test/project/example.py"
+      },
+      "timestamp_ns": 1700000001000000000,
+      "execution_id": "exec-001-pre-read-1",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_preparation",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T00:00:01.000000"
+    },
+    {
+      "session_id": "fixture-session-001",
+      "correlation_id": "fixture-corr-001-read-1",
+      "hook_name": "post_tool_use",
+      "tool_name": "Read",
+      "tool_input": {
+        "file_path": "/test/project/example.py"
+      },
+      "timestamp_ns": 1700000002000000000,
+      "execution_id": "exec-001-post-read-1",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_completion",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T00:00:02.000000"
+    },
+    {
+      "session_id": "fixture-session-001",
+      "correlation_id": "fixture-corr-001-session-end",
+      "hook_name": "session_end",
+      "tool_name": null,
+      "timestamp_ns": 1700000003000000000,
+      "execution_id": "exec-001-end",
+      "schema_version": "2.0",
+      "workflow_phase": "session_cleanup",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T00:00:03.000000"
+    }
+  ]
+}

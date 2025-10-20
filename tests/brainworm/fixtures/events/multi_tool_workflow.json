@@ -1,0 +1,135 @@
+{
+  "description": "Multi-tool workflow with Bash, Read, Write, and Edit",
+  "session_id": "fixture-session-003",
+  "correlation_id_base": "fixture-corr-003",
+  "events": [
+    {
+      "session_id": "fixture-session-003",
+      "correlation_id": "fixture-corr-003-bash-1",
+      "hook_name": "pre_tool_use",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "ls -la",
+        "description": "List files"
+      },
+      "timestamp_ns": 1700020000000000000,
+      "execution_id": "exec-003-pre-bash-1",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_preparation",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T05:33:20.000000"
+    },
+    {
+      "session_id": "fixture-session-003",
+      "correlation_id": "fixture-corr-003-bash-1",
+      "hook_name": "post_tool_use",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "ls -la",
+        "description": "List files"
+      },
+      "timestamp_ns": 1700020001000000000,
+      "execution_id": "exec-003-post-bash-1",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_completion",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T05:33:21.000000"
+    },
+    {
+      "session_id": "fixture-session-003",
+      "correlation_id": "fixture-corr-003-read-1",
+      "hook_name": "pre_tool_use",
+      "tool_name": "Read",
+      "tool_input": {
+        "file_path": "/test/project/config.py"
+      },
+      "timestamp_ns": 1700020002000000000,
+      "execution_id": "exec-003-pre-read-1",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_preparation",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T05:33:22.000000"
+    },
+    {
+      "session_id": "fixture-session-003",
+      "correlation_id": "fixture-corr-003-read-1",
+      "hook_name": "post_tool_use",
+      "tool_name": "Read",
+      "tool_input": {
+        "file_path": "/test/project/config.py"
+      },
+      "timestamp_ns": 1700020003000000000,
+      "execution_id": "exec-003-post-read-1",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_completion",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T05:33:23.000000"
+    },
+    {
+      "session_id": "fixture-session-003",
+      "correlation_id": "fixture-corr-003-write-1",
+      "hook_name": "pre_tool_use",
+      "tool_name": "Write",
+      "tool_input": {
+        "file_path": "/test/project/new_module.py",
+        "content": "# New module"
+      },
+      "timestamp_ns": 1700020004000000000,
+      "execution_id": "exec-003-pre-write-1",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_preparation",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T05:33:24.000000"
+    },
+    {
+      "session_id": "fixture-session-003",
+      "correlation_id": "fixture-corr-003-write-1",
+      "hook_name": "post_tool_use",
+      "tool_name": "Write",
+      "tool_input": {
+        "file_path": "/test/project/new_module.py",
+        "content": "# New module"
+      },
+      "timestamp_ns": 1700020005000000000,
+      "execution_id": "exec-003-post-write-1",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_completion",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T05:33:25.000000"
+    },
+    {
+      "session_id": "fixture-session-003",
+      "correlation_id": "fixture-corr-003-edit-1",
+      "hook_name": "pre_tool_use",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/test/project/config.py",
+        "old_string": "debug = False",
+        "new_string": "debug = True"
+      },
+      "timestamp_ns": 1700020006000000000,
+      "execution_id": "exec-003-pre-edit-1",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_preparation",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T05:33:26.000000"
+    },
+    {
+      "session_id": "fixture-session-003",
+      "correlation_id": "fixture-corr-003-edit-1",
+      "hook_name": "post_tool_use",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/test/project/config.py",
+        "old_string": "debug = False",
+        "new_string": "debug = True"
+      },
+      "timestamp_ns": 1700020007000000000,
+      "execution_id": "exec-003-post-edit-1",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_completion",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T05:33:27.000000"
+    }
+  ]
+}

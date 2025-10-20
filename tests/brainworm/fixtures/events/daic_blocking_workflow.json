@@ -1,0 +1,102 @@
+{
+  "description": "DAIC workflow with Write tool blocked in discussion mode, then allowed after mode switch",
+  "session_id": "fixture-session-002",
+  "correlation_id_base": "fixture-corr-002",
+  "events": [
+    {
+      "session_id": "fixture-session-002",
+      "correlation_id": "fixture-corr-002-session-start",
+      "hook_name": "session_start",
+      "tool_name": null,
+      "timestamp_ns": 1700010000000000000,
+      "execution_id": "exec-002-start",
+      "schema_version": "2.0",
+      "workflow_phase": "session_initialization",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T02:46:40.000000",
+      "metadata": {
+        "daic_mode": "discussion"
+      }
+    },
+    {
+      "session_id": "fixture-session-002",
+      "correlation_id": "fixture-corr-002-write-blocked",
+      "hook_name": "pre_tool_use",
+      "tool_name": "Write",
+      "tool_input": {
+        "file_path": "/test/project/blocked.py",
+        "content": "# This should be blocked"
+      },
+      "timestamp_ns": 1700010001000000000,
+      "execution_id": "exec-002-pre-write-blocked",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_blocked",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T02:46:41.000000",
+      "metadata": {
+        "daic_mode": "discussion",
+        "blocked": true,
+        "block_reason": "DAIC: Tool blocked in discussion mode"
+      }
+    },
+    {
+      "session_id": "fixture-session-002",
+      "correlation_id": "fixture-corr-002-prompt-trigger",
+      "hook_name": "user_prompt_submit",
+      "tool_name": null,
+      "tool_input": {
+        "user_message": "go ahead and implement this"
+      },
+      "timestamp_ns": 1700010002000000000,
+      "execution_id": "exec-002-prompt-trigger",
+      "schema_version": "2.0",
+      "workflow_phase": "mode_transition",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T02:46:42.000000",
+      "metadata": {
+        "trigger_phrase_detected": "go ahead",
+        "mode_before": "discussion",
+        "mode_after": "implementation"
+      }
+    },
+    {
+      "session_id": "fixture-session-002",
+      "correlation_id": "fixture-corr-002-write-allowed",
+      "hook_name": "pre_tool_use",
+      "tool_name": "Write",
+      "tool_input": {
+        "file_path": "/test/project/allowed.py",
+        "content": "# This is allowed"
+      },
+      "timestamp_ns": 1700010003000000000,
+      "execution_id": "exec-002-pre-write-allowed",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_preparation",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T02:46:43.000000",
+      "metadata": {
+        "daic_mode": "implementation",
+        "blocked": false
+      }
+    },
+    {
+      "session_id": "fixture-session-002",
+      "correlation_id": "fixture-corr-002-write-allowed",
+      "hook_name": "post_tool_use",
+      "tool_name": "Write",
+      "tool_input": {
+        "file_path": "/test/project/allowed.py",
+        "content": "# This is allowed"
+      },
+      "timestamp_ns": 1700010004000000000,
+      "execution_id": "exec-002-post-write-allowed",
+      "schema_version": "2.0",
+      "workflow_phase": "tool_completion",
+      "project_root": "/test/project",
+      "logged_at": "2023-11-15T02:46:44.000000",
+      "metadata": {
+        "daic_mode": "implementation"
+      }
+    }
+  ]
+}
