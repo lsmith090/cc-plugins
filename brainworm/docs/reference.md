@@ -295,13 +295,12 @@ CREATE INDEX idx_hook ON hook_events(hook_name);
 
 ```json
 {
-  "hook_name": "tool_end",
+  "hook_name": "post_tool_use",
   "execution_id": "exec-abc123",
   "event_data": {
     "tool_name": "Edit",
     "file_path": "/path/to/file.py",
     "success": true,
-    "lines_changed": 42,
     "daic_mode": "implementation"
   },
   "duration_ms": 235
@@ -387,25 +386,16 @@ network = [
     "curl", "wget", "ping", "nslookup", "dig"
 ]
 
-[analytics]
-# Enable/disable event capture
-enabled = true
+[debug]
+# Debug output settings
+enabled = false
+level = "INFO"  # ERROR, WARNING, INFO, DEBUG, TRACE
+format = "text"  # text or json
 
-# Capture tool execution timing
-capture_tool_timing = true
-
-# Debug logging (writes to .brainworm/logs/debug.jsonl)
-debug_logging = false
-
-[api]
-# API mode disables automatic ultrathink injection
-api_mode = false
-
-[[sources]]
-# Multi-project sources for nautiloid integration
-name = "my-project"
-path = "/path/to/project"
-enabled = true
+[debug.outputs]
+stderr = true
+file = false
+framework = false
 ```
 
 ### Configuration Defaults
@@ -416,13 +406,13 @@ enabled = true
 - `blocked_tools`: `["Edit", "Write", "MultiEdit", "NotebookEdit"]`
 - 6 default trigger phrases
 
-**Analytics Defaults:**
-- `enabled`: `true`
-- `capture_tool_timing`: `true`
-- `debug_logging`: `false`
-
-**API Defaults:**
-- `api_mode`: `false`
+**Debug Defaults:**
+- `enabled`: `false`
+- `level`: `"INFO"`
+- `format`: `"text"`
+- `outputs.stderr`: `true`
+- `outputs.file`: `false`
+- `outputs.framework`: `false`
 
 ## State File Schemas
 
@@ -637,7 +627,7 @@ SELECT
     COUNT(*) as count,
     AVG(duration_ms) as avg_duration_ms
 FROM hook_events
-WHERE hook_name = 'tool_end'
+WHERE hook_name = 'post_tool_use'
   AND correlation_id = 'task-name_correlation'
 GROUP BY tool, mode;
 ```
@@ -785,31 +775,42 @@ BRAINWORM_DEBUG=1 ./daic status
 ### DAICStateManager
 
 ```python
+from pathlib import Path
 from brainworm.utils.daic_state_manager import DAICStateManager
 
-manager = DAICStateManager()
+manager = DAICStateManager(Path("."))
 
-# Get current state
-state = manager.get_state()
+# Get current unified state
+state = manager.get_unified_state()
 
-# Update DAIC mode
-manager.update_daic_mode("implementation")
+# Get DAIC mode
+mode = manager.get_daic_mode()
 
-# Update task
-manager.update_task(
-    task_name="my-task",
+# Set DAIC mode
+manager.set_daic_mode("implementation")
+
+# Toggle DAIC mode
+new_mode = manager.toggle_daic_mode()
+
+# Get task state
+task_state = manager.get_task_state()
+
+# Set task state
+manager.set_task_state(
+    task="my-task",
     branch="feature/my-task",
-    services=["backend", "frontend"]
+    services=["backend", "frontend"],
+    updated=str(datetime.now().date())
 )
 
-# Clear task
-manager.clear_task()
-
-# Update session IDs
-manager.update_session_ids(
+# Update session correlation
+manager.update_session_correlation(
     session_id="abc123",
     correlation_id="my-task_correlation"
 )
+
+# Check if tool should be blocked
+result = manager.should_block_tool("Edit", {"file_path": "/test.py"})
 ```
 
 ### EventStore

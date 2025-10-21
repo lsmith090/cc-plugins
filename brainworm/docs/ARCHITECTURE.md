@@ -1,6 +1,5 @@
 # Architecture
 
-TODO: See me after school. Lots of problems in here 
 Technical architecture and design patterns for brainworm contributors.
 
 ## Table of Contents
@@ -34,8 +33,8 @@ Brainworm is a ~14,000 LOC Claude Code plugin that enforces DAIC workflow method
 - Claude Code hook system for integration
 
 **Key Statistics:**
-- 10 hooks for Claude Code integration
-- 21 utility modules
+- 10 hooks for Claude Code integration (7 active in hooks.json)
+- 20 utility modules
 - 14 CLI scripts
 - 6 specialized subagents
 - 4 workflow protocols
@@ -55,17 +54,15 @@ Hooks integrate brainworm with Claude Code's lifecycle events.
 
 **Workflow Control:**
 - `user_prompt_submit.py` - Detect trigger phrases, inject ultrathink
-- `pre_tool_use.py` - Enforce DAIC blocking, validate tool usage
-- `post_tool_use.py` - Capture tool results, manage coordination flags
+- `pre_tool_use.py` - Enforce DAIC blocking, validate tool usage (Edit, Write, MultiEdit, Bash)
+- `transcript_processor.py` - Process Task tool usage for agent transcript delivery
+- `post_tool_use.py` - Capture tool results, event logging
+- `pre_compact.py` - Handle context compaction preparation
 
-**Event Capture:**
-- `transcript_processor.py` - Process conversation for agent delivery
-- `tool_start.py` - Record tool execution start
-- `tool_end.py` - Record tool completion and timing
-
-**Documentation:**
-- `claudemd_request.py` - Inject CLAUDE.sessions.md for behavioral guidance
-- `status_line.py` - Provide visual status indicators
+**Interrupts & Notifications:**
+- `stop.py` - Handle user interrupts
+- `subagent_stop.py` - Handle subagent completion
+- `notification.py` - Capture notification events
 
 **Architecture:**
 All hooks use unified hook framework (`utils/hook_framework.py`) for:
@@ -76,30 +73,38 @@ All hooks use unified hook framework (`utils/hook_framework.py`) for:
 
 ### 2. Utility Modules
 
-21 shared utilities provide infrastructure:
+20 shared utilities provide infrastructure:
 
 **State Management:**
 - `daic_state_manager.py` - Unified session state operations
-- `governance_utils.py` - Task file frontmatter parsing
-- `state_utils.py` - State file I/O with file locking
+- `file_manager.py` - File I/O with atomic locking
+- `correlation_manager.py` - Session and correlation ID management
 
 **DAIC Workflow:**
 - `bash_validator.py` - Parse and validate bash commands for read-only operations
-- `trigger_detection.py` - Detect mode-switching trigger phrases
+- `business_controllers.py` - Business logic controllers
 
 **Event Storage:**
 - `event_store.py` - SQLite event storage with correlation
-- `event_schema.py` - Event data structures and validation
+- `event_logger.py` - Event logging abstraction
+- `sqlite_manager.py` - SQLite database management
 
 **Infrastructure:**
-- `config_utils.py` - TOML configuration loading
-- `file_lock.py` - Cross-process file locking
-- `path_utils.py` - Path resolution and validation
-- `plugin_context.py` - Plugin root and context detection
+- `config.py` - TOML configuration loading and writing
+- `project.py` - Project root and context detection
+- `git.py` - Git operations and utilities
+- `git_submodule_manager.py` - Git submodule management
 
 **Hook Framework:**
 - `hook_framework.py` - Unified hook execution framework
 - `hook_types.py` - Type-safe hook I/O schemas
+- `hook_logging.py` - Hook-specific logging utilities
+
+**Specialized:**
+- `transcript_parser.py` - Parse agent transcripts
+- `input_handling.py` - Input validation and handling
+- `security_validators.py` - Security validation utilities
+- `debug_logger.py` - Debug logging infrastructure
 
 ### 3. CLI Scripts
 
@@ -107,23 +112,25 @@ All hooks use unified hook framework (`utils/hook_framework.py`) for:
 
 **DAIC Commands:**
 - `daic_command.py` - Main DAIC CLI (status, discussion, implementation, toggle)
-- `daic_discussion.py` - Switch to discussion mode
-- `daic_implementation.py` - Switch to implementation mode
-- `daic_status.py` - Show current DAIC state
-- `daic_toggle.py` - Toggle between modes
+- `update_daic_mode.py` - Low-level mode updates
 
 **Task Commands:**
-- `tasks_command.py` - Main tasks CLI
+- `tasks_command.py` - Main tasks CLI (status, create, list, switch, session)
 - `create_task.py` - Create new task with branch
 - `switch_task.py` - Atomic task switching
-- `task_status.py` - Show current task
 - `list_tasks.py` - List all tasks with status
-- `clear_task.py` - Clear current task from state
-- `set_task.py` - Manual task state updates
+- `update_task_state.py` - Manual task state updates
+- `update_session_correlation.py` - Update session correlation IDs
 
-**Utility:**
-- `add_trigger_phrase.py` - Add custom trigger phrase
-- `update_daic_mode.py` - Low-level mode updates
+**Configuration:**
+- `add_trigger.py` - Add custom trigger phrase
+- `api_mode.py` - Toggle API mode (automated ultrathink)
+
+**Development:**
+- `statusline-script.py` - Generate statusline data
+- `validate_dependencies.py` - Validate PEP 723 dependencies
+- `verify_duration_tracking.py` - Verify event duration tracking
+- `wait_for_transcripts.py` - Wait for agent transcript files
 
 **CLI Framework:**
 All commands use Typer for type-safe CLI interfaces with automatic help generation.
@@ -370,13 +377,13 @@ Task ready for context gathering
 ```
 Tool Execution
     ↓
-tool_start hook → Log start event
+pre_tool_use hook → Log tool start, validate DAIC
     ↓
 Tool executes
     ↓
-tool_end hook → Log end event with duration
+post_tool_use hook → Log tool result and timing
     ↓
-Event stored in SQLite
+Event stored in SQLite (via event_store.py)
     ↓
 Tagged with session_id and correlation_id
     ↓
@@ -389,12 +396,14 @@ Available for analytics and resumption
 
 **Manager:** `utils/daic_state_manager.py`
 
-**Operations:**
-- `get_state()` - Read current state
-- `update_daic_mode(mode)` - Update DAIC mode
-- `update_task(task, branch, services)` - Update task info
-- `clear_task()` - Remove current task
-- `update_session_ids(session_id, correlation_id)` - Update IDs
+**Key Methods:**
+- `get_unified_state()` - Read current unified state
+- `set_daic_mode(mode)` - Update DAIC mode
+- `toggle_daic_mode()` - Toggle between modes
+- `get_task_state()` - Get current task information
+- `set_task_state(task, branch, services, ...)` - Update task info
+- `update_session_correlation(session_id, correlation_id)` - Update IDs
+- `should_block_tool(tool_name, tool_input)` - Check if tool should be blocked
 
 **Concurrency:**
 - File locking via `filelock` library

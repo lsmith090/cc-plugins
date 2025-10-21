@@ -68,11 +68,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/brainworm:add-trigger` - Add custom trigger phrase
 
 **Documentation**
-- Architecture documentation
-- DAIC methodology guide
-- Configuration reference
-- End user guide
-- Nautiloid integration guide (multi-project aggregation)
+- Comprehensive documentation in `docs/` directory
+- Getting started guide with installation and first task walkthrough
+- DAIC methodology guide with detailed workflow explanations
+- Task management guide with full lifecycle documentation
+- Complete CLI reference for all commands
+- Configuration reference with all options
+- Protocols and agents guide for workflow automation
+- Troubleshooting guide with common issues and solutions
+- Architecture documentation for contributors
+- Contributing guide with development setup
+- Technical reference with schemas and APIs
 
 ### Performance
 

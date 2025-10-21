@@ -46,14 +46,6 @@ network = ["curl", "wget", "ping"]
 text_processing = ["jq", "awk", "sed -n"]
 testing = ["pytest", "npm test", "cargo test"]
 
-#TODO: This should not exist
-[analytics]
-# Event capture settings
-enabled = true
-capture_tool_timing = true
-capture_full_context = true
-debug_logging = false
-
 [debug]
 # Debug output settings
 enabled = false
@@ -171,26 +163,6 @@ custom = ["mycommand", ...]
 2. Checked against all arrays
 3. Allowed if matches any entry
 4. Exact match OR command + space + args
-
-### [analytics]
-
-Event capture settings.
-
-**enabled** (boolean)
-- Default: `true`
-- Event storage to SQLite
-
-**capture_tool_timing** (boolean)
-- Default: `true`
-- Measure hook execution time
-
-**capture_full_context** (boolean)
-- Default: `true`
-- Store complete tool inputs in events
-
-**debug_logging** (boolean)
-- Default: `false`
-- Write JSONL debug logs
 
 ### [debug]
 

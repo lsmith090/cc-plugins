@@ -300,12 +300,13 @@ return HookOutput(
 
 **Always use DAICStateManager:**
 ```python
+from pathlib import Path
 from utils.daic_state_manager import DAICStateManager
 
 # Good
-manager = DAICStateManager()
-state = manager.get_state()
-manager.update_daic_mode("discussion")
+manager = DAICStateManager(Path("."))
+state = manager.get_unified_state()
+manager.set_daic_mode("discussion")
 
 # Bad - don't edit state files directly
 with open(".brainworm/state/unified_session_state.json", "w") as f:
