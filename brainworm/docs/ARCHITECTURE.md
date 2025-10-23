@@ -510,7 +510,8 @@ Events enable:
   "SessionEnd": "*",
   "UserPromptSubmit": "*",
   "PreToolUse": "Edit|Write|MultiEdit|NotebookEdit",
-  "PostToolUse": "Edit|Write|MultiEdit|NotebookEdit"
+  "PostToolUse": "Edit|Write|MultiEdit|NotebookEdit",
+  "TranscriptProcessor": "*"
 }
 ```
 
@@ -557,6 +558,9 @@ Benefits:
 **Tool Hooks:**
 - `PreToolUse` - Validate before execution
 - `PostToolUse` - Process after execution
+
+**Content Hooks:**
+- `TranscriptProcessor` - Prepare conversation for agents
 
 ## Integration Points
 

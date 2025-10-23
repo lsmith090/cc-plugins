@@ -123,6 +123,29 @@ Complete technical reference for brainworm schemas, APIs, and configuration.
 }
 ```
 
+### TranscriptProcessor Hook
+
+**Input Schema:**
+```json
+{
+  "conversation_history": [
+    {
+      "role": "user|assistant",
+      "content": "Message content"
+    }
+  ],
+  "agent_name": "context-gathering|logging|...",
+  "additional_context": {}
+}
+```
+
+**Output Schema:**
+```json
+{
+  "processed_transcript": "Cleaned conversation text"
+}
+```
+
 ## Event Schemas
 
 ### Event Schema v2.0
