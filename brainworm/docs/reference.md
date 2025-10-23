@@ -123,50 +123,6 @@ Complete technical reference for brainworm schemas, APIs, and configuration.
 }
 ```
 
-### ToolStart Hook
-
-**Input Schema:**
-```json
-{
-  "tool_name": "Edit",
-  "execution_id": "unique-execution-id",
-  "tool_input": {
-    "file_path": "/path/to/file"
-  }
-}
-```
-
-**Output Schema:**
-```json
-{
-  "continue": true
-}
-```
-
-### ToolEnd Hook
-
-**Input Schema:**
-```json
-{
-  "tool_name": "Edit",
-  "execution_id": "unique-execution-id",
-  "tool_input": {
-    "file_path": "/path/to/file"
-  },
-  "tool_output": {
-    "success": true
-  },
-  "duration_ms": 150
-}
-```
-
-**Output Schema:**
-```json
-{
-  "continue": true
-}
-```
-
 ### TranscriptProcessor Hook
 
 **Input Schema:**
@@ -187,47 +143,6 @@ Complete technical reference for brainworm schemas, APIs, and configuration.
 ```json
 {
   "processed_transcript": "Cleaned conversation text"
-}
-```
-
-### ClaudeMdRequest Hook
-
-**Input Schema:**
-```json
-{
-  "requested_files": [
-    "CLAUDE.md",
-    "CLAUDE.sessions.md"
-  ]
-}
-```
-
-**Output Schema:**
-```json
-{
-  "additional_content": "Content to inject"
-}
-```
-
-### StatusLine Hook
-
-**Input Schema:**
-```json
-{
-  "current_context": "user|assistant"
-}
-```
-
-**Output Schema:**
-```json
-{
-  "status_items": [
-    {
-      "text": "💭 Discussion",
-      "color": "purple",
-      "priority": 1
-    }
-  ]
 }
 ```
 
