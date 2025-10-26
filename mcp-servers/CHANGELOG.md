@@ -5,6 +5,21 @@ All notable changes to the mcp-servers plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-10-26
+
+### Added
+
+**Playwright MCP Server Integration**
+- Microsoft Playwright MCP server for browser automation
+- Browser interaction capabilities (navigate, click, type, drag)
+- Screenshot and PDF generation tools
+- JavaScript execution in browser context
+- Tab and session management
+- Network request interception
+- Console message retrieval
+- Zero-configuration setup with headless mode by default
+- Optional advanced configuration via config file
+
 ## [1.0.0] - 2025-01-15
 
 ### Added

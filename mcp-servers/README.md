@@ -26,6 +26,26 @@ This plugin provides a carefully selected set of MCP servers that extend Claude 
 - Optional: Set `CONTEXT7_API_KEY` environment variable for higher rate limits and private repository access
 - Without API key: Works with default rate limits for public documentation
 
+### Playwright
+
+**Purpose**: Browser automation and testing capabilities for Claude Code
+
+**What it does**:
+- Automate browser interactions (navigate, click, type, drag)
+- Capture screenshots and generate PDFs
+- Execute JavaScript in browser context
+- Manage tabs and browser sessions
+- Intercept network requests
+- Retrieve console messages and debugging info
+
+**Provider**: [Microsoft Playwright](https://playwright.dev/)
+**GitHub**: [microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp)
+**Package**: `@playwright/mcp`
+
+**Configuration**:
+- Zero-config: Works out of the box in headless mode
+- Optional: Advanced configuration available via config file (see [Playwright MCP docs](https://github.com/microsoft/playwright-mcp))
+
 ## Installation
 
 ### From Marketplace
@@ -80,6 +100,17 @@ Context7 provides tools to Claude for fetching up-to-date documentation. Claude 
 - "Get me documentation for the pandas DataFrame API"
 
 No manual invocation required - Claude knows when to use Context7 for documentation lookups.
+
+### Using Playwright
+
+Playwright provides browser automation tools to Claude. Claude will automatically use these tools when needed, for example:
+
+- "Navigate to example.com and take a screenshot"
+- "Click the login button and fill out the form"
+- "Test this website's accessibility and user flow"
+- "Extract data from this webpage"
+
+Playwright runs in headless mode by default, making it ideal for automated testing, web scraping, and browser-based workflows.
 
 ## Benefits
 
