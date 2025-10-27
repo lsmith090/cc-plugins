@@ -511,11 +511,7 @@ Events enable:
   "UserPromptSubmit": "*",
   "PreToolUse": "Edit|Write|MultiEdit|NotebookEdit",
   "PostToolUse": "Edit|Write|MultiEdit|NotebookEdit",
-  "ToolStart": "*",
-  "ToolEnd": "*",
-  "TranscriptProcessor": "*",
-  "ClaudeMdRequest": "*",
-  "StatusLine": "*"
+  "TranscriptProcessor": "*"
 }
 ```
 
@@ -562,13 +558,9 @@ Benefits:
 **Tool Hooks:**
 - `PreToolUse` - Validate before execution
 - `PostToolUse` - Process after execution
-- `ToolStart` - Log execution start
-- `ToolEnd` - Log completion and timing
 
 **Content Hooks:**
 - `TranscriptProcessor` - Prepare conversation for agents
-- `ClaudeMdRequest` - Inject behavioral guidance
-- `StatusLine` - Provide visual indicators
 
 ## Integration Points
 
