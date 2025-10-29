@@ -474,19 +474,27 @@ framework = false
 
 **File:** `.brainworm/tasks/[task-name]/README.md`
 
+Task files are created from `templates/TEMPLATE.md` with placeholders replaced by actual values during creation.
+
 **YAML Frontmatter:**
 ```yaml
 ---
 task: implement-feature-x
 branch: feature/implement-feature-x
 submodule: none
-status: pending|in-progress|completed|blocked
+status: pending  # Always "pending" on creation, update manually as work progresses
 created: 2025-10-20
 modules: [backend, frontend]
 session_id: abc12345
 correlation_id: implement-feature-x_correlation
 ---
 ```
+
+**Status Values:**
+- `pending` - Task created, not started (default for new tasks)
+- `in-progress` - Actively working
+- `completed` - Task finished
+- `blocked` - Waiting on external dependency
 
 **Markdown Structure:**
 ```markdown

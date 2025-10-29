@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Branch creation logic now respects existing feature branches
 - Non-interactive mode works seamlessly for agent-driven workflows
+- Task creation now properly replaces status field template placeholder with "pending" (fixes malformed `status: pending|in-progress|completed|blocked` in new tasks)
 
 ## [1.0.0] - 2025-01-15
 

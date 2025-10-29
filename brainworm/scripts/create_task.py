@@ -192,13 +192,14 @@ def create_task(
         with open(template_path, "r") as f:
             template = f.read()
 
-        # Replace template placeholders
+        # Replace template placeholders with actual values
         content = template.replace("[prefix]-[descriptive-name]", task_name)
         content = content.replace("feature/[name]|fix/[name]|experiment/[name]|none", branch_name)
         content = content.replace("[submodule-path]|none", submodule or "none")
         content = content.replace("YYYY-MM-DD", datetime.now().strftime("%Y-%m-%d"))
         content = content.replace("[current-session-id]", "pending")
         content = content.replace("[brainworm-correlation-id]", f"{task_name}_correlation")
+        content = content.replace("pending|in-progress|completed|blocked", "pending")  # Set initial status
 
         # Write task README
         task_readme.write_text(content)

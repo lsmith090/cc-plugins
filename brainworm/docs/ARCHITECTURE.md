@@ -364,10 +364,15 @@ create_task.py
 1. Parse task name
 2. Determine branch type (feature/, fix/, etc.)
 3. Create .brainworm/tasks/my-task/
-4. Copy TEMPLATE.md → README.md
-5. Create git branch
-6. Update unified_session_state.json
-7. Initialize correlation tracking
+4. Load TEMPLATE.md from plugin
+5. Replace template placeholders:
+   - Task name, branch, submodule
+   - Creation date, session/correlation IDs
+   - Status: "pending|in-progress|completed|blocked" → "pending"
+6. Write populated README.md
+7. Create git branch
+8. Update unified_session_state.json
+9. Initialize correlation tracking
     ↓
 Task ready for context gathering
 ```

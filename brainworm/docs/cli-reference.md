@@ -167,7 +167,9 @@ Create a new task.
 ```
 
 **Effect:**
-- Creates `.brainworm/tasks/<task-name>/README.md`
+- Creates `.brainworm/tasks/<task-name>/README.md` from template
+- Replaces template placeholders (task name, branch, status, dates)
+- Sets initial task status to "pending"
 - Creates git branch (feature/, fix/, etc.)
 - Updates unified session state
 - Sets DAIC to discussion mode
