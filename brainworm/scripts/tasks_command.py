@@ -101,7 +101,9 @@ def status() -> None:
 
 @app.command(name="list", help="List all tasks")
 def list_tasks(
-    status_filter: Optional[str] = typer.Option(None, "--status", help="Filter by status (completed, pending, in_progress)"),
+    status_filter: Optional[str] = typer.Option(
+        None, "--status", help="Filter by status (completed, pending, in_progress)"
+    ),
     show_all: bool = typer.Option(False, "--all", help="Show all columns"),
 ) -> None:
     """List all tasks"""
@@ -256,8 +258,8 @@ def summarize(
     # Parse frontmatter for github_issue and github_repo
     try:
         content = task_file.read_text()
-        lines = content.split('\n')
-        if not (lines and lines[0] == '---'):
+        lines = content.split("\n")
+        if not (lines and lines[0] == "---"):
             console.print("[red]Task file has invalid frontmatter[/red]")
             raise typer.Exit(code=1)
 
@@ -265,18 +267,18 @@ def summarize(
         github_repo = None
 
         for i in range(1, min(20, len(lines))):
-            if lines[i] == '---':
+            if lines[i] == "---":
                 break
-            if lines[i].startswith('github_issue:'):
-                issue_str = lines[i].split(':', 1)[1].strip()
-                if issue_str and issue_str != 'null':
+            if lines[i].startswith("github_issue:"):
+                issue_str = lines[i].split(":", 1)[1].strip()
+                if issue_str and issue_str != "null":
                     try:
                         github_issue = int(issue_str)
                     except ValueError:
                         pass
-            elif lines[i].startswith('github_repo:'):
-                repo_str = lines[i].split(':', 1)[1].strip()
-                if repo_str and repo_str != 'null':
+            elif lines[i].startswith("github_repo:"):
+                repo_str = lines[i].split(":", 1)[1].strip()
+                if repo_str and repo_str != "null":
                     github_repo = repo_str
 
         if not github_issue or not github_repo:
@@ -305,12 +307,7 @@ def summarize(
 
     # Generate summary
     console.print("[cyan]Generating summary from memory file...[/cyan]")
-    summary = generate_github_summary_from_memory(
-        memory_file,
-        session_id,
-        current_task,
-        current_branch
-    )
+    summary = generate_github_summary_from_memory(memory_file, session_id, current_task, current_branch)
 
     # Show preview
     console.print("\n[bold]Summary Preview:[/bold]")
@@ -339,5 +336,5 @@ def main() -> None:
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

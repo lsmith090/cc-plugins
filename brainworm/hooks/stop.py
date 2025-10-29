@@ -33,7 +33,7 @@ def stop_session_logic(framework, input_data: Dict[str, Any]):
         input_data: Raw input dict (always dict, typed input used for validation only)
     """
     # Extract data from dict - simple and direct
-    session_id = input_data.get('session_id', 'unknown')
+    session_id = input_data.get("session_id", "unknown")
 
     # Debug logging - INFO level
     if framework.debug_logger:
@@ -63,20 +63,19 @@ def stop_session_logic(framework, input_data: Dict[str, Any]):
             action = "Check .brainworm/debug_*.log for details"
 
         if framework.debug_logger:
-            framework.debug_logger.warning(
-                f"⚠️ Session correlation cleanup failed: {error_type}: {error_msg}"
-            )
+            framework.debug_logger.warning(f"⚠️ Session correlation cleanup failed: {error_type}: {error_msg}")
         print(f"Warning: Session correlation cleanup failed ({error_type}). {action}", file=sys.stderr)
+
 
 def stop_success_message(framework):
     """Custom success message for stop hook."""
     # Direct dict access - simple and clear
-    session_id = framework.raw_input_data.get('session_id', 'unknown')
+    session_id = framework.raw_input_data.get("session_id", "unknown")
     session_short = session_id[:8] if len(session_id) >= 8 else session_id
     print(f"✅ Session stopped: {session_short}", file=sys.stderr)
 
+
 if __name__ == "__main__":
-    HookFramework("stop", enable_event_logging=True) \
-        .with_custom_logic(stop_session_logic) \
-        .with_success_handler(stop_success_message) \
-        .execute()
+    HookFramework("stop", enable_event_logging=True).with_custom_logic(stop_session_logic).with_success_handler(
+        stop_success_message
+    ).execute()

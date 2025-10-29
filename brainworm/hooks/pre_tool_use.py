@@ -43,17 +43,9 @@ def get_daic_state(project_root: Path) -> Dict[str, Any]:
         controller = create_daic_controller(project_root)
         mode_info = controller.get_mode_with_display()
 
-        return {
-            "mode": mode_info.mode,
-            "timestamp": None,
-            "previous_mode": None
-        }
+        return {"mode": mode_info.mode, "timestamp": None, "previous_mode": None}
     except Exception:
-        return {
-            "mode": str(DAICMode.DISCUSSION),
-            "timestamp": None,
-            "previous_mode": None
-        }
+        return {"mode": str(DAICMode.DISCUSSION), "timestamp": None, "previous_mode": None}
 
 
 # Removed - now using shared functions from utils.bash_validator
@@ -63,32 +55,37 @@ def is_brainworm_system_command(command: str, config: Dict[str, Any], project_ro
     """Check if command is a brainworm system management operation"""
     # Check for trigger phrase exception flag
     if project_root:
-        trigger_flag = project_root / '.brainworm' / 'state' / 'trigger_phrase_detected.flag'
+        trigger_flag = project_root / ".brainworm" / "state" / "trigger_phrase_detected.flag"
         if trigger_flag.exists():
             # Allow all DAIC state management operations when trigger phrase detected
             trigger_exception_patterns = [
-                r'(\./)?daic\s+(status|toggle)$',  # All daic commands during trigger
-                r'uv run \.brainworm/scripts/update_.*\.py',  # All update scripts during trigger
+                r"(\./)?daic\s+(status|toggle)$",  # All daic commands during trigger
+                r"uv run \.brainworm/scripts/update_.*\.py",  # All update scripts during trigger
             ]
             if any(re.search(pattern, command) for pattern in trigger_exception_patterns):
                 return True
 
     # Normal restrictive patterns when no trigger phrase
     read_only_system_patterns = [
-        r'(\./)?daic\s+status$',  # Only status command, NOT toggle
-        r'(\./)?daic\s+discussion$',  # Discussion mode is always safe (noop in discussion mode)
-        r'\.brainworm/plugin-launcher\s+daic_command\.py\s+status$',  # Slash command status
-        r'\.brainworm/plugin-launcher\s+daic_command\.py\s+discussion$',  # Slash command discussion
-        r'uv run \.brainworm/scripts/update_.*\.py\s+--show-current$',  # Only --show-current queries
-        r'(\./)?tasks(\s+.*)?$',  # All tasks commands allowed in discussion mode
-        r'uv run \.brainworm/scripts/create_task\.py(\s+.*)?$',  # Task creation allowed in discussion mode
+        r"(\./)?daic\s+status$",  # Only status command, NOT toggle
+        r"(\./)?daic\s+discussion$",  # Discussion mode is always safe (noop in discussion mode)
+        r"\.brainworm/plugin-launcher\s+daic_command\.py\s+status$",  # Slash command status
+        r"\.brainworm/plugin-launcher\s+daic_command\.py\s+discussion$",  # Slash command discussion
+        r"uv run \.brainworm/scripts/update_.*\.py\s+--show-current$",  # Only --show-current queries
+        r"(\./)?tasks(\s+.*)?$",  # All tasks commands allowed in discussion mode
+        r"uv run \.brainworm/scripts/create_task\.py(\s+.*)?$",  # Task creation allowed in discussion mode
     ]
 
     return any(re.search(pattern, command) for pattern in read_only_system_patterns)
 
 
-def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any],
-                          daic_state: Dict[str, Any], project_root: Path, debug_logger=None) -> ToolBlockingResult:
+def should_block_tool_daic(
+    raw_input_data: Dict[str, Any],
+    config: Dict[str, Any],
+    daic_state: Dict[str, Any],
+    project_root: Path,
+    debug_logger=None,
+) -> ToolBlockingResult:
     """
     DAIC enforcement logic - determine if tool should be blocked
     Returns ToolBlockingResult with blocking decision and reason
@@ -106,8 +103,8 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
             return ToolBlockingResult.allow_tool("DAIC enforcement disabled during subagent execution")
     except Exception:
         # Fallback to direct flag check if business controller fails
-        state_dir = project_root / '.brainworm' / 'state'
-        subagent_flag = state_dir / 'in_subagent_context.flag'
+        state_dir = project_root / ".brainworm" / "state"
+        subagent_flag = state_dir / "in_subagent_context.flag"
         if subagent_flag.exists():
             return ToolBlockingResult.allow_tool("DAIC enforcement disabled during subagent execution")
 
@@ -135,38 +132,40 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
                 if debug_logger:
                     debug_logger.debug(f"Slash command check - Full command: {command}")
                     debug_logger.debug(f"Slash command check - First command: '{first_command}'")
-                    debug_logger.debug(f"Slash command check - Has 'plugin-launcher': {'plugin-launcher' in first_command}")
+                    debug_logger.debug(
+                        f"Slash command check - Has 'plugin-launcher': {'plugin-launcher' in first_command}"
+                    )
                     debug_logger.debug(f"Slash command check - Has 'daic_command.py': {'daic_command.py' in command}")
                     debug_logger.debug(f"Slash command check - Has 'implementation': {'implementation' in command}")
 
                 # Check for direct daic mode-switching command: 'daic' or './daic'
                 # Only block mode-switching subcommands, not read-only queries like 'status'
-                if first_command in ('daic', './daic'):
+                if first_command in ("daic", "./daic"):
                     # Extract the subcommand (first argument after daic)
                     parts = command.split()
                     if len(parts) > 1:
                         subcommand = parts[1]
                         # Only block implementation and toggle subcommands
-                        if subcommand in ['implementation', 'toggle']:
+                        if subcommand in ["implementation", "toggle"]:
                             return ToolBlockingResult.command_block(
                                 command,
-                                "DAIC mode switching to implementation is not allowed in discussion mode. Use trigger phrases or let the user invoke the command directly."
+                                "DAIC mode switching to implementation is not allowed in discussion mode. Use trigger phrases or let the user invoke the command directly.",
                             )
 
                 # Check for slash command via plugin-launcher: '.brainworm/plugin-launcher daic_command.py'
-                if 'plugin-launcher' in first_command and 'daic_command.py' in command:
+                if "plugin-launcher" in first_command and "daic_command.py" in command:
                     # Extract arguments to check for mode-switching subcommands
                     # Only block implementation and toggle, not status or discussion
                     parts = command.split()
                     # Find the index after daic_command.py to get the subcommand
                     try:
-                        daic_idx = next(i for i, p in enumerate(parts) if 'daic_command.py' in p)
+                        daic_idx = next(i for i, p in enumerate(parts) if "daic_command.py" in p)
                         if daic_idx + 1 < len(parts):
                             subcommand = parts[daic_idx + 1]
-                            if subcommand in ['implementation', 'toggle']:
+                            if subcommand in ["implementation", "toggle"]:
                                 return ToolBlockingResult.command_block(
                                     command,
-                                    "DAIC mode switching to implementation is not allowed. Use trigger phrases or let the user invoke the command directly."
+                                    "DAIC mode switching to implementation is not allowed. Use trigger phrases or let the user invoke the command directly.",
                                 )
                     except StopIteration:
                         pass  # daic_command.py not found in parts, allow it through
@@ -177,7 +176,9 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
 
         # THIRD: Check if command is read-only in discussion mode
         if is_discussion_mode and not is_read_only_bash_command(command, config):
-            return ToolBlockingResult.command_block(command[:50] + "...", "Potentially modifying Bash command blocked in discussion mode")
+            return ToolBlockingResult.command_block(
+                command[:50] + "...", "Potentially modifying Bash command blocked in discussion mode"
+            )
 
     # Check for subagent boundary violations
     try:
@@ -185,8 +186,8 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
         in_subagent_context = subagent_manager.is_in_subagent_context()
     except Exception:
         # Fallback to direct flag check
-        state_dir = project_root / '.brainworm' / 'state'
-        subagent_flag = state_dir / 'in_subagent_context.flag'
+        state_dir = project_root / ".brainworm" / "state"
+        subagent_flag = state_dir / "in_subagent_context.flag"
         in_subagent_context = subagent_flag.exists()
 
     if in_subagent_context and tool_name in ["Write", "Edit", "MultiEdit"]:
@@ -204,29 +205,26 @@ def should_block_tool_daic(raw_input_data: Dict[str, Any], config: Dict[str, Any
                 # If we get here, the file is under .brainworm/state
                 return ToolBlockingResult.block_tool(
                     "[Subagent Boundary Violation] Subagents are NOT allowed to modify .brainworm/state files.",
-                    "SUBAGENT_BOUNDARY_VIOLATION"
+                    "SUBAGENT_BOUNDARY_VIOLATION",
                 )
             except ValueError:
                 # Not under .brainworm/state, which is fine
                 pass
             except Exception:
                 # Path resolution failed - could be malicious, block to be safe
-                return ToolBlockingResult.block_tool(
-                    "[Subagent Boundary Violation] Invalid file path",
-                    "INVALID_PATH"
-                )
+                return ToolBlockingResult.block_tool("[Subagent Boundary Violation] Invalid file path", "INVALID_PATH")
 
     return ToolBlockingResult.allow_tool("Tool allowed by DAIC")
 
 
 def basic_security_check(raw_input_data: Dict[str, Any]) -> bool:
     """Basic security check - only block obviously dangerous operations"""
-    tool_name = raw_input_data.get('tool_name', '')
+    tool_name = raw_input_data.get("tool_name", "")
 
-    if tool_name == 'Bash':
-        command = raw_input_data.get('tool_input', {}).get('command', '')
+    if tool_name == "Bash":
+        command = raw_input_data.get("tool_input", {}).get("command", "")
         # Only block obviously destructive commands
-        dangerous_patterns = ['rm -rf /', 'format c:', 'del /s /q C:\\']
+        dangerous_patterns = ["rm -rf /", "format c:", "del /s /q C:\\"]
         return not any(pattern in command for pattern in dangerous_patterns)
 
     return True  # Allow all other operations
@@ -235,15 +233,15 @@ def basic_security_check(raw_input_data: Dict[str, Any]) -> bool:
 def extract_metadata(raw_input_data: Dict[str, Any]) -> Dict[str, Any]:
     """Extract relevant metadata from tool input"""
     metadata = {}
-    tool_input = raw_input_data.get('tool_input', {})
+    tool_input = raw_input_data.get("tool_input", {})
 
     # Extract file path if available
-    if file_path := tool_input.get('file_path'):
-        metadata['file_path'] = file_path
+    if file_path := tool_input.get("file_path"):
+        metadata["file_path"] = file_path
 
     # Extract command if it's a Bash operation
-    if command := tool_input.get('command'):
-        metadata['command'] = command
+    if command := tool_input.get("command"):
+        metadata["command"] = command
 
     return metadata
 
@@ -264,16 +262,17 @@ def pre_tool_use_framework_logic(framework, input_data: Dict[str, Any]):
 
     # Load configuration and DAIC state
     from utils.config import load_config
+
     config = load_config(project_root)
     daic_state = get_daic_state(project_root)
 
     # Extract data from dict - simple and direct
-    tool_name = input_data.get('tool_name', 'unknown')
-    tool_input = input_data.get('tool_input', {})
+    tool_name = input_data.get("tool_name", "unknown")
+    tool_input = input_data.get("tool_input", {})
 
     # Debug logging - INFO level
     if framework.debug_logger:
-        daic_mode = daic_state.get('mode', 'unknown')
+        daic_mode = daic_state.get("mode", "unknown")
         framework.debug_logger.info(f"DAIC pre-validation: {tool_name} in {daic_mode} mode")
 
     # PHASE 1: Basic security check
@@ -289,7 +288,9 @@ def pre_tool_use_framework_logic(framework, input_data: Dict[str, Any]):
 
     # Determine final blocking decision
     should_block = not passes_security or daic_result.should_block
-    block_reason = daic_result.reason if daic_result.should_block else ("Security check failed" if not passes_security else "")
+    block_reason = (
+        daic_result.reason if daic_result.should_block else ("Security check failed" if not passes_security else "")
+    )
 
     # Debug logging - decision details
     if framework.debug_logger:
@@ -316,14 +317,14 @@ def pre_tool_use_framework_logic(framework, input_data: Dict[str, Any]):
 def main() -> None:
     """Main entry point for pre-tool use hook - Pure Framework Approach"""
     try:
-        HookFramework("daic_pre_tool_use", enable_event_logging=True, security_critical=True) \
-            .with_custom_logic(pre_tool_use_framework_logic) \
-            .execute()
+        HookFramework("daic_pre_tool_use", enable_event_logging=True, security_critical=True).with_custom_logic(
+            pre_tool_use_framework_logic
+        ).execute()
 
     except Exception:
         # Non-blocking error - allow tool to proceed
         sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

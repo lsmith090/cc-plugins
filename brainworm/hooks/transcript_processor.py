@@ -50,10 +50,12 @@ def detect_project_structure(project_root: Path) -> Dict[str, Any]:
     # Find service indicators
     service_indicators = {
         "nodejs": list(project_root.glob("*/package.json")) + list(project_root.glob("package.json")),
-        "python": list(project_root.rglob("pyproject.toml")) + list(project_root.rglob("setup.py")) + list(project_root.rglob("requirements.txt")),
+        "python": list(project_root.rglob("pyproject.toml"))
+        + list(project_root.rglob("setup.py"))
+        + list(project_root.rglob("requirements.txt")),
         "powershell": list(project_root.rglob("requirements.psd1")),
         "go": list(project_root.rglob("go.mod")),
-        "rust": list(project_root.rglob("Cargo.toml"))
+        "rust": list(project_root.rglob("Cargo.toml")),
     }
 
     # Filter out node_modules and deep nested files
@@ -86,14 +88,16 @@ def detect_project_structure(project_root: Path) -> Dict[str, Any]:
         # Find corresponding CLAUDE.md
         service_claude = service_path / "CLAUDE.md"
 
-        services.append({
-            "name": service_name,
-            "path": str(service_path.relative_to(project_root)) if service_path != project_root else ".",
-            "absolute_path": str(service_path),
-            "type": tech_type,
-            "claude_md": str(service_claude) if service_claude.exists() else None,
-            "description": f"{tech_type.title()} service"
-        })
+        services.append(
+            {
+                "name": service_name,
+                "path": str(service_path.relative_to(project_root)) if service_path != project_root else ".",
+                "absolute_path": str(service_path),
+                "type": tech_type,
+                "claude_md": str(service_claude) if service_claude.exists() else None,
+                "description": f"{tech_type.title()} service",
+            }
+        )
 
     # Determine project type
     if len(services) > 1:
@@ -109,7 +113,7 @@ def detect_project_structure(project_root: Path) -> Dict[str, Any]:
         "project_type": project_type,
         "project_root": str(project_root),
         "services": services,
-        "claude_files": [str(f.relative_to(project_root)) for f in claude_files]
+        "claude_files": [str(f.relative_to(project_root)) for f in claude_files],
     }
 
 
@@ -155,8 +159,8 @@ def identify_current_service_context(project_root: Path, task_data: Optional[Dic
     branch_service = None
     try:
         import subprocess
-        result = subprocess.run(['git', 'branch', '--show-current'],
-                              capture_output=True, text=True, cwd=project_root)
+
+        result = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True, cwd=project_root)
         if result.returncode == 0:
             branch_name = result.stdout.strip().lower()
             for service in project_structure["services"]:
@@ -168,21 +172,27 @@ def identify_current_service_context(project_root: Path, task_data: Optional[Dic
         pass
 
     # Priority resolution: current directory > task context > git branch > first service
-    current_service = (cwd_service or
-                      task_service or
-                      branch_service or
-                      (project_structure["services"][0] if project_structure["services"] else None))
+    current_service = (
+        cwd_service
+        or task_service
+        or branch_service
+        or (project_structure["services"][0] if project_structure["services"] else None)
+    )
 
     return {
         "current_service": current_service,
         "detection_method": (
-            "current_directory" if cwd_service else
-            "task_context" if task_service else
-            "git_branch" if branch_service else
-            "default_first" if current_service else
-            "none"
+            "current_directory"
+            if cwd_service
+            else "task_context"
+            if task_service
+            else "git_branch"
+            if branch_service
+            else "default_first"
+            if current_service
+            else "none"
         ),
-        "project_structure": project_structure
+        "project_structure": project_structure,
     }
 
 
@@ -204,10 +214,10 @@ def create_service_context_file(service_context: dict, batch_dir: Path):
         "all_services": service_context["project_structure"]["services"],
         "claude_files": service_context["project_structure"]["claude_files"],
         "detection_method": service_context["detection_method"],
-        "service_relationships": analyze_service_relationships(service_context["project_structure"])
+        "service_relationships": analyze_service_relationships(service_context["project_structure"]),
     }
 
-    with open(service_context_file, 'w') as f:
+    with open(service_context_file, "w") as f:
         json.dump(context_data, f, indent=2)
 
 
@@ -227,11 +237,7 @@ def analyze_service_relationships(project_structure: Dict[str, Any]) -> Dict[str
     # Simple heuristic-based relationship detection
     for service in services:
         service_name = service["name"]
-        relationships[service_name] = {
-            "depends_on": [],
-            "communication": [],
-            "type": service["type"]
-        }
+        relationships[service_name] = {"depends_on": [], "communication": [], "type": service["type"]}
 
         # Common patterns
         if "api" in service_name.lower():
@@ -249,6 +255,7 @@ def analyze_service_relationships(project_structure: Dict[str, Any]) -> Dict[str
 
     return relationships
 
+
 def remove_prework_entries(transcript: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Remove transcript entries before first implementation tool use.
@@ -259,13 +266,12 @@ def remove_prework_entries(transcript: List[Dict[str, Any]]) -> List[Dict[str, A
 
     for entry in transcript:
         if not start_found:
-            message = entry.get('message')
+            message = entry.get("message")
             if message:
-                content = message.get('content')
+                content = message.get("content")
                 if isinstance(content, list):
                     for block in content:
-                        if (block.get('type') == 'tool_use' and
-                            block.get('name') in ['Edit', 'MultiEdit', 'Write']):
+                        if block.get("type") == "tool_use" and block.get("name") in ["Edit", "MultiEdit", "Write"]:
                             start_found = True
                             break
 
@@ -278,6 +284,7 @@ def remove_prework_entries(transcript: List[Dict[str, Any]]) -> List[Dict[str, A
 
     return cleaned_transcript
 
+
 def clean_transcript_entries(transcript: List[Dict[str, Any]]) -> deque:
     """
     Clean transcript entries to simple {role, content} format for subagents.
@@ -285,68 +292,61 @@ def clean_transcript_entries(transcript: List[Dict[str, Any]]) -> deque:
     Based on cc-sessions cleaning logic with context delivery optimization.
     """
     clean_transcript = deque()
-    truncation_stats = {
-        'total_entries': 0,
-        'truncated_entries': 0,
-        'tokens_saved': 0
-    }
+    truncation_stats = {"total_entries": 0, "truncated_entries": 0, "tokens_saved": 0}
 
     # First pass: Build tool_use_id mapping to fix cross-entry tool tracking
     tool_use_map = {}
     for entry in transcript:
-        message = entry.get('message')
-        if not message or message.get('role') != 'assistant':
+        message = entry.get("message")
+        if not message or message.get("role") != "assistant":
             continue
 
-        content = message.get('content', [])
+        content = message.get("content", [])
         if isinstance(content, list):
             for item in content:
-                if isinstance(item, dict) and item.get('type') == 'tool_use':
-                    tool_use_id = item.get('id')
+                if isinstance(item, dict) and item.get("type") == "tool_use":
+                    tool_use_id = item.get("id")
                     if tool_use_id:
                         tool_use_map[tool_use_id] = item
 
     # Second pass: Process entries with proper tool matching
     for entry in transcript:
-        message = entry.get('message')
+        message = entry.get("message")
 
         if not message:
             continue
 
-        role = message.get('role')
-        content = message.get('content')
+        role = message.get("role")
+        content = message.get("content")
 
         # Only include user and assistant messages
-        if role not in ['user', 'assistant']:
+        if role not in ["user", "assistant"]:
             continue
 
-        truncation_stats['total_entries'] += 1
+        truncation_stats["total_entries"] += 1
 
         # Process content for tool result summarization and user prompt flattening
         processed_content = _process_content_for_summarization(content, tool_use_map, role)
 
-        if processed_content.get('was_summarized'):
-            truncation_stats['truncated_entries'] += 1
-            truncation_stats['tokens_saved'] += processed_content['tokens_saved']
+        if processed_content.get("was_summarized"):
+            truncation_stats["truncated_entries"] += 1
+            truncation_stats["tokens_saved"] += processed_content["tokens_saved"]
 
-        clean_entry = {
-            'role': role,
-            'content': processed_content['content']
-        }
+        clean_entry = {"role": role, "content": processed_content["content"]}
 
         # Add summarization metadata if content was summarized
-        if processed_content.get('was_summarized'):
-            clean_entry['_meta'] = {
-                'action_summarization_applied': True,
-                'original_tokens': processed_content['original_tokens'],
-                'final_tokens': processed_content['final_tokens'],
-                'summarized_items': processed_content['summarized_items']
+        if processed_content.get("was_summarized"):
+            clean_entry["_meta"] = {
+                "action_summarization_applied": True,
+                "original_tokens": processed_content["original_tokens"],
+                "final_tokens": processed_content["final_tokens"],
+                "summarized_items": processed_content["summarized_items"],
             }
 
         clean_transcript.append(clean_entry)
 
     # Log action summarization statistics if any summarization occurred
-    if truncation_stats['truncated_entries'] > 0:
+    if truncation_stats["truncated_entries"] > 0:
         print("🔧 Action summarization applied:")
         print(f"   Entries processed: {truncation_stats['total_entries']}")
         print(f"   Entries with tool results summarized: {truncation_stats['truncated_entries']}")
@@ -354,26 +354,29 @@ def clean_transcript_entries(transcript: List[Dict[str, Any]]) -> deque:
 
     return clean_transcript
 
-def _process_content_for_summarization(content: Any, tool_use_map: Dict[str, Dict[str, Any]], role: str) -> Dict[str, Any]:
+
+def _process_content_for_summarization(
+    content: Any, tool_use_map: Dict[str, Dict[str, Any]], role: str
+) -> Dict[str, Any]:
     """Process content to replace tool results with action summaries and flatten user prompts."""
 
     result = {
-        'content': content,
-        'was_summarized': False,
-        'tokens_saved': 0,
-        'original_tokens': 0,
-        'final_tokens': 0,
-        'summarized_items': 0
+        "content": content,
+        "was_summarized": False,
+        "tokens_saved": 0,
+        "original_tokens": 0,
+        "final_tokens": 0,
+        "summarized_items": 0,
     }
 
     # Handle user prompt flattening for better visibility
-    if role == 'user' and isinstance(content, list) and len(content) == 1:
+    if role == "user" and isinstance(content, list) and len(content) == 1:
         item = content[0]
-        if isinstance(item, dict) and item.get('type') == 'text':
+        if isinstance(item, dict) and item.get("type") == "text":
             # Flatten simple text prompts to string for better visibility
-            text_content = item.get('text', '')
-            if text_content and not any(x in str(item) for x in ['tool_use_id', 'tool_result']):
-                result['content'] = text_content
+            text_content = item.get("text", "")
+            if text_content and not any(x in str(item) for x in ["tool_use_id", "tool_result"]):
+                result["content"] = text_content
                 return result
 
     if not isinstance(content, list):
@@ -390,9 +393,9 @@ def _process_content_for_summarization(content: Any, tool_use_map: Dict[str, Dic
             continue
 
         # Replace tool results with action summaries
-        if item.get('type') == 'tool_result':
-            tool_content = item.get('content', '')
-            tool_use_id = item.get('tool_use_id')
+        if item.get("type") == "tool_result":
+            tool_content = item.get("content", "")
+            tool_use_id = item.get("tool_use_id")
 
             if isinstance(tool_content, str):
                 # Calculate original tokens
@@ -405,17 +408,19 @@ def _process_content_for_summarization(content: Any, tool_use_map: Dict[str, Dic
 
                 # Create new item with action summary
                 new_item = item.copy()
-                new_item['content'] = action_summary
+                new_item["content"] = action_summary
 
                 # Add metadata about the replacement
                 summary_tokens = get_token_count(action_summary)
-                new_item['_action_summary_meta'] = {
-                    'original_tokens': original_tokens,
-                    'summary_tokens': summary_tokens,
-                    'reduction_percent': round((original_tokens - summary_tokens) / original_tokens * 100, 1) if original_tokens > 0 else 0,
-                    'reason': 'action_summary_for_context_delivery',
-                    'tool_use_id': tool_use_id,
-                    'tool_matched': matching_tool_use is not None
+                new_item["_action_summary_meta"] = {
+                    "original_tokens": original_tokens,
+                    "summary_tokens": summary_tokens,
+                    "reduction_percent": round((original_tokens - summary_tokens) / original_tokens * 100, 1)
+                    if original_tokens > 0
+                    else 0,
+                    "reason": "action_summary_for_context_delivery",
+                    "tool_use_id": tool_use_id,
+                    "tool_matched": matching_tool_use is not None,
                 }
 
                 processed_content.append(new_item)
@@ -424,25 +429,26 @@ def _process_content_for_summarization(content: Any, tool_use_map: Dict[str, Dic
                 tokens_saved = original_tokens - summary_tokens
                 total_tokens_saved += tokens_saved
                 final_total_tokens += summary_tokens
-                result['summarized_items'] += 1
-                result['was_summarized'] = True
+                result["summarized_items"] += 1
+                result["was_summarized"] = True
 
             else:
                 processed_content.append(item)
         else:
             # Non-tool-result content, include as-is
             processed_content.append(item)
-            if isinstance(item, dict) and 'content' in item:
-                item_tokens = get_token_count(str(item.get('content', '')))
+            if isinstance(item, dict) and "content" in item:
+                item_tokens = get_token_count(str(item.get("content", "")))
                 original_total_tokens += item_tokens
                 final_total_tokens += item_tokens
 
-    result['content'] = processed_content
-    result['tokens_saved'] = total_tokens_saved
-    result['original_tokens'] = original_total_tokens
-    result['final_tokens'] = final_total_tokens
+    result["content"] = processed_content
+    result["tokens_saved"] = total_tokens_saved
+    result["original_tokens"] = original_total_tokens
+    result["final_tokens"] = final_total_tokens
 
     return result
+
 
 def _create_action_summary(tool_use: Dict[str, Any], tool_result_content: str) -> str:
     """Create a simple action summary from tool use and result."""
@@ -450,63 +456,63 @@ def _create_action_summary(tool_use: Dict[str, Any], tool_result_content: str) -
     if not tool_use:
         return "Unknown action"
 
-    tool_name = tool_use.get('name', 'Unknown')
-    tool_input = tool_use.get('input', {})
+    tool_name = tool_use.get("name", "Unknown")
+    tool_input = tool_use.get("input", {})
 
     # Create action summaries based on tool type
-    if tool_name == 'Read':
-        file_path = tool_input.get('file_path', 'unknown file')
+    if tool_name == "Read":
+        file_path = tool_input.get("file_path", "unknown file")
         return f"Read: {file_path}"
 
-    elif tool_name == 'Write':
-        file_path = tool_input.get('file_path', 'unknown file')
+    elif tool_name == "Write":
+        file_path = tool_input.get("file_path", "unknown file")
         return f"Write: {file_path}"
 
-    elif tool_name == 'Edit':
-        file_path = tool_input.get('file_path', 'unknown file')
+    elif tool_name == "Edit":
+        file_path = tool_input.get("file_path", "unknown file")
         return f"Edit: {file_path}"
 
-    elif tool_name == 'MultiEdit':
-        file_path = tool_input.get('file_path', 'unknown file')
+    elif tool_name == "MultiEdit":
+        file_path = tool_input.get("file_path", "unknown file")
         return f"MultiEdit: {file_path}"
 
-    elif tool_name == 'Bash':
-        command = tool_input.get('command', 'unknown command')
+    elif tool_name == "Bash":
+        command = tool_input.get("command", "unknown command")
         return f"Bash: {command}"
 
-    elif tool_name == 'Glob':
-        pattern = tool_input.get('pattern', 'unknown pattern')
+    elif tool_name == "Glob":
+        pattern = tool_input.get("pattern", "unknown pattern")
         return f"Glob: {pattern}"
 
-    elif tool_name == 'Grep':
-        pattern = tool_input.get('pattern', 'unknown pattern')
-        path = tool_input.get('path', '')
+    elif tool_name == "Grep":
+        pattern = tool_input.get("pattern", "unknown pattern")
+        path = tool_input.get("path", "")
         if path:
             return f"Grep: {pattern} in {path}"
         else:
             return f"Grep: {pattern}"
 
-    elif tool_name == 'TodoWrite':
+    elif tool_name == "TodoWrite":
         return "TodoWrite: Updated task list"
 
-    elif tool_name == 'WebFetch':
-        url = tool_input.get('url', 'unknown url')
+    elif tool_name == "WebFetch":
+        url = tool_input.get("url", "unknown url")
         return f"WebFetch: {url}"
 
-    elif tool_name == 'WebSearch':
-        query = tool_input.get('query', 'unknown query')
+    elif tool_name == "WebSearch":
+        query = tool_input.get("query", "unknown query")
         return f"WebSearch: {query}"
 
-    elif tool_name == 'Task':
-        subagent_type = tool_input.get('subagent_type', 'unknown')
-        description = tool_input.get('description', '')
+    elif tool_name == "Task":
+        subagent_type = tool_input.get("subagent_type", "unknown")
+        description = tool_input.get("description", "")
         return f"Task: {subagent_type} - {description}"
 
     # For any other tools, create a generic summary
     else:
         # Try to find the most relevant parameter
         key_params = []
-        for key in ['file_path', 'path', 'command', 'pattern', 'query', 'url', 'description']:
+        for key in ["file_path", "path", "command", "pattern", "query", "url", "description"]:
             if key in tool_input:
                 value = str(tool_input[key])
                 if len(value) > 100:  # Truncate very long parameters
@@ -519,6 +525,7 @@ def _create_action_summary(tool_use: Dict[str, Any], tool_result_content: str) -
         else:
             return f"{tool_name}: executed"
 
+
 def _truncate_tool_result_content(content: str, max_tokens: int = 1500) -> Dict[str, Any]:
     """Intelligently truncate tool result content while preserving essential context."""
     import re
@@ -527,37 +534,38 @@ def _truncate_tool_result_content(content: str, max_tokens: int = 1500) -> Dict[
 
     if original_tokens <= max_tokens:
         return {
-            'content': content,
-            'truncated': False,
-            'original_tokens': original_tokens,
-            'truncated_tokens': original_tokens,
-            'reduction_percent': 0.0
+            "content": content,
+            "truncated": False,
+            "original_tokens": original_tokens,
+            "truncated_tokens": original_tokens,
+            "reduction_percent": 0.0,
         }
 
     # Detect if this looks like a file read result (has line numbers)
-    if re.search(r'^\s*\d+→', content, re.MULTILINE):
+    if re.search(r"^\s*\d+→", content, re.MULTILINE):
         truncated_content = _truncate_file_read_result(content, max_tokens)
     else:
         truncated_content = _truncate_general_content(content, max_tokens)
 
     return {
-        'content': truncated_content,
-        'truncated': True,
-        'original_tokens': original_tokens,
-        'truncated_tokens': get_token_count(truncated_content),
-        'reduction_percent': round((original_tokens - get_token_count(truncated_content)) / original_tokens * 100, 1)
+        "content": truncated_content,
+        "truncated": True,
+        "original_tokens": original_tokens,
+        "truncated_tokens": get_token_count(truncated_content),
+        "reduction_percent": round((original_tokens - get_token_count(truncated_content)) / original_tokens * 100, 1),
     }
+
 
 def _truncate_file_read_result(content: str, max_tokens: int) -> str:
     """Truncate file read results while preserving structure."""
     import re
 
-    lines = content.split('\n')
+    lines = content.split("\n")
 
     # Find where line-numbered content starts
     content_start_idx = 0
     for i, line in enumerate(lines):
-        if re.match(r'^\s*\d+→', line):
+        if re.match(r"^\s*\d+→", line):
             content_start_idx = i
             break
 
@@ -578,17 +586,18 @@ def _truncate_file_read_result(content: str, max_tokens: int) -> str:
     truncation_notice = [
         "",
         f"... [TRUNCATED {truncated_lines} lines - removed for context delivery optimization] ...",
-        ""
+        "",
     ]
 
     result_lines = header_lines + start_lines + truncation_notice + end_lines
-    result = '\n'.join(result_lines)
+    result = "\n".join(result_lines)
 
     # If still too large, use aggressive truncation
     if get_token_count(result) > max_tokens:
         return _truncate_general_content(result, max_tokens)
 
     return result
+
 
 def _truncate_general_content(content: str, max_tokens: int) -> str:
     """General content truncation preserving beginning and end."""
@@ -605,8 +614,8 @@ def _truncate_general_content(content: str, max_tokens: int) -> str:
     start_words = int(target_words * 0.7)
     end_words = int(target_words * 0.15)
 
-    start_content = ' '.join(words[:start_words])
-    end_content = ' '.join(words[-end_words:]) if end_words > 0 else ""
+    start_content = " ".join(words[:start_words])
+    end_content = " ".join(words[-end_words:]) if end_words > 0 else ""
 
     truncated_words = len(words) - start_words - end_words
 
@@ -617,33 +626,35 @@ def _truncate_general_content(content: str, max_tokens: int) -> str:
 
     return result
 
+
 def extract_subagent_type(transcript: List[Dict[str, Any]], input_data: Dict[str, Any] = None) -> str:
     """
     Extract subagent_type from the Task tool call.
     Based on cc-sessions routing logic.
     """
     # First check if subagent_type is directly in input_data (from hook invocation)
-    if input_data and 'tool_input' in input_data:
-        tool_input = input_data.get('tool_input', {})
-        if 'subagent_type' in tool_input:
-            return tool_input['subagent_type']
+    if input_data and "tool_input" in input_data:
+        tool_input = input_data.get("tool_input", {})
+        if "subagent_type" in tool_input:
+            return tool_input["subagent_type"]
 
     # Fallback: look in transcript for Task tool call
     if not transcript:
-        return 'shared'
+        return "shared"
 
     # Look at the last message (the Task call)
     task_call = transcript[-1]
-    message = task_call.get('message', {})
-    content = message.get('content', [])
+    message = task_call.get("message", {})
+    content = message.get("content", [])
 
     if isinstance(content, list):
         for block in content:
-            if block.get('type') == 'tool_use' and block.get('name') == 'Task':
-                task_input = block.get('input', {})
-                return task_input.get('subagent_type', 'shared')
+            if block.get("type") == "tool_use" and block.get("name") == "Task":
+                task_input = block.get("input", {})
+                return task_input.get("subagent_type", "shared")
 
-    return 'shared'
+    return "shared"
+
 
 def get_token_count(text: str) -> int:
     """
@@ -652,7 +663,8 @@ def get_token_count(text: str) -> int:
     """
     try:
         import tiktoken
-        enc = tiktoken.get_encoding('cl100k_base')
+
+        enc = tiktoken.get_encoding("cl100k_base")
         return len(enc.encode(text))
     except ImportError:
         # Fallback to character-based estimation when tiktoken not available
@@ -660,6 +672,7 @@ def get_token_count(text: str) -> int:
         # This is more accurate than word-based counting (1.3 tokens/word)
         # Conservative estimate: divide by 3.5 to slightly overestimate tokens
         return int(len(text) / 3.5)
+
 
 def chunk_transcript(clean_transcript: deque, max_tokens: int = 18000) -> List[List[Dict]]:
     """
@@ -689,6 +702,7 @@ def chunk_transcript(clean_transcript: deque, max_tokens: int = 18000) -> List[L
 
     return chunks
 
+
 def _clean_metadata_for_subagent(entry: Dict[str, Any]) -> Dict[str, Any]:
     """
     Remove internal processing metadata from transcript entry before sending to subagent.
@@ -699,18 +713,18 @@ def _clean_metadata_for_subagent(entry: Dict[str, Any]) -> Dict[str, Any]:
 
     # Copy essential fields only
     for key, value in entry.items():
-        if key.startswith('_'):
+        if key.startswith("_"):
             # Skip all internal metadata fields like _meta, _action_summary_meta, etc.
             continue
 
-        if key == 'content' and isinstance(value, list):
+        if key == "content" and isinstance(value, list):
             # Clean content items
             cleaned_content = []
             for item in value:
                 if isinstance(item, dict):
                     cleaned_item = {}
                     for item_key, item_value in item.items():
-                        if not item_key.startswith('_'):
+                        if not item_key.startswith("_"):
                             # Skip internal metadata in content items
                             cleaned_item[item_key] = item_value
                     cleaned_content.append(cleaned_item)
@@ -721,6 +735,7 @@ def _clean_metadata_for_subagent(entry: Dict[str, Any]) -> Dict[str, Any]:
             cleaned_entry[key] = value
 
     return cleaned_entry
+
 
 def save_transcript_chunks(chunks: List[List[Dict]], batch_dir: Path) -> None:
     """
@@ -733,7 +748,7 @@ def save_transcript_chunks(chunks: List[List[Dict]], batch_dir: Path) -> None:
     # Clear existing files in directory
     if batch_dir.exists():
         for item in batch_dir.iterdir():
-            if item.is_file() and item.name.startswith('current_transcript_'):
+            if item.is_file() and item.name.startswith("current_transcript_"):
                 item.unlink()
 
     # Clean and save chunks
@@ -742,17 +757,19 @@ def save_transcript_chunks(chunks: List[List[Dict]], batch_dir: Path) -> None:
         cleaned_chunk = [_clean_metadata_for_subagent(entry) for entry in chunk]
 
         file_path = batch_dir / f"current_transcript_{file_index:03d}.json"
-        with file_path.open('w') as f:
+        with file_path.open("w") as f:
             json.dump(cleaned_chunk, f, indent=2, ensure_ascii=False)
+
 
 def create_subagent_flag(project_root: Path) -> None:
     """
     Create in_subagent_context.flag to signal subagent execution.
     Based on cc-sessions flag coordination.
     """
-    flag_path = project_root / '.brainworm' / 'state' / 'in_subagent_context.flag'
+    flag_path = project_root / ".brainworm" / "state" / "in_subagent_context.flag"
     flag_path.parent.mkdir(parents=True, exist_ok=True)
     flag_path.touch()
+
 
 def log_analytics_event(project_root: Path, event_data: Dict[str, Any]) -> None:
     """
@@ -765,13 +782,13 @@ def log_analytics_event(project_root: Path, event_data: Dict[str, Any]) -> None:
         # Enhance event data with additional brainworm-specific fields
         enhanced_event = {
             **event_data,
-            'hook_name': 'transcript_processor',
-            'component': 'brainworm_transcript_processing',
-            'correlation_id': event_data.get('correlation_id', 'unknown'),
-            'logged_at': datetime.now(timezone.utc).isoformat()
+            "hook_name": "transcript_processor",
+            "component": "brainworm_transcript_processing",
+            "correlation_id": event_data.get("correlation_id", "unknown"),
+            "logged_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        event_store = HookEventStore(project_root / '.brainworm')
+        event_store = HookEventStore(project_root / ".brainworm")
         success = event_store.log_event(enhanced_event)
 
         if not success:
@@ -779,6 +796,7 @@ def log_analytics_event(project_root: Path, event_data: Dict[str, Any]) -> None:
 
     except Exception as e:
         print(f"Warning: Event logging failed: {e}", file=sys.stderr)
+
 
 def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, debug_logger=None) -> Dict[str, Any]:
     """Custom logic for transcript processing"""
@@ -803,8 +821,8 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, d
                 debug_logger.debug("✓ Not in subagent context, proceeding")
     except Exception:
         # Fallback to direct flag check
-        state_dir = project_root / '.brainworm' / 'state'
-        subagent_flag = state_dir / 'in_subagent_context.flag'
+        state_dir = project_root / ".brainworm" / "state"
+        subagent_flag = state_dir / "in_subagent_context.flag"
         if subagent_flag.exists():
             if debug_logger:
                 debug_logger.warning("🔄 Recursion prevented: Subagent flag exists")
@@ -821,7 +839,7 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, d
         debug_logger.debug(f"Transcript: {transcript_path}")
 
     # Read and parse transcript
-    with open(transcript_path, 'r') as f:
+    with open(transcript_path, "r") as f:
         transcript = [json.loads(line) for line in f if line.strip()]
 
     original_entry_count = len(transcript)
@@ -833,7 +851,9 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, d
     # Debug logging - INFO level
     if debug_logger:
         removed_count = original_entry_count - processed_entry_count
-        debug_logger.info(f"📋 Transcript processing: {original_entry_count} → {processed_entry_count} entries (removed {removed_count} prework)")
+        debug_logger.info(
+            f"📋 Transcript processing: {original_entry_count} → {processed_entry_count} entries (removed {removed_count} prework)"
+        )
 
     # Clean transcript entries
     clean_transcript = clean_transcript_entries(transcript)
@@ -848,7 +868,7 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, d
 
     # Normalize subagent_type for directory name (strip plugin namespace prefix)
     # e.g., "brainworm:context-gathering" -> "context-gathering"
-    subagent_dir_name = subagent_type.split(':', 1)[-1] if ':' in subagent_type else subagent_type
+    subagent_dir_name = subagent_type.split(":", 1)[-1] if ":" in subagent_type else subagent_type
 
     # Detect service context for location awareness
     service_context = identify_current_service_context(project_root, input_data)
@@ -863,7 +883,7 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, d
         debug_logger.debug(f"Project services: {len(service_context.get('project_structure', {}).get('services', []))}")
 
     # Create output directory using normalized directory name
-    batch_dir = project_root / '.brainworm' / 'state' / subagent_dir_name
+    batch_dir = project_root / ".brainworm" / "state" / subagent_dir_name
     batch_dir.mkdir(parents=True, exist_ok=True)
 
     # Chunk transcript
@@ -906,7 +926,7 @@ def transcript_processor_logic(input_data: Dict[str, Any], project_root: Path, d
         "chunk_count": chunk_count,
         "processing_time": processing_time,
         "transcript_path": transcript_path,
-        "batch_dir": str(batch_dir)
+        "batch_dir": str(batch_dir),
     }
 
 
@@ -934,7 +954,7 @@ def transcript_processor_framework_logic(framework, input_data: Dict[str, Any]):
         return  # Exit gracefully if no project root
 
     # Debug logging - INFO level
-    tool_name = input_data.get('tool_name', 'unknown')
+    tool_name = input_data.get("tool_name", "unknown")
     if framework.debug_logger:
         framework.debug_logger.info(f"🔄 Transcript processor invoked for tool: {tool_name}")
 
@@ -949,7 +969,9 @@ def transcript_processor_framework_logic(framework, input_data: Dict[str, Any]):
         else:
             processing_time = result.get("processing_time", 0)
             chunk_count = result.get("chunk_count", 0)
-            framework.debug_logger.info(f"✅ Transcript processing complete: {chunk_count} chunks in {processing_time:.1f}ms")
+            framework.debug_logger.info(
+                f"✅ Transcript processing complete: {chunk_count} chunks in {processing_time:.1f}ms"
+            )
 
     # Skip processing or handle special transcript processor requirements
     if result and result.get("skip", False):
@@ -961,9 +983,9 @@ def transcript_processor_framework_logic(framework, input_data: Dict[str, Any]):
 def main() -> None:
     """Main transcript processor entry point - Pure Framework Approach"""
     try:
-        HookFramework("transcript_processor", enable_event_logging=True) \
-            .with_custom_logic(transcript_processor_framework_logic) \
-            .execute()
+        HookFramework("transcript_processor", enable_event_logging=True).with_custom_logic(
+            transcript_processor_framework_logic
+        ).execute()
 
     except Exception as e:
         # Handle errors gracefully
@@ -971,5 +993,5 @@ def main() -> None:
         sys.exit(0)  # Non-blocking error
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

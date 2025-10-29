@@ -18,17 +18,18 @@ from typing import Optional
 
 # Debug level hierarchy (lower number = higher priority)
 DEBUG_LEVELS = {
-    'ERROR': 0,    # Only errors
-    'WARNING': 1,  # Errors + warnings
-    'INFO': 2,     # Normal operations
-    'DEBUG': 3,    # Detailed debugging
-    'TRACE': 4     # Everything including internal state
+    "ERROR": 0,  # Only errors
+    "WARNING": 1,  # Errors + warnings
+    "INFO": 2,  # Normal operations
+    "DEBUG": 3,  # Detailed debugging
+    "TRACE": 4,  # Everything including internal state
 }
 
 
 @dataclass
 class DebugOutputs:
     """Configuration for debug output destinations."""
+
     stderr: bool = True
     stderr_format: str = "text"
     file: bool = False
@@ -37,57 +38,53 @@ class DebugOutputs:
     framework_format: str = "json"
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'DebugOutputs':
+    def from_dict(cls, data: dict) -> "DebugOutputs":
         """Create from dictionary."""
         return cls(
-            stderr=data.get('stderr', True),
-            stderr_format=data.get('stderr_format', 'text'),
-            file=data.get('file', False),
-            file_format=data.get('file_format', 'json'),
-            framework=data.get('framework', False),
-            framework_format=data.get('framework_format', 'json')
+            stderr=data.get("stderr", True),
+            stderr_format=data.get("stderr_format", "text"),
+            file=data.get("file", False),
+            file_format=data.get("file_format", "json"),
+            framework=data.get("framework", False),
+            framework_format=data.get("framework_format", "json"),
         )
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
-            'stderr': self.stderr,
-            'stderr_format': self.stderr_format,
-            'file': self.file,
-            'file_format': self.file_format,
-            'framework': self.framework,
-            'framework_format': self.framework_format
+            "stderr": self.stderr,
+            "stderr_format": self.stderr_format,
+            "file": self.file,
+            "file_format": self.file_format,
+            "framework": self.framework,
+            "framework_format": self.framework_format,
         }
 
 
 @dataclass
 class DebugConfig:
     """Configuration for debug logging behavior."""
+
     enabled: bool = False
     level: str = "INFO"
     format: str = "text"
     outputs: DebugOutputs = field(default_factory=DebugOutputs)
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'DebugConfig':
+    def from_dict(cls, data: dict) -> "DebugConfig":
         """Create from dictionary (loaded from config.toml)."""
-        outputs_data = data.get('outputs', {})
+        outputs_data = data.get("outputs", {})
         outputs = DebugOutputs.from_dict(outputs_data)
         return cls(
-            enabled=data.get('enabled', False),
-            level=data.get('level', 'INFO').upper(),
-            format=data.get('format', 'text'),
-            outputs=outputs
+            enabled=data.get("enabled", False),
+            level=data.get("level", "INFO").upper(),
+            format=data.get("format", "text"),
+            outputs=outputs,
         )
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
-        return {
-            'enabled': self.enabled,
-            'level': self.level,
-            'format': self.format,
-            'outputs': self.outputs.to_dict()
-        }
+        return {"enabled": self.enabled, "level": self.level, "format": self.format, "outputs": self.outputs.to_dict()}
 
 
 class DebugLogger:
@@ -98,9 +95,13 @@ class DebugLogger:
     CLI flag override support, and multiple output destinations.
     """
 
-    def __init__(self, hook_name: str, project_root: Optional[Path] = None,
-                 debug_config: Optional[DebugConfig] = None,
-                 verbose_override: bool = False):
+    def __init__(
+        self,
+        hook_name: str,
+        project_root: Optional[Path] = None,
+        debug_config: Optional[DebugConfig] = None,
+        verbose_override: bool = False,
+    ):
         """
         Initialize debug logger.
 
@@ -116,11 +117,7 @@ class DebugLogger:
 
         # Apply CLI override if present
         if verbose_override and debug_config:
-            self.debug_config = DebugConfig(
-                enabled=True,
-                level='DEBUG',
-                outputs=debug_config.outputs
-            )
+            self.debug_config = DebugConfig(enabled=True, level="DEBUG", outputs=debug_config.outputs)
         elif debug_config:
             self.debug_config = debug_config
         else:
@@ -220,13 +217,13 @@ class DebugLogger:
         try:
             # Choose file extension based on format
             if format_type == "json":
-                debug_file = self.project_root / '.brainworm' / 'logs' / 'debug.jsonl'
+                debug_file = self.project_root / ".brainworm" / "logs" / "debug.jsonl"
             else:
-                debug_file = self.project_root / '.brainworm' / 'logs' / 'debug.log'
+                debug_file = self.project_root / ".brainworm" / "logs" / "debug.log"
 
             debug_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(debug_file, 'a', encoding='utf-8') as f:
-                f.write(formatted_message + '\n')
+            with open(debug_file, "a", encoding="utf-8") as f:
+                f.write(formatted_message + "\n")
                 f.flush()
         except Exception as e:
             # Don't fail hook on debug logging errors, but report to stderr as last resort
@@ -243,13 +240,13 @@ class DebugLogger:
         try:
             # Choose file extension based on format
             if format_type == "json":
-                framework_log = self.project_root / '.brainworm' / 'logs' / 'debug_framework_output.jsonl'
+                framework_log = self.project_root / ".brainworm" / "logs" / "debug_framework_output.jsonl"
             else:
-                framework_log = self.project_root / '.brainworm' / 'logs' / 'debug_framework_output.log'
+                framework_log = self.project_root / ".brainworm" / "logs" / "debug_framework_output.log"
 
             framework_log.parent.mkdir(parents=True, exist_ok=True)
-            with open(framework_log, 'a', encoding='utf-8') as f:
-                f.write(formatted_message + '\n')
+            with open(framework_log, "a", encoding="utf-8") as f:
+                f.write(formatted_message + "\n")
                 f.flush()
         except Exception as e:
             # Don't fail hook on debug logging errors, but report to stderr as last resort
@@ -257,45 +254,43 @@ class DebugLogger:
 
     def error(self, message: str, execution_id: Optional[str] = None) -> None:
         """Log an error message."""
-        self.log(message, level='ERROR', execution_id=execution_id)
+        self.log(message, level="ERROR", execution_id=execution_id)
 
     def warning(self, message: str, execution_id: Optional[str] = None) -> None:
         """Log a warning message."""
-        self.log(message, level='WARNING', execution_id=execution_id)
+        self.log(message, level="WARNING", execution_id=execution_id)
 
     def info(self, message: str, execution_id: Optional[str] = None) -> None:
         """Log an info message."""
-        self.log(message, level='INFO', execution_id=execution_id)
+        self.log(message, level="INFO", execution_id=execution_id)
 
     def debug(self, message: str, execution_id: Optional[str] = None) -> None:
         """Log a debug message."""
-        self.log(message, level='DEBUG', execution_id=execution_id)
+        self.log(message, level="DEBUG", execution_id=execution_id)
 
     def trace(self, message: str, execution_id: Optional[str] = None) -> None:
         """Log a trace message."""
-        self.log(message, level='TRACE', execution_id=execution_id)
+        self.log(message, level="TRACE", execution_id=execution_id)
 
 
 def get_default_debug_config() -> DebugConfig:
     """Get default debug configuration."""
     return DebugConfig(
         enabled=False,
-        level='INFO',
-        format='text',
+        level="INFO",
+        format="text",
         outputs=DebugOutputs(
-            stderr=True,
-            stderr_format='text',
-            file=False,
-            file_format='json',
-            framework=False,
-            framework_format='json'
-        )
+            stderr=True, stderr_format="text", file=False, file_format="json", framework=False, framework_format="json"
+        ),
     )
 
 
-def create_debug_logger(hook_name: str, project_root: Optional[Path] = None,
-                       debug_config: Optional[DebugConfig] = None,
-                       check_verbose_flag: bool = True) -> DebugLogger:
+def create_debug_logger(
+    hook_name: str,
+    project_root: Optional[Path] = None,
+    debug_config: Optional[DebugConfig] = None,
+    check_verbose_flag: bool = True,
+) -> DebugLogger:
     """
     Factory function to create a debug logger.
 
@@ -308,34 +303,31 @@ def create_debug_logger(hook_name: str, project_root: Optional[Path] = None,
     Returns:
         DebugLogger instance
     """
-    verbose_override = check_verbose_flag and '--verbose' in sys.argv
+    verbose_override = check_verbose_flag and "--verbose" in sys.argv
 
     if debug_config is None:
         debug_config = get_default_debug_config()
 
     return DebugLogger(
-        hook_name=hook_name,
-        project_root=project_root,
-        debug_config=debug_config,
-        verbose_override=verbose_override
+        hook_name=hook_name, project_root=project_root, debug_config=debug_config, verbose_override=verbose_override
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Test the debug logger
     print("Testing centralized debug logger...\n", file=sys.stderr)
 
     # Test with different configurations
     test_configs = [
-        ("Disabled", DebugConfig(enabled=False, level='INFO')),
-        ("Enabled INFO", DebugConfig(enabled=True, level='INFO')),
-        ("Enabled DEBUG", DebugConfig(enabled=True, level='DEBUG')),
-        ("Enabled TRACE", DebugConfig(enabled=True, level='TRACE')),
+        ("Disabled", DebugConfig(enabled=False, level="INFO")),
+        ("Enabled INFO", DebugConfig(enabled=True, level="INFO")),
+        ("Enabled DEBUG", DebugConfig(enabled=True, level="DEBUG")),
+        ("Enabled TRACE", DebugConfig(enabled=True, level="TRACE")),
     ]
 
     for config_name, config in test_configs:
         print(f"\n=== Testing {config_name} ===", file=sys.stderr)
-        logger = DebugLogger('test_hook', debug_config=config)
+        logger = DebugLogger("test_hook", debug_config=config)
 
         logger.error("This is an error")
         logger.warning("This is a warning")
@@ -344,26 +336,29 @@ if __name__ == '__main__':
         logger.trace("This is trace")
 
     print("\n=== Testing --verbose Override ===", file=sys.stderr)
-    logger = DebugLogger('test_hook', debug_config=DebugConfig(enabled=False), verbose_override=True)
+    logger = DebugLogger("test_hook", debug_config=DebugConfig(enabled=False), verbose_override=True)
     logger.info("This should appear even though config is disabled")
     logger.debug("This should also appear")
 
     print("\n=== Testing JSON Format ===", file=sys.stderr)
-    json_outputs = DebugOutputs(stderr=True, stderr_format='json', file=False, framework=False)
-    json_config = DebugConfig(enabled=True, level='INFO', format='json', outputs=json_outputs)
-    json_logger = DebugLogger('test_hook', debug_config=json_config)
+    json_outputs = DebugOutputs(stderr=True, stderr_format="json", file=False, framework=False)
+    json_config = DebugConfig(enabled=True, level="INFO", format="json", outputs=json_outputs)
+    json_logger = DebugLogger("test_hook", debug_config=json_config)
     json_logger.info("This is JSON formatted output", execution_id="test-123")
     json_logger.error("This is a JSON error")
 
     print("\n=== Testing Mixed Formats ===", file=sys.stderr)
     print("(stderr=text, file=json, framework=json)", file=sys.stderr)
     mixed_outputs = DebugOutputs(
-        stderr=True, stderr_format='text',
-        file=False, file_format='json',  # Would write to .jsonl
-        framework=False, framework_format='json'  # Would write to .jsonl
+        stderr=True,
+        stderr_format="text",
+        file=False,
+        file_format="json",  # Would write to .jsonl
+        framework=False,
+        framework_format="json",  # Would write to .jsonl
     )
-    mixed_config = DebugConfig(enabled=True, level='DEBUG', format='text', outputs=mixed_outputs)
-    mixed_logger = DebugLogger('test_hook', debug_config=mixed_config)
+    mixed_config = DebugConfig(enabled=True, level="DEBUG", format="text", outputs=mixed_outputs)
+    mixed_logger = DebugLogger("test_hook", debug_config=mixed_config)
     mixed_logger.info("Mixed format test - stderr is text")
     mixed_logger.debug("File and framework would be JSON")
 

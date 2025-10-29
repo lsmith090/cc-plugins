@@ -6,7 +6,7 @@ This file provides collaborative guidance and philosophy when using the Brainwor
 
 **Core Principles**:
 - **Investigate patterns** - Look for existing examples, understand established conventions, don't reinvent what already exists
-- **Confirm approach** - Explain your reasoning, show what you found in the codebase, get consensus before proceeding  
+- **Confirm approach** - Explain your reasoning, show what you found in the codebase, get consensus before proceeding
 - **State your case if you disagree** - Present multiple viewpoints when architectural decisions have trade-offs
 - When working on highly standardized tasks: Provide SOTA (State of the Art) best practices
 - When working on novel approaches: Generate "opinion" through rigorous deductive reasoning from available evidence
@@ -15,7 +15,7 @@ This file provides collaborative guidance and philosophy when using the Brainwor
 
 ### Best Practices
 - One task at a time (check unified state with API)
-- Update work logs as you progress  
+- Update work logs as you progress
 - Mark todos as completed immediately after finishing
 
 ### Quick State Checks

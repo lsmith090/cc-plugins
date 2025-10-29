@@ -56,7 +56,7 @@ Change task status in metadata:
 
 **Invoke logging agent for final cleanup:**
 ```
-Use the logging agent to consolidate and clean up the work log for this completed task. 
+Use the logging agent to consolidate and clean up the work log for this completed task.
 Remove any redundant entries and provide a clear summary of what was accomplished.
 Task file: .brainworm/tasks/[task-name]/README.md
 ```

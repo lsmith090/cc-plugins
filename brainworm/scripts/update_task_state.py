@@ -38,11 +38,7 @@ def validate_branch_exists(project_root: Path, branch: str) -> bool:
     """Validate that the branch exists in git"""
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "--verify", branch],
-            cwd=project_root,
-            capture_output=True,
-            text=True,
-            timeout=5
+            ["git", "rev-parse", "--verify", branch], cwd=project_root, capture_output=True, text=True, timeout=5
         )
         return result.returncode == 0
     except Exception:
@@ -54,7 +50,7 @@ def update_task_state(
     task: Optional[str] = None,
     branch: Optional[str] = None,
     services: Optional[List[str]] = None,
-    clear_task: bool = False
+    clear_task: bool = False,
 ) -> dict:
     """Update task state using DAICStateManager for atomic updates
 
@@ -77,7 +73,7 @@ def update_task_state(
                 branch=None,
                 services=[],
                 correlation_id=state_manager.get_unified_state().get("correlation_id"),
-                session_id=state_manager.get_unified_state().get("session_id")
+                session_id=state_manager.get_unified_state().get("session_id"),
             )
             console.print("✅ [green]Task state cleared[/green]")
             return result
@@ -103,7 +99,7 @@ def update_task_state(
             branch=final_branch,
             services=final_services,
             correlation_id=current_unified.get("correlation_id"),
-            session_id=current_unified.get("session_id")
+            session_id=current_unified.get("session_id"),
         )
 
         # Success feedback
@@ -131,7 +127,7 @@ Examples:
   uv run update_task_state.py --task="consolidate-state" --branch="feature/state"
   uv run update_task_state.py --services="hooks,analytics"
   uv run update_task_state.py --clear-task
-        """
+        """,
     )
 
     parser.add_argument("--task", help="Task name to set")
@@ -167,8 +163,8 @@ Examples:
             console.print(f"  Task: {task_state.get('current_task', 'None')}")
 
             # Show task file path if task is set
-            current_task = task_state.get('current_task')
-            if current_task and current_task != 'None':
+            current_task = task_state.get("current_task")
+            if current_task and current_task != "None":
                 task_file = f".brainworm/tasks/{current_task}/README.md"
                 console.print(f"  Task File: {task_file}")
 
@@ -185,11 +181,7 @@ Examples:
 
     # Update task state
     update_task_state(
-        project_root=project_root,
-        task=args.task,
-        branch=args.branch,
-        services=services,
-        clear_task=args.clear_task
+        project_root=project_root, task=args.task, branch=args.branch, services=services, clear_task=args.clear_task
     )
 
 

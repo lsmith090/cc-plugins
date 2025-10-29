@@ -30,9 +30,7 @@ STANDARD_VERSIONS = {
 }
 
 # Deprecated dependencies that should not be used
-DEPRECATED_DEPS = {
-    "toml": "Use tomli-w>=1.0.0 for writing, tomllib (built-in) for reading"
-}
+DEPRECATED_DEPS = {"toml": "Use tomli-w>=1.0.0 for writing, tomllib (built-in) for reading"}
 
 
 def extract_dependencies(file_path: Path) -> List[str]:
@@ -41,14 +39,14 @@ def extract_dependencies(file_path: Path) -> List[str]:
         content = file_path.read_text()
 
         # Look for PEP 723 inline script metadata
-        match = re.search(r'# /// script\n(.*?)# ///', content, re.DOTALL)
+        match = re.search(r"# /// script\n(.*?)# ///", content, re.DOTALL)
         if not match:
             return []
 
         metadata_block = match.group(1)
 
         # Extract dependencies list
-        deps_match = re.search(r'# dependencies = \[(.*?)\]', metadata_block, re.DOTALL)
+        deps_match = re.search(r"# dependencies = \[(.*?)\]", metadata_block, re.DOTALL)
         if not deps_match:
             return []
 
@@ -56,9 +54,9 @@ def extract_dependencies(file_path: Path) -> List[str]:
 
         # Parse individual dependencies
         dependencies = []
-        for line in deps_str.split('\n'):
+        for line in deps_str.split("\n"):
             line = line.strip()
-            if line.startswith('#') and '"' in line:
+            if line.startswith("#") and '"' in line:
                 # Extract dependency string
                 dep_match = re.search(r'"([^"]+)"', line)
                 if dep_match:
@@ -160,8 +158,8 @@ def check_for_deprecated_imports(plugin_root: Path) -> List[str]:
     issues = []
 
     deprecated_imports = {
-        r'^import toml\b': "import toml (use 'import tomllib' and 'import tomli_w' instead)",
-        r'^from toml import': "from toml import (use tomllib/tomli_w instead)",
+        r"^import toml\b": "import toml (use 'import tomllib' and 'import tomli_w' instead)",
+        r"^from toml import": "from toml import (use tomllib/tomli_w instead)",
     }
 
     for py_file in plugin_root.rglob("*.py"):
@@ -169,9 +167,7 @@ def check_for_deprecated_imports(plugin_root: Path) -> List[str]:
             content = py_file.read_text()
             for pattern, message in deprecated_imports.items():
                 if re.search(pattern, content, re.MULTILINE):
-                    issues.append(
-                        f"  ❌ {py_file.relative_to(Path.cwd())}: {message}"
-                    )
+                    issues.append(f"  ❌ {py_file.relative_to(Path.cwd())}: {message}")
         except Exception as e:
             # File unreadable - skip (may be binary or permission issue)
             print(f"Debug: Failed to check {py_file}: {e}", file=sys.stderr)
@@ -204,11 +200,7 @@ def validate_import_completeness(file_path: Path, verbose: bool = False) -> Tupl
         # Without this, uv would use repo dependencies and give false positives
         # (script works due to repo deps, not inline script deps)
         result = subprocess.run(
-            ["uv", "run", "--no-project", str(file_path)],
-            input=test_input,
-            capture_output=True,
-            text=True,
-            timeout=5
+            ["uv", "run", "--no-project", str(file_path)], input=test_input, capture_output=True, text=True, timeout=5
         )
 
         # Check for import errors in stderr
@@ -235,13 +227,11 @@ def validate_import_completeness(file_path: Path, verbose: bool = False) -> Tupl
                 import_match = re.search(r"ImportError: (.+)", stderr)
                 if import_match:
                     errors.append(
-                        f"  ❌ {file_path.relative_to(Path.cwd())}: "
-                        f"Import failed - {import_match.group(1)}"
+                        f"  ❌ {file_path.relative_to(Path.cwd())}: " f"Import failed - {import_match.group(1)}"
                     )
                 else:
                     errors.append(
-                        f"  ❌ {file_path.relative_to(Path.cwd())}: "
-                        f"Import or module error detected (check stderr)"
+                        f"  ❌ {file_path.relative_to(Path.cwd())}: " f"Import or module error detected (check stderr)"
                     )
 
         if verbose and not errors:
@@ -254,14 +244,10 @@ def validate_import_completeness(file_path: Path, verbose: bool = False) -> Tupl
             print(f"  ⏱️  {file_path.relative_to(Path.cwd())}: Timeout (imports likely OK)")
     except FileNotFoundError:
         errors.append(
-            f"  ⚠️  {file_path.relative_to(Path.cwd())}: "
-            f"Cannot test - 'uv' not found (install with: pip install uv)"
+            f"  ⚠️  {file_path.relative_to(Path.cwd())}: " f"Cannot test - 'uv' not found (install with: pip install uv)"
         )
     except Exception as e:
-        errors.append(
-            f"  ⚠️  {file_path.relative_to(Path.cwd())}: "
-            f"Could not test imports: {e}"
-        )
+        errors.append(f"  ⚠️  {file_path.relative_to(Path.cwd())}: " f"Could not test imports: {e}")
 
     return len(errors) == 0, errors
 
@@ -292,9 +278,13 @@ def validate_all_import_completeness(plugin_root: Path, verbose: bool = False) -
     return all_valid, dict(all_errors)
 
 
-def print_summary(all_valid: bool, all_errors: Dict[str, List[str]],
-                 import_issues: List[str], import_test_errors: Dict[str, List[str]],
-                 verbose: bool = False):
+def print_summary(
+    all_valid: bool,
+    all_errors: Dict[str, List[str]],
+    import_issues: List[str],
+    import_test_errors: Dict[str, List[str]],
+    verbose: bool = False,
+):
     """Print validation summary"""
     print("\n" + "=" * 80)
     print("DEPENDENCY VALIDATION SUMMARY")
@@ -351,20 +341,9 @@ def print_summary(all_valid: bool, all_errors: Dict[str, List[str]],
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Validate brainworm plugin dependency consistency"
-    )
-    parser.add_argument(
-        "--file",
-        type=Path,
-        help="Validate a specific file instead of all files"
-    )
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Show detailed validation output"
-    )
+    parser = argparse.ArgumentParser(description="Validate brainworm plugin dependency consistency")
+    parser.add_argument("--file", type=Path, help="Validate a specific file instead of all files")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Show detailed validation output")
 
     args = parser.parse_args()
 
@@ -425,9 +404,7 @@ def main():
         import_issues = check_for_deprecated_imports(plugin_root)
 
         # 3. Dynamic validation (import completeness)
-        import_test_valid, import_test_errors = validate_all_import_completeness(
-            plugin_root, verbose=args.verbose
-        )
+        import_test_valid, import_test_errors = validate_all_import_completeness(plugin_root, verbose=args.verbose)
 
         # Print summary
         print_summary(all_valid, all_errors, import_issues, import_test_errors, verbose=args.verbose)

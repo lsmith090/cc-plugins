@@ -30,7 +30,7 @@ def session_end_logic(framework, input_data: Dict[str, Any]):
         input_data: Raw input dict (always dict, typed input used for validation only)
     """
     # Extract data from dict - simple and direct
-    session_id = input_data.get('session_id', 'unknown')
+    session_id = input_data.get("session_id", "unknown")
 
     # Debug logging - INFO level
     if framework.debug_logger:
@@ -44,12 +44,11 @@ def session_end_logic(framework, input_data: Dict[str, Any]):
             if framework.debug_logger:
                 framework.debug_logger.debug("📸 Creating session end snapshot")
 
-            subprocess.run([
-                str(snapshot_script),
-                "--action", "stop",
-                "--session-id", session_id,
-                "--quiet"
-            ], timeout=10, check=False)
+            subprocess.run(
+                [str(snapshot_script), "--action", "stop", "--session-id", session_id, "--quiet"],
+                timeout=10,
+                check=False,
+            )
 
             if framework.debug_logger:
                 framework.debug_logger.debug("Snapshot script executed")
@@ -62,13 +61,13 @@ def session_end_logic(framework, input_data: Dict[str, Any]):
 def session_end_success_message(framework):
     """Custom success message for session end hook."""
     # Direct dict access - simple and clear
-    session_id = framework.raw_input_data.get('session_id', 'unknown')
-    reason = framework.raw_input_data.get('reason', 'unknown')
+    session_id = framework.raw_input_data.get("session_id", "unknown")
+    reason = framework.raw_input_data.get("reason", "unknown")
     session_short = session_id[:8] if len(session_id) >= 8 else session_id
     print(f"✅ Session ended ({reason}): {session_short}", file=sys.stderr)
 
+
 if __name__ == "__main__":
-    HookFramework("session_end", enable_event_logging=True) \
-        .with_custom_logic(session_end_logic) \
-        .with_success_handler(session_end_success_message) \
-        .execute()
+    HookFramework("session_end", enable_event_logging=True).with_custom_logic(session_end_logic).with_success_handler(
+        session_end_success_message
+    ).execute()

@@ -55,7 +55,7 @@ def split_command_respecting_quotes(command: str) -> List[str]:
         char = command[i]
 
         # Check if character is escaped (preceded by backslash)
-        is_escaped = i > 0 and command[i-1] == '\\' and (i < 2 or command[i-2] != '\\')
+        is_escaped = i > 0 and command[i - 1] == "\\" and (i < 2 or command[i - 2] != "\\")
 
         # Handle quotes - toggle state and preserve in output
         # Only toggle if not escaped
@@ -69,20 +69,20 @@ def split_command_respecting_quotes(command: str) -> List[str]:
         elif not in_single_quote and not in_double_quote:
             # Check for multi-character operators (&&, ||, >>)
             if i < len(command) - 1:
-                two_char = command[i:i+2]
-                if two_char in ['&&', '||', '>>']:
+                two_char = command[i : i + 2]
+                if two_char in ["&&", "||", ">>"]:
                     # End current part and skip both characters
                     if current_part:
-                        parts.append(''.join(current_part))
+                        parts.append("".join(current_part))
                         current_part = []
                     i += 2
                     continue
 
             # Check for single-character operators (;, |)
-            if char in [';', '|']:
+            if char in [";", "|"]:
                 # End current part
                 if current_part:
-                    parts.append(''.join(current_part))
+                    parts.append("".join(current_part))
                     current_part = []
             else:
                 current_part.append(char)
@@ -94,7 +94,7 @@ def split_command_respecting_quotes(command: str) -> List[str]:
 
     # Add final part
     if current_part:
-        parts.append(''.join(current_part))
+        parts.append("".join(current_part))
 
     return [part.strip() for part in parts if part.strip()]
 
@@ -135,7 +135,7 @@ def is_read_only_bash_command(command: str, config: Dict[str, Any]) -> bool:
         False
     """
     # Normalize tabs to spaces before processing
-    command = command.replace('\t', ' ')
+    command = command.replace("\t", " ")
 
     daic_config = config.get("daic", {})
     read_only_commands = daic_config.get("read_only_bash_commands", {})
@@ -150,22 +150,22 @@ def is_read_only_bash_command(command: str, config: Dict[str, Any]) -> bool:
     write_patterns = [
         # Output redirection patterns (improved security)
         # Match > but exclude specific safe patterns: >&1, >&2, > /dev/null, > /dev/zero
-        r'>(?!&[12]\b)(?!\s*/dev/null\b)(?!\s*/dev/zero\b)',  # Output redirection
-        r'>>',                      # Append redirection always blocked
-        r'\btee\b',           # tee command (writes to files)
-        r'\bmv\b',            # move/rename
-        r'\bcp\b',            # copy
-        r'\brm\b',            # remove
-        r'\bmkdir\b',         # make directory
-        r'\btouch\b',         # create/update file
-        r'\bsed\s+(?!-n)',    # sed without -n flag (modifies in place)
-        r'\bnpm\s+install',   # npm install
-        r'\bpip\s+install',   # pip install
-        r'-delete\b',         # find -delete flag (SECURITY)
-        r'-exec\s+.*rm\b',    # find -exec with rm (SECURITY)
-        r'\bdd\b',            # dd command (can write to disk)
-        r'<\(',               # Process substitution write
-        r'>\(',               # Process substitution write
+        r">(?!&[12]\b)(?!\s*/dev/null\b)(?!\s*/dev/zero\b)",  # Output redirection
+        r">>",  # Append redirection always blocked
+        r"\btee\b",  # tee command (writes to files)
+        r"\bmv\b",  # move/rename
+        r"\bcp\b",  # copy
+        r"\brm\b",  # remove
+        r"\bmkdir\b",  # make directory
+        r"\btouch\b",  # create/update file
+        r"\bsed\s+(?!-n)",  # sed without -n flag (modifies in place)
+        r"\bnpm\s+install",  # npm install
+        r"\bpip\s+install",  # pip install
+        r"-delete\b",  # find -delete flag (SECURITY)
+        r"-exec\s+.*rm\b",  # find -exec with rm (SECURITY)
+        r"\bdd\b",  # dd command (can write to disk)
+        r"<\(",  # Process substitution write
+        r">\(",  # Process substitution write
     ]
 
     # If command has any write patterns, it's not read-only
@@ -184,8 +184,7 @@ def is_read_only_bash_command(command: str, config: Dict[str, Any]) -> bool:
         # THE FIX: Check for exact match OR command with space-separated args
         # This prevents "git status-foo" from matching "git status"
         is_part_read_only = any(
-            part == allowed_cmd or part.startswith(allowed_cmd + " ")
-            for allowed_cmd in all_read_only
+            part == allowed_cmd or part.startswith(allowed_cmd + " ") for allowed_cmd in all_read_only
         )
 
         # If any part is not read-only, reject entire command chain

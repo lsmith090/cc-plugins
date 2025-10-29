@@ -14,7 +14,7 @@ Comprehensive testing framework for the Brainworm Claude Code analytics system. 
 ./run_tests.sh unit
 ```
 
-### Run Performance Tests  
+### Run Performance Tests
 ```bash
 ./run_tests.sh performance
 ```
@@ -179,7 +179,7 @@ Comprehensive test runner with extensive configuration options.
 
 **Options**:
 - `--unit-only` - Run only unit tests (fast)
-- `--integration-only` - Run only integration tests  
+- `--integration-only` - Run only integration tests
 - `--e2e-only` - Run only end-to-end tests
 - `--performance` - Include performance tests (slow)
 - `--security` - Include security tests
@@ -216,7 +216,7 @@ Optimized for development workflow with watch mode support.
 **Options**:
 - `--no-coverage` - Disable code coverage reporting
 - `--no-parallel` - Run sequentially for debugging
-- `--verbose` - Enable verbose output  
+- `--verbose` - Enable verbose output
 - `--fail-fast` - Stop on first failure
 - `--watch` - Continuous testing mode (file watching)
 - `--clean` - Clean test artifacts before running
@@ -239,7 +239,7 @@ Specialized performance testing with benchmarking and profiling.
 **Options**:
 - `--verbose` - Enable verbose output with detailed timing
 - `--profile` - Enable detailed profiling (memory, CPU)
-- `--no-save` - Don't save benchmark results  
+- `--no-save` - Don't save benchmark results
 - `--compare-baseline` - Compare results against baseline
 - `--baseline FILE` - Specify baseline file for comparison
 - `--output-json` - Output results in JSON format
@@ -430,7 +430,7 @@ fixtures/
 ├── sample_sessions/          # Real session data samples
 │   ├── basic_session.json    # Simple Read/Grep workflow
 │   └── complex_session.json  # Multi-tool, compaction workflow
-├── test_projects/            # Mock project structures  
+├── test_projects/            # Mock project structures
 │   └── simple_python_project/ # Basic Python project
 ├── mock_data/               # Mock hook events and data
 │   └── hook_events.json     # Sample hook event data

@@ -46,12 +46,12 @@ def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
 
         # Check for frontmatter (strip leading whitespace)
         content_stripped = content.lstrip()
-        if not content_stripped.startswith('---'):
+        if not content_stripped.startswith("---"):
             return None
 
         # Extract frontmatter (between first two --- markers)
         # Use lstrip() content to handle indented frontmatter
-        parts = content_stripped.split('---', 2)
+        parts = content_stripped.split("---", 2)
         if len(parts) < 3:
             return None
 
@@ -61,13 +61,13 @@ def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
 
         # Parse simple YAML (key: value format)
         metadata = {}
-        for line in frontmatter.split('\n'):
+        for line in frontmatter.split("\n"):
             line = line.strip()
-            if not line or ':' not in line:
+            if not line or ":" not in line:
                 continue
 
             # Split on first colon only (handles values with colons)
-            key, value = line.split(':', 1)
+            key, value = line.split(":", 1)
             key = key.strip()
             value = value.strip()
 
@@ -76,17 +76,17 @@ def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
                 continue
 
             # Strip YAML comments (everything after #, but not inside lists)
-            if '#' in value and not (value.startswith('[') and value.endswith(']')):
-                value = value.split('#')[0].strip()
+            if "#" in value and not (value.startswith("[") and value.endswith("]")):
+                value = value.split("#")[0].strip()
 
             # Handle lists [item1, item2]
-            if value.startswith('[') and value.endswith(']'):
+            if value.startswith("[") and value.endswith("]"):
                 inner = value[1:-1].strip()
                 # Handle empty lists
                 if not inner:
                     value = []
                 else:
-                    value = [v.strip() for v in inner.split(',') if v.strip()]
+                    value = [v.strip() for v in inner.split(",") if v.strip()]
 
             # Store non-empty values
             if value or value == []:  # Allow empty lists but not empty strings
@@ -130,10 +130,11 @@ def switch_task(task_name: str) -> bool:
 
         # Initialize debug logger
         from utils.debug_logger import DebugConfig
+
         config = load_config(project_root)
-        debug_dict = config.get('debug', {})
+        debug_dict = config.get("debug", {})
         debug_config = DebugConfig.from_dict(debug_dict) if debug_dict else get_default_debug_config()
-        debug_logger = create_debug_logger('switch_task', project_root, debug_config)
+        debug_logger = create_debug_logger("switch_task", project_root, debug_config)
 
         debug_logger.info(f"Task switch initiated: {task_name}")
 
@@ -149,7 +150,7 @@ def switch_task(task_name: str) -> bool:
             # Show available tasks
             tasks_dir = project_root / ".brainworm" / "tasks"
             if tasks_dir.exists():
-                available = [d.name for d in tasks_dir.iterdir() if d.is_dir() and not d.name.startswith('.')]
+                available = [d.name for d in tasks_dir.iterdir() if d.is_dir() and not d.name.startswith(".")]
                 if available:
                     for task in sorted(available):
                         console.print(f"  • {task}")
@@ -171,30 +172,30 @@ def switch_task(task_name: str) -> bool:
             return False
 
         # Extract task info
-        branch = metadata.get('branch', 'N/A')
-        services_raw = metadata.get('modules', [])
+        branch = metadata.get("branch", "N/A")
+        services_raw = metadata.get("modules", [])
 
         # Handle services/modules field
         if isinstance(services_raw, str):
             # Could be a string like "[service1, service2]" or "service1"
-            if services_raw.startswith('[') and services_raw.endswith(']'):
-                services = [s.strip() for s in services_raw[1:-1].split(',') if s.strip()]
+            if services_raw.startswith("[") and services_raw.endswith("]"):
+                services = [s.strip() for s in services_raw[1:-1].split(",") if s.strip()]
             else:
-                services = [services_raw] if services_raw and services_raw != 'none' else []
+                services = [services_raw] if services_raw and services_raw != "none" else []
         elif isinstance(services_raw, list):
-            services = [s for s in services_raw if s and s != 'none']
+            services = [s for s in services_raw if s and s != "none"]
         else:
             services = []
 
         # Extract submodule field
-        submodule = metadata.get('submodule', 'none')
+        submodule = metadata.get("submodule", "none")
         # Normalize values
-        if submodule in ['none', 'N/A', '', 'null']:
+        if submodule in ["none", "N/A", "", "null"]:
             submodule = None
 
         debug_logger.debug(f"Task metadata: branch={branch}, submodule={submodule}, services={services}")
 
-        if branch == 'N/A' or not branch or branch == 'none':
+        if branch == "N/A" or not branch or branch == "none":
             console.print("[yellow]Warning: No branch specified in task metadata[/yellow]")
             console.print("[yellow]Will update state but not checkout git branch[/yellow]")
             branch_checkout = False
@@ -231,12 +232,12 @@ def switch_task(task_name: str) -> bool:
                 try:
                     debug_logger.debug(f"Executing git checkout in submodule: cwd={submodule_path}, branch={branch}")
                     result = subprocess.run(
-                        ['git', 'checkout', branch],
+                        ["git", "checkout", branch],
                         cwd=submodule_path,  # ← This is the fix!
                         capture_output=True,
                         text=True,
                         check=False,
-                        timeout=10  # Prevent hanging on slow git operations
+                        timeout=10,  # Prevent hanging on slow git operations
                     )
 
                     if result.returncode != 0:
@@ -269,7 +270,7 @@ def switch_task(task_name: str) -> bool:
                 sm = SubmoduleManager(project_root)
                 state_mgr_temp = DAICStateManager(project_root)
                 current_unified = state_mgr_temp.get_unified_state()
-                active_branches = current_unified.get('active_submodule_branches', {})
+                active_branches = current_unified.get("active_submodule_branches", {})
 
                 if not active_branches:
                     debug_logger.warning("No active_submodule_branches in state, skipping submodule checkout")
@@ -288,12 +289,12 @@ def switch_task(task_name: str) -> bool:
 
                         # Checkout branch
                         result = subprocess.run(
-                            ['git', 'checkout', service_branch],
+                            ["git", "checkout", service_branch],
                             cwd=submodule_path,
                             capture_output=True,
                             text=True,
                             check=False,
-                            timeout=10  # Prevent hanging on slow git operations
+                            timeout=10,  # Prevent hanging on slow git operations
                         )
 
                         if result.returncode != 0:
@@ -309,12 +310,12 @@ def switch_task(task_name: str) -> bool:
                 try:
                     debug_logger.debug(f"Executing git checkout in main repo: cwd={project_root}, branch={branch}")
                     result = subprocess.run(
-                        ['git', 'checkout', branch],
+                        ["git", "checkout", branch],
                         cwd=project_root,
                         capture_output=True,
                         text=True,
                         check=False,
-                        timeout=10  # Prevent hanging on slow git operations
+                        timeout=10,  # Prevent hanging on slow git operations
                     )
 
                     if result.returncode != 0:
@@ -345,8 +346,10 @@ def switch_task(task_name: str) -> bool:
             debug_logger.debug(f"Built active_submodule_branches for single submodule: {active_submodule_branches}")
         elif services and branch_checkout:
             # Multi-service task: preserve existing mapping from state
-            active_submodule_branches = current_unified.get('active_submodule_branches', {})
-            debug_logger.debug(f"Preserved active_submodule_branches for multi-service task: {active_submodule_branches}")
+            active_submodule_branches = current_unified.get("active_submodule_branches", {})
+            debug_logger.debug(
+                f"Preserved active_submodule_branches for multi-service task: {active_submodule_branches}"
+            )
         else:
             # Main repo task: no submodule branches
             debug_logger.debug("Main repo task: active_submodule_branches empty")
@@ -357,7 +360,7 @@ def switch_task(task_name: str) -> bool:
             services=services,
             correlation_id=current_unified.get("correlation_id"),
             session_id=current_unified.get("session_id"),
-            active_submodule_branches=active_submodule_branches
+            active_submodule_branches=active_submodule_branches,
         )
 
         debug_logger.debug("DAIC state updated successfully")
@@ -373,11 +376,11 @@ def switch_task(task_name: str) -> bool:
                 console.print(f"  • Branch: {branch} (in submodule)")
                 # Show main repo stayed on its branch
                 main_result = subprocess.run(
-                    ['git', 'branch', '--show-current'],
+                    ["git", "branch", "--show-current"],
                     cwd=project_root,
                     capture_output=True,
                     text=True,
-                    timeout=5  # Quick operation, shorter timeout
+                    timeout=5,  # Quick operation, shorter timeout
                 )
                 main_branch = main_result.stdout.strip()
                 if main_branch:
@@ -410,6 +413,7 @@ def switch_task(task_name: str) -> bool:
     except Exception as e:
         console.print(f"[red]Error switching task: {e}[/red]")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -438,7 +442,7 @@ def main() -> None:
         # Parse arguments
         args = sys.argv[1:]
 
-        if not args or args[0] in ['--help', '-h', 'help']:
+        if not args or args[0] in ["--help", "-h", "help"]:
             show_usage()
             return
 
@@ -453,5 +457,5 @@ def main() -> None:
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

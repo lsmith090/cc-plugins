@@ -26,5 +26,6 @@ def pre_compact_logic(framework, typed_input):
     """Placeholder logic for pre-compact processing."""
     pass  # No specific logic needed for pre_compact currently
 
+
 if __name__ == "__main__":
     HookFramework("pre_compact").with_custom_logic(pre_compact_logic).execute()

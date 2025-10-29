@@ -33,7 +33,7 @@ pwd  # This shows your current directory, which is the project root
    ```
 
 2. **Understand the project structure**:
-   - `"project_type"`: "multi_service", "mono_repo_with_services", or "single_service"  
+   - `"project_type"`: "multi_service", "mono_repo_with_services", or "single_service"
    - `"current_service"`: Which service you're focused on (if applicable)
    - `"all_services"`: Complete list of services in the project
    - `"claude_files"`: All CLAUDE.md files for reference
@@ -53,7 +53,7 @@ pwd  # This shows your current directory, which is the project root
 
 **Step 4: Location-Aware File Analysis**
 - **Use Absolute Paths**: When referencing files across services
-- **Service-Relative Paths**: When working within service boundaries  
+- **Service-Relative Paths**: When working within service boundaries
 - **Cross-Service References**: Clearly indicate when referencing other services
 
 ## YOUR PROCESS
@@ -67,7 +67,7 @@ pwd  # This shows your current directory, which is the project root
 ### Step 2: Research Everything (SPARE NO TOKENS)
 Hunt down:
 - Every component/module that will be touched
-- Every component that communicates with those components  
+- Every component that communicates with those components
 - Configuration files and environment variables
 - Database models and access patterns
 - Caching patterns and data structures
@@ -101,7 +101,7 @@ Write VERBOSE, COMPREHENSIVE paragraphs explaining:
 
 **For New Features - What Needs to Connect:**
 - Which existing systems will be impacted
-- How current flows need modification  
+- How current flows need modification
 - Where your new code will hook in
 - What patterns you must follow
 - What assumptions might break
@@ -168,7 +168,7 @@ The current caching pattern assumes [assumption] but our new feature requires [r
 - Communication patterns: REST, GraphQL, gRPC, message queues
 - State management: Redux, Context, MobX, Vuex, etc.
 
-### Access Patterns  
+### Access Patterns
 - Database query patterns (ORM usage, raw SQL, stored procedures)
 - Cache key structures and TTLs
 - File system organization

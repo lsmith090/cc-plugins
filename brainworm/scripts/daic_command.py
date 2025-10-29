@@ -45,13 +45,13 @@ def get_daic_state(project_root: Path) -> Dict[str, Any]:
 
     try:
         if unified_state_file.exists():
-            with open(unified_state_file, 'r') as f:
+            with open(unified_state_file, "r") as f:
                 unified_data = json.load(f)
                 return {
                     "mode": unified_data.get("daic_mode", "discussion"),
                     "timestamp": unified_data.get("daic_timestamp"),
                     "previous_mode": unified_data.get("previous_daic_mode"),
-                    "trigger": "unified_state"
+                    "trigger": "unified_state",
                 }
     except (FileNotFoundError, json.JSONDecodeError):
         pass
@@ -67,9 +67,7 @@ def set_daic_mode(project_root: Path, mode: str, trigger: str = "manual_command"
     mode_lower = mode.lower().strip()
 
     if mode_lower not in valid_modes:
-        raise ValueError(
-            f"Invalid DAIC mode: '{mode}'. Must be one of: {', '.join(valid_modes)}"
-        )
+        raise ValueError(f"Invalid DAIC mode: '{mode}'. Must be one of: {', '.join(valid_modes)}")
 
     # Use DAICStateManager for unified state management
     sys.path.insert(0, str(Path(__file__).parent.parent))  # Add plugin root for utils access
@@ -87,7 +85,7 @@ def set_daic_mode(project_root: Path, mode: str, trigger: str = "manual_command"
         "mode": mode_lower,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "previous_mode": current_state.get("previous_mode"),
-        "trigger": trigger
+        "trigger": trigger,
     }
 
 
@@ -184,5 +182,5 @@ def main() -> None:
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

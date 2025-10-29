@@ -29,14 +29,14 @@ cat "$(pwd)/.brainworm/state/service-documentation/service_context.json"
 **Step 3: Apply Enhanced Structure-Aware Documentation**
 
 The service context provides:
-- `"project_type"`: Automatically detected project structure  
+- `"project_type"`: Automatically detected project structure
 - `"current_service"`: Focus service for documentation updates
 - `"all_services"`: Complete service inventory with tech stacks
 - `"service_relationships"`: Detected dependencies and communication patterns
 
 **For Multi-Service Projects** (Enhanced):
 - **Current Service Priority**: Focus on the detected current service
-- **Cross-Service Documentation**: Update service interaction documentation  
+- **Cross-Service Documentation**: Update service interaction documentation
 - **Technology-Specific**: Adapt documentation to detected tech stack (nodejs, python, powershell)
 - **Service CLAUDE.md Hierarchy**: Maintain both service-specific and root documentation
 

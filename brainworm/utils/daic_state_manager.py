@@ -70,12 +70,12 @@ class DAICStateManager:
             from .config import load_config
 
             # Use shared loader with verbose support
-            verbose = '--verbose' in sys.argv
+            verbose = "--verbose" in sys.argv
             return load_config(self.project_root, verbose=verbose)
         except ImportError:
             # Fallback if shared config not available
             if self.config_file.exists():
-                with open(self.config_file, 'rb') as f:
+                with open(self.config_file, "rb") as f:
                     return tomllib.load(f)
             return {"daic": {"enabled": True}}
 
@@ -89,7 +89,7 @@ class DAICStateManager:
         """Load user preferences configuration with defaults"""
         if self.user_config_file.exists():
             try:
-                with open(self.user_config_file, 'r') as f:
+                with open(self.user_config_file, "r") as f:
                     config_data = json.load(f)
                     return UserConfig.from_dict(config_data)
             except (json.JSONDecodeError, FileNotFoundError):
@@ -106,7 +106,7 @@ class DAICStateManager:
                 json.dump(config_dict, f, indent=2)
         else:
             # Fallback to manual atomic write
-            with open(self.user_config_file, 'w') as f:
+            with open(self.user_config_file, "w") as f:
                 json.dump(config_dict, f, indent=2)
 
     def get_developer_info(self) -> DeveloperInfo:
@@ -117,6 +117,7 @@ class DAICStateManager:
         if user_config.developer.git_identity_source == "auto":
             try:
                 import subprocess
+
                 # Security: Ensure project_root is resolved and valid before using in subprocess
                 # This prevents path traversal attacks via cwd parameter
                 safe_cwd = self.project_root.resolve()
@@ -127,13 +128,13 @@ class DAICStateManager:
                     ["git", "config", "user.name"],
                     cwd=safe_cwd,
                     text=True,
-                    timeout=5  # Add timeout to prevent hanging
+                    timeout=5,  # Add timeout to prevent hanging
                 ).strip()
                 email = subprocess.check_output(
                     ["git", "config", "user.email"],
                     cwd=safe_cwd,
                     text=True,
-                    timeout=5  # Add timeout to prevent hanging
+                    timeout=5,  # Add timeout to prevent hanging
                 ).strip()
                 if name and email:
                     return DeveloperInfo(name=name, email=email, source="git")
@@ -141,11 +142,7 @@ class DAICStateManager:
                 # Git config not available - fall back to config file
                 print(f"Debug: Failed to get developer info from git: {e}", file=sys.stderr)
 
-        return DeveloperInfo(
-            name=user_config.developer.name,
-            email=user_config.developer.email,
-            source="config"
-        )
+        return DeveloperInfo(name=user_config.developer.name, email=user_config.developer.email, source="config")
 
     def get_daic_mode(self) -> DAICMode:
         """Get current DAIC mode (DAICMode enum)"""
@@ -180,11 +177,9 @@ class DAICStateManager:
             timestamp = datetime.now(timezone.utc).isoformat()
 
             # Update unified state only (single source of truth)
-            self._update_unified_state({
-                "daic_mode": str(daic_mode),
-                "daic_timestamp": timestamp,
-                "previous_daic_mode": previous_mode_str
-            })
+            self._update_unified_state(
+                {"daic_mode": str(daic_mode), "daic_timestamp": timestamp, "previous_daic_mode": previous_mode_str}
+            )
 
             # Log transition for analytics
             self.log_daic_transition(previous_mode_str, str(daic_mode))
@@ -209,14 +204,22 @@ class DAICStateManager:
             "current_branch": unified_state.get("current_branch"),
             "task_services": unified_state.get("task_services", []),
             "active_submodule_branches": unified_state.get("active_submodule_branches", {}),
-            "updated": unified_state.get("last_updated", "")[:10] if unified_state.get("last_updated") else None,  # YYYY-MM-DD format
+            "updated": unified_state.get("last_updated", "")[:10]
+            if unified_state.get("last_updated")
+            else None,  # YYYY-MM-DD format
             "correlation_id": unified_state.get("correlation_id"),
-            "session_id": unified_state.get("session_id")
+            "session_id": unified_state.get("session_id"),
         }
 
-    def set_task_state(self, task: str, branch: str, services: List[str],
-                      correlation_id: Optional[str] = None, session_id: Optional[str] = None,
-                      active_submodule_branches: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    def set_task_state(
+        self,
+        task: str,
+        branch: str,
+        services: List[str],
+        correlation_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        active_submodule_branches: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, Any]:
         """
         Set current task state using unified state (single source of truth).
 
@@ -232,18 +235,17 @@ class DAICStateManager:
         developer_info = self.get_developer_info()
 
         # Update unified state only
-        self._update_unified_state({
-            "current_task": task,
-            "current_branch": branch,
-            "task_services": services,
-            "session_id": session_id,
-            "correlation_id": correlation_id,
-            "active_submodule_branches": active_submodule_branches or {},
-            "developer": {
-                "name": developer_info.name,
-                "email": developer_info.email
+        self._update_unified_state(
+            {
+                "current_task": task,
+                "current_branch": branch,
+                "task_services": services,
+                "session_id": session_id,
+                "correlation_id": correlation_id,
+                "active_submodule_branches": active_submodule_branches or {},
+                "developer": {"name": developer_info.name, "email": developer_info.email},
             }
-        })
+        )
 
         # Return task state format
         return {
@@ -253,7 +255,7 @@ class DAICStateManager:
             "active_submodule_branches": active_submodule_branches or {},
             "updated": datetime.now().strftime("%Y-%m-%d"),
             "correlation_id": correlation_id,
-            "session_id": session_id
+            "session_id": session_id,
         }
 
     def get_unified_state(self) -> Dict[str, Any]:
@@ -269,17 +271,14 @@ class DAICStateManager:
             "session_id": None,
             "correlation_id": None,
             "plugin_root": None,
-            "developer": {
-                "name": "",
-                "email": ""
-            },
-            "last_updated": None
+            "developer": {"name": "", "email": ""},
+            "last_updated": None,
         }
 
         # Check if unified state file exists
         try:
             if self.unified_state_file.exists():
-                with open(self.unified_state_file, 'r') as f:
+                with open(self.unified_state_file, "r") as f:
                     state = json.load(f)
                     return {**default_unified, **state}
         except (FileNotFoundError, json.JSONDecodeError) as e:
@@ -290,7 +289,6 @@ class DAICStateManager:
         default_unified["last_updated"] = datetime.now(timezone.utc).isoformat()
         self._save_unified_state(default_unified)
         return default_unified
-
 
     def _update_unified_state(self, updates: Dict[str, Any]):
         """Update specific fields in unified state with pre-validation"""
@@ -315,10 +313,10 @@ class DAICStateManager:
                 json.dump(state, f, indent=2)
         else:
             # Fallback to manual atomic write
-            temp_file = self.unified_state_file.with_suffix('.tmp')
+            temp_file = self.unified_state_file.with_suffix(".tmp")
             try:
                 # Write to temporary file first
-                with open(temp_file, 'w') as f:
+                with open(temp_file, "w") as f:
                     json.dump(state, f, indent=2)
 
                 # Atomic rename to final location
@@ -352,7 +350,10 @@ class DAICStateManager:
         if "active_submodule_branches" in updates:
             submodule_branches = updates["active_submodule_branches"]
             if submodule_branches is not None and not isinstance(submodule_branches, dict):
-                print(f"Warning: active_submodule_branches must be a dict, got {type(submodule_branches)}", file=sys.stderr)
+                print(
+                    f"Warning: active_submodule_branches must be a dict, got {type(submodule_branches)}",
+                    file=sys.stderr,
+                )
                 return False
 
         # Validate developer info structure if being updated
@@ -430,8 +431,9 @@ class DAICStateManager:
         if last_updated:
             try:
                 from datetime import datetime
+
                 # Validate ISO 8601 format
-                datetime.fromisoformat(last_updated.replace('Z', '+00:00'))
+                datetime.fromisoformat(last_updated.replace("Z", "+00:00"))
             except (ValueError, AttributeError) as e:
                 print(f"Warning: Invalid timestamp format for last_updated: {last_updated} ({e})", file=sys.stderr)
                 return False
@@ -451,10 +453,7 @@ class DAICStateManager:
 
     def update_session_correlation(self, session_id: str, correlation_id: str):
         """Update session correlation data"""
-        self._update_unified_state({
-            "session_id": session_id,
-            "correlation_id": correlation_id
-        })
+        self._update_unified_state({"session_id": session_id, "correlation_id": correlation_id})
 
     def should_block_tool(self, tool_name: str, tool_input: Dict[str, Any]) -> ToolBlockingResult:
         """
@@ -477,10 +476,9 @@ class DAICStateManager:
             command = tool_input.get("command", "").strip()
 
             # Block daic command in discussion mode
-            if is_discussion and 'daic' in command:
+            if is_discussion and "daic" in command:
                 return ToolBlockingResult.command_block(
-                    command,
-                    "The 'daic' command is not allowed in discussion mode. You're already in discussion mode."
+                    command, "The 'daic' command is not allowed in discussion mode. You're already in discussion mode."
                 )
 
             # Check if command is read-only
@@ -512,8 +510,9 @@ class DAICStateManager:
         # Use shared validator with fixed prefix matching logic
         return validate_bash_command(command, config_dict)
 
-    def log_daic_transition(self, from_mode: str, to_mode: str, trigger: str = None,
-                           session_id: str = None, correlation_id: str = None):
+    def log_daic_transition(
+        self, from_mode: str, to_mode: str, trigger: str = None, session_id: str = None, correlation_id: str = None
+    ):
         """Log DAIC mode transitions for analytics
 
         FIX #5: Accept session_id and correlation_id as optional parameters.
@@ -526,7 +525,7 @@ class DAICStateManager:
             "to_mode": to_mode,
             "trigger": trigger,
             "session_id": session_id or unified_state.get("session_id"),
-            "correlation_id": correlation_id or unified_state.get("correlation_id")
+            "correlation_id": correlation_id or unified_state.get("correlation_id"),
         }
 
         # Note: DAIC transitions are captured by event_store.py hooks automatically

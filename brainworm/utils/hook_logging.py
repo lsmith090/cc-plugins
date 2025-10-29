@@ -34,8 +34,8 @@ class HookLogger:
         """
         self.project_root = project_root
         self.hook_name = hook_name
-        self.logs_dir = project_root / '.brainworm' / 'logs'
-        self.log_file = self.logs_dir / f'{hook_name}.jsonl'
+        self.logs_dir = project_root / ".brainworm" / "logs"
+        self.log_file = self.logs_dir / f"{hook_name}.jsonl"
 
         # Ensure logs directory exists
         self._ensure_logs_dir()
@@ -47,9 +47,9 @@ class HookLogger:
         except (OSError, PermissionError) as e:
             print(f"[WARNING] Could not create logs directory: {e}", file=sys.stderr)
 
-    def log_event(self, event_data: Dict[str, Any],
-                  additional_context: Optional[Dict[str, Any]] = None,
-                  debug: bool = False) -> bool:
+    def log_event(
+        self, event_data: Dict[str, Any], additional_context: Optional[Dict[str, Any]] = None, debug: bool = False
+    ) -> bool:
         """
         Log an event to the JSONL file.
 
@@ -74,10 +74,10 @@ class HookLogger:
             # Enrich the data with timestamp and context
             enriched_data = {
                 **event_data,
-                'logged_at': datetime.now(timezone.utc).isoformat(),  # Use UTC timezone
-                'working_directory': str(Path.cwd()),
-                'hook_name': self.hook_name,
-                'project_root': str(self.project_root)
+                "logged_at": datetime.now(timezone.utc).isoformat(),  # Use UTC timezone
+                "working_directory": str(Path.cwd()),
+                "hook_name": self.hook_name,
+                "project_root": str(self.project_root),
             }
 
             # Add additional context if provided
@@ -88,8 +88,8 @@ class HookLogger:
                 print(f"[DEBUG] Writing to log file: {self.log_file}", file=sys.stderr)
 
             # Append to JSONL file
-            with open(self.log_file, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(enriched_data, ensure_ascii=False) + '\n')
+            with open(self.log_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(enriched_data, ensure_ascii=False) + "\n")
 
             if debug:
                 print(f"[DEBUG] {self.hook_name} event logged successfully", file=sys.stderr)
@@ -115,22 +115,21 @@ class HookLogger:
         """
         # Extract tool information
         tool_info = {
-            'tool_name': input_data.get('tool_name', 'unknown'),
-            'session_id': input_data.get('session_id', 'unknown'),
-            'has_tool_input': 'tool_input' in input_data,
-            'has_tool_response': 'tool_response' in input_data
+            "tool_name": input_data.get("tool_name", "unknown"),
+            "session_id": input_data.get("session_id", "unknown"),
+            "has_tool_input": "tool_input" in input_data,
+            "has_tool_response": "tool_response" in input_data,
         }
 
         # Add file path information for file-related tools
-        if tool_input := input_data.get('tool_input', {}):
-            if file_path := tool_input.get('file_path'):
-                tool_info['file_path'] = file_path
-                tool_info['is_documentation'] = self._is_documentation_file(file_path)
+        if tool_input := input_data.get("tool_input", {}):
+            if file_path := tool_input.get("file_path"):
+                tool_info["file_path"] = file_path
+                tool_info["is_documentation"] = self._is_documentation_file(file_path)
 
         return self.log_event(input_data, tool_info, debug)
 
-    def log_stop_event(self, input_data: Dict[str, Any],
-                      agent_type: str = 'main', debug: bool = False) -> bool:
+    def log_stop_event(self, input_data: Dict[str, Any], agent_type: str = "main", debug: bool = False) -> bool:
         """
         Log a stop event with project-specific enrichment.
 
@@ -143,9 +142,9 @@ class HookLogger:
             bool: True if logging succeeded
         """
         stop_info = {
-            'agent_type': agent_type,
-            'session_id': input_data.get('session_id', 'unknown'),
-            'stop_hook_active': input_data.get('stop_hook_active', False)
+            "agent_type": agent_type,
+            "session_id": input_data.get("session_id", "unknown"),
+            "stop_hook_active": input_data.get("stop_hook_active", False),
         }
 
         return self.log_event(input_data, stop_info, debug)
@@ -155,7 +154,7 @@ class HookLogger:
         if not file_path:
             return False
 
-        doc_indicators = ['/docs/', '/documentation/', 'README.md', 'CLAUDE.md', '.md']
+        doc_indicators = ["/docs/", "/documentation/", "README.md", "CLAUDE.md", ".md"]
         return any(indicator in file_path for indicator in doc_indicators)
 
     def get_log_stats(self) -> Dict[str, Any]:
@@ -166,25 +165,25 @@ class HookLogger:
             Dict with log statistics
         """
         stats = {
-            'log_file': str(self.log_file),
-            'exists': self.log_file.exists(),
-            'size_bytes': 0,
-            'line_count': 0,
-            'last_modified': None
+            "log_file": str(self.log_file),
+            "exists": self.log_file.exists(),
+            "size_bytes": 0,
+            "line_count": 0,
+            "last_modified": None,
         }
 
         if self.log_file.exists():
             try:
                 stat = self.log_file.stat()
-                stats['size_bytes'] = stat.st_size
-                stats['last_modified'] = datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat()
+                stats["size_bytes"] = stat.st_size
+                stats["last_modified"] = datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat()
 
                 # Count lines
-                with open(self.log_file, 'r', encoding='utf-8') as f:
-                    stats['line_count'] = sum(1 for _ in f)
+                with open(self.log_file, "r", encoding="utf-8") as f:
+                    stats["line_count"] = sum(1 for _ in f)
 
             except (OSError, PermissionError) as e:
-                stats['error'] = str(e)
+                stats["error"] = str(e)
 
         return stats
 
@@ -203,8 +202,7 @@ def create_logger(project_root: Path, hook_name: str) -> HookLogger:
     return HookLogger(project_root, hook_name)
 
 
-def log_quick_event(project_root: Path, hook_name: str,
-                   event_data: Dict[str, Any], debug: bool = False) -> bool:
+def log_quick_event(project_root: Path, hook_name: str, event_data: Dict[str, Any], debug: bool = False) -> bool:
     """
     Quick logging function for simple events.
 
@@ -221,19 +219,16 @@ def log_quick_event(project_root: Path, hook_name: str,
     return logger.log_event(event_data, debug=debug)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Test the logging utilities
     from pathlib import Path
 
     # Create test logger
     test_root = Path.cwd()
-    logger = create_logger(test_root, 'test_hook')
+    logger = create_logger(test_root, "test_hook")
 
     # Test logging
-    test_data = {
-        'test_event': True,
-        'message': 'Testing generic hook logger'
-    }
+    test_data = {"test_event": True, "message": "Testing generic hook logger"}
 
     success = logger.log_event(test_data, debug=True)
     print(f"Logging {'succeeded' if success else 'failed'}")

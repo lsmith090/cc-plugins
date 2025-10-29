@@ -7,6 +7,7 @@
 # ]
 # ///
 """API mode control script for brainworm."""
+
 # Add plugin root to sys.path before any utils imports
 import sys
 from pathlib import Path
@@ -31,12 +32,13 @@ def toggle_api_mode() -> None:
         # Use file locking to prevent race conditions in read-modify-write
         try:
             from filelock import FileLock
-            lock_file = config_file.parent / '.config.lock'
+
+            lock_file = config_file.parent / ".config.lock"
             lock = FileLock(str(lock_file), timeout=10)
 
             with lock:
                 # Load existing config while holding lock
-                with open(config_file, 'rb') as f:
+                with open(config_file, "rb") as f:
                     config = tomllib.load(f)
 
                 # Get current API mode setting (default False)
@@ -47,13 +49,13 @@ def toggle_api_mode() -> None:
                 config["api_mode"] = new_api_mode
 
                 # Write back to file while still holding lock
-                with open(config_file, 'wb') as f:
+                with open(config_file, "wb") as f:
                     tomli_w.dump(config, f)
 
                 print(f"API mode toggled: {current_api_mode} → {new_api_mode}")
         except ImportError:
             # Fallback without locking (race condition possible but rare)
-            with open(config_file, 'rb') as f:
+            with open(config_file, "rb") as f:
                 config = tomllib.load(f)
 
             current_api_mode = config.get("api_mode", False)
@@ -61,7 +63,7 @@ def toggle_api_mode() -> None:
 
             config["api_mode"] = new_api_mode
 
-            with open(config_file, 'wb') as f:
+            with open(config_file, "wb") as f:
                 tomli_w.dump(config, f)
 
             print(f"API mode toggled: {current_api_mode} → {new_api_mode}")

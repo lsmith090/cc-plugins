@@ -31,7 +31,7 @@ def pytest_configure(config):
     """Configure pytest with custom settings."""
     # Performance benchmarking is controlled by command line option
     # Do not force benchmark_only mode unless explicitly requested
-    
+
     # Create test output directories
     test_dir = Path(__file__).parent
     (test_dir / "coverage").mkdir(exist_ok=True)
@@ -45,7 +45,7 @@ def pytest_collection_modifyitems(config, items):
         # Add markers based on test file location
         test_path = Path(item.fspath)
         relative_path = test_path.relative_to(Path(__file__).parent)
-        
+
         # Auto-mark tests based on directory
         if "unit" in relative_path.parts:
             item.add_marker(pytest.mark.unit)
@@ -130,19 +130,19 @@ def installed_hooks_project(mock_claude_project, brainworm_dir) -> Path:
     project_dir = mock_claude_project
     templates_dir = brainworm_dir / "hooks"
     hooks_dir = project_dir / ".claude" / "hooks"
-    
+
     # Copy hook templates to project
     hook_files = [
         "stop.py", "pre_tool_use.py", "post_tool_use.py",
         "session_start.py", "user_prompt_submit.py", "pre_compact.py",
         "notification.py", "subagent_stop.py", "settings.json"
     ]
-    
+
     for hook_file in hook_files:
         source = templates_dir / hook_file
         if source.exists():
             shutil.copy2(source, hooks_dir / hook_file)
-    
+
     return project_dir
 
 
@@ -154,7 +154,7 @@ def installed_hooks_project(mock_claude_project, brainworm_dir) -> Path:
 def temp_db(temp_dir) -> Path:
     """Create a temporary SQLite database for testing."""
     db_path = temp_dir / "test.db"
-    
+
     # Create basic analytics schema
     conn = sqlite3.connect(db_path)
     conn.execute("""
@@ -178,7 +178,7 @@ def temp_db(temp_dir) -> Path:
         CREATE INDEX IF NOT EXISTS idx_hook_name ON hook_events(hook_name);
     """)
     conn.close()
-    
+
     return db_path
 
 
@@ -186,7 +186,7 @@ def temp_db(temp_dir) -> Path:
 def analytics_db_with_data(temp_db) -> Path:
     """Create a database with sample analytics data."""
     conn = sqlite3.connect(temp_db)
-    
+
     # Insert sample data
     sample_events = [
         {
@@ -210,13 +210,13 @@ def analytics_db_with_data(temp_db) -> Path:
             })
         }
     ]
-    
+
     for event in sample_events:
         conn.execute(
             "INSERT INTO hook_events (timestamp_ns, session_id, correlation_id, hook_name, event_data) VALUES (?, ?, ?, ?, ?)",
             (event["timestamp_ns"], event["session_id"], event["correlation_id"], event["hook_name"], event["event_data"])
         )
-    
+
     conn.commit()
     conn.close()
     return temp_db
@@ -260,7 +260,7 @@ def sample_session_data() -> List[Dict[str, Any]]:
     """Sample session with multiple events."""
     session_id = "test-session-456"
     correlation_id = "test-correlation-456"
-    
+
     return [
         {
             "hook_name": "session_start",
@@ -344,11 +344,11 @@ def mock_hook_environment(monkeypatch, temp_dir):
     """Set up mock environment for hook testing."""
     # Mock environment variables
     monkeypatch.setenv("CLAUDE_PROJECT_ROOT", str(temp_dir))
-    
+
     # Mock stdin for hook input
     mock_stdin = Mock()
     monkeypatch.setattr("sys.stdin", mock_stdin)
-    
+
     # Mock datetime for consistent timestamps
     fixed_time = datetime(2024, 1, 1, 12, 0, 0)
     with patch("datetime.datetime") as mock_datetime:
@@ -426,7 +426,7 @@ def assert_hook_output():
         """Assert that hook output has expected format."""
         if expected_fields is None:
             expected_fields = ["timestamp_ns", "session_id", "hook_name"]
-        
+
         try:
             data = json.loads(output)
             for field in expected_fields:
@@ -434,7 +434,7 @@ def assert_hook_output():
             return data
         except json.JSONDecodeError as e:
             pytest.fail(f"Hook output is not valid JSON: {e}")
-    
+
     return _assert_hook_output
 
 
@@ -445,7 +445,7 @@ def create_test_session():
         """Create a test session with specified number of events."""
         events = []
         base_time = 1640995200000000000  # 2022-01-01
-        
+
         for i in range(num_events):
             events.append({
                 "timestamp_ns": base_time + (i * 1000000000),  # 1 second apart
@@ -457,9 +457,9 @@ def create_test_session():
                     "data": f"test data {i}"
                 })
             })
-        
+
         return events
-    
+
     return _create_session
 
 
@@ -471,13 +471,13 @@ def create_test_session():
 def cleanup_test_files():
     """Automatically cleanup test files after each test."""
     yield
-    
+
     # Cleanup any temporary files in current directory
     test_files = [
         "test.db", "test.log", "test_output.json",
         ".test_cache", "pytest_cache"
     ]
-    
+
     for filename in test_files:
         if os.path.exists(filename):
             if os.path.isdir(filename):

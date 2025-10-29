@@ -35,24 +35,24 @@ class TestPreToolUseDecisionOutput:
     CRITICAL: Test PreToolUseDecisionOutput Claude Code compliance
     This is the primary Claude Code integration point for tool blocking/approval
     """
-    
+
     def test_pretool_decision_output_claude_code_compliance_approve(self):
         """Test PreToolUseDecisionOutput generates Claude Code compliant JSON for approval"""
         decision = PreToolUseDecisionOutput.approve("Test approval", "session-123")
         result = decision.to_dict()
-        
+
         # Required Claude Code structure
         assert result['continue'] is True
         assert result['stopReason'] == 'Test approval'
         assert 'hookSpecificOutput' in result
-        
+
         # CRITICAL: Test the hookEventName field that was previously missing
         hook_output = result['hookSpecificOutput']
         assert 'hookEventName' in hook_output, "Missing hookEventName field breaks Claude Code integration"
         assert hook_output['hookEventName'] == 'PreToolUse'
         assert hook_output['permissionDecision'] == 'allow'
         assert hook_output['permissionDecisionReason'] == 'Test approval'
-    
+
     def test_pretool_decision_output_claude_code_compliance_block(self):
         """Test PreToolUseDecisionOutput blocking decision format"""
         validation_issues = ["Tool blocked by DAIC workflow", "Discussion mode active"]
@@ -62,94 +62,94 @@ class TestPreToolUseDecisionOutput:
             session_id="session-456",
             suppress_output=True
         )
-        
+
         result = decision.to_dict()
-        
+
         # Blocking response structure
         assert result['continue'] is False
         assert result['suppressOutput'] is True
         assert result['stopReason'] == "DAIC workflow prevents implementation tools in discussion mode"
-        
+
         # Hook-specific output for blocking
         hook_output = result['hookSpecificOutput']
         assert hook_output['permissionDecision'] == 'deny'
         assert hook_output['hookEventName'] == 'PreToolUse'
         assert hook_output['permissionDecisionReason'] == "DAIC workflow prevents implementation tools in discussion mode"
-        
+
         # Validation issues should be normalized
         assert len(decision.validation_issues) == 2
         assert all('message' in issue for issue in decision.validation_issues)
-    
+
     def test_pretool_factory_method_approve(self):
         """Test approve() factory method"""
         approval = PreToolUseDecisionOutput.approve("Approved for implementation")
-        
+
         assert approval.continue_ is True
         assert approval.stop_reason == "Approved for implementation"
         assert approval.validation_issues == []
         assert approval.suppress_output is None
         assert approval.system_message is None
-    
+
     def test_pretool_factory_method_block_string_issues(self):
         """Test block() factory with string validation issues"""
         block_decision = PreToolUseDecisionOutput.block(
-            "Blocked", 
+            "Blocked",
             ["Issue 1", "Issue 2", "Issue 3"]
         )
-        
+
         assert block_decision.continue_ is False
         assert block_decision.stop_reason == "Blocked"
         assert len(block_decision.validation_issues) == 3
-        
+
         # All issues should be normalized to dict format
         for issue in block_decision.validation_issues:
             assert isinstance(issue, dict)
             assert 'message' in issue
-    
+
     def test_pretool_factory_method_block_dict_issues(self):
         """Test block() factory with dict validation issues"""
         block_decision = PreToolUseDecisionOutput.block(
             "Blocked",
             [
-                {'message': 'Error 1', 'code': 'E001'}, 
+                {'message': 'Error 1', 'code': 'E001'},
                 {'message': 'Error 2'},
                 {'detail': 'Custom detail', 'severity': 'high'}
             ]
         )
-        
+
         assert len(block_decision.validation_issues) == 3
         assert block_decision.validation_issues[0]['code'] == 'E001'
         assert block_decision.validation_issues[1]['message'] == 'Error 2'
         # Dict issues should be preserved as-is
         assert 'detail' in block_decision.validation_issues[2]
-    
+
     def test_pretool_edge_cases_minimal_approval(self):
         """Test minimal approval without reason"""
         minimal = PreToolUseDecisionOutput.approve()
         result = minimal.to_dict()
-        
+
         assert result['continue'] is True
         assert 'stopReason' not in result or result['stopReason'] is None
-        
+
         # Hook output should still be present and valid
         assert 'hookSpecificOutput' in result
         assert result['hookSpecificOutput']['hookEventName'] == 'PreToolUse'
         assert result['hookSpecificOutput']['permissionDecision'] == 'allow'
-    
+
     def test_pretool_edge_cases_empty_validation_issues(self):
         """Test blocking with empty validation issues"""
         empty_block = PreToolUseDecisionOutput.block("Blocked", [])
-        
+
         assert empty_block.validation_issues == []
         assert empty_block.continue_ is False
-        
+
         result = empty_block.to_dict()
         assert result['hookSpecificOutput']['permissionDecision'] == 'deny'
-    
+
     def test_pretool_edge_cases_mixed_validation_issues(self):
         """Test mixed validation issue types"""
         mixed_issues = PreToolUseDecisionOutput.block(
-            "Mixed issues", 
+            "Mixed issues",
             [
                 "String issue",
                 {'message': 'Dict issue'},
@@ -157,12 +157,12 @@ class TestPreToolUseDecisionOutput:
                 {'detail': 'Detail only', 'code': 404}
             ]
         )
-        
+
         assert len(mixed_issues.validation_issues) == 4
-        
+
         # First should be converted to dict
         assert mixed_issues.validation_issues[0]['message'] == "String issue"
-        
+
         # Others should be preserved as dicts
         assert mixed_issues.validation_issues[1]['message'] == 'Dict issue'
         assert mixed_issues.validation_issues[2]['custom'] == 'field'
@@ -171,7 +171,7 @@ class TestPreToolUseDecisionOutput:
 
 class TestToolResponse:
     """Test ToolResponse camelCase field mapping and serialization"""
-    
+
     def test_tool_response_serialization_all_fields(self):
         """Test ToolResponse camelCase field mapping with all fields"""
         response = ToolResponse(
@@ -182,9 +182,9 @@ class TestToolResponse:
             structuredPatch=[{'op': 'replace', 'path': '/line/1', 'value': 'new'}],
             type="file_edit"
         )
-        
+
         result = response.to_dict()
-        
+
         # Verify camelCase preservation (Claude Code requirement)
         assert result['filePath'] == "/test/file.py"
         assert result['oldString'] == "old code"
@@ -193,7 +193,7 @@ class TestToolResponse:
         assert result['type'] == "file_edit"
         assert isinstance(result['structuredPatch'], list)
         assert result['structuredPatch'][0]['op'] == 'replace'
-    
+
     def test_tool_response_parse_roundtrip_consistency(self):
         """HIGH RISK: Test roundtrip consistency"""
         original_data = {
@@ -204,25 +204,25 @@ class TestToolResponse:
             'extra_field': 'preserved',
             'nested': {'data': {'deep': 'value'}}
         }
-        
+
         # Execute: Parse and re-serialize
         parsed = ToolResponse.parse(original_data)
         reserialized = parsed.to_dict()
-        
+
         # Verify roundtrip consistency
         assert reserialized['filePath'] == original_data['filePath']
         assert reserialized['oldString'] == original_data['oldString']
         assert reserialized['newString'] == original_data['newString']
         assert reserialized['extra_field'] == original_data['extra_field']
         assert reserialized['nested']['data']['deep'] == 'value'
-    
+
     def test_tool_response_optional_fields(self):
         """Test ToolResponse with optional field handling"""
         # Test minimal response
         minimal = ToolResponse()
         result = minimal.to_dict()
         assert result == {}
-        
+
         # Test partial response
         partial = ToolResponse(filePath="/test/file.py", type="write")
         result = partial.to_dict()
@@ -231,14 +231,14 @@ class TestToolResponse:
         assert 'newString' not in result
         assert result['filePath'] == "/test/file.py"
         assert result['type'] == "write"
-    
+
     def test_tool_response_parse_invalid_data(self):
         """Test parsing invalid data"""
         assert ToolResponse.parse("invalid") is None
         assert ToolResponse.parse(None) is None
         assert ToolResponse.parse([]) is None
         assert ToolResponse.parse(123) is None
-    
+
     def test_tool_response_parse_empty_dict(self):
         """Test parsing empty dict"""
         result = ToolResponse.parse({})
@@ -249,7 +249,7 @@ class TestToolResponse:
 
 class TestOutputResponseTypes:
     """Test other output response types"""
-    
+
     def test_hook_specific_output_serialization(self):
         """Test HookSpecificOutput serialization"""
         # Test with all fields
@@ -258,32 +258,32 @@ class TestOutputResponseTypes:
             additionalContext="Test context with Unicode: 🚀",
             metadata={"key": "value", "nested": {"data": True, "count": 42}}
         )
-        
+
         result = output.to_dict()
         assert result['hookEventName'] == "TestEvent"
         assert result['additionalContext'] == "Test context with Unicode: 🚀"
         assert result['metadata']['nested']['data'] is True
         assert result['metadata']['nested']['count'] == 42
-        
+
         # Test minimal output
         minimal = HookSpecificOutput(hookEventName="MinimalEvent")
         result = minimal.to_dict()
         assert result == {"hookEventName": "MinimalEvent"}
-    
+
     def test_user_prompt_context_response_factory(self):
         """Test UserPromptContextResponse factory method"""
         response = UserPromptContextResponse.create_context(
             "Test context with special chars: <>&\"'",
             {"debug": "info", "level": "verbose"}
         )
-        
+
         result = response.to_dict()
         assert 'hookSpecificOutput' in result
         assert result['hookSpecificOutput']['hookEventName'] == "UserPromptSubmit"
         assert result['hookSpecificOutput']['additionalContext'] == "Test context with special chars: <>&\"'"
         assert result['debug']['debug'] == "info"
         assert result['debug']['level'] == "verbose"
-    
+
     def test_user_prompt_context_response_manual(self):
         """Test manual UserPromptContextResponse construction"""
         manual = UserPromptContextResponse(
@@ -294,11 +294,11 @@ class TestOutputResponseTypes:
             debug={"test": "data"}
         )
         result = manual.to_dict()
-        
+
         assert result['hookSpecificOutput']['hookEventName'] == "Custom"
         assert result['hookSpecificOutput']['additionalContext'] == "Manual context"
         assert result['debug']['test'] == "data"
-    
+
     def test_session_correlation_response(self):
         """Test SessionCorrelationResponse serialization"""
         response = SessionCorrelationResponse(
@@ -307,7 +307,7 @@ class TestOutputResponseTypes:
             correlation_id="corr-456",
             timestamp="2025-09-08T00:00:00Z"
         )
-        
+
         result = response.to_dict()
         expected = {
             "success": True,
@@ -316,7 +316,7 @@ class TestOutputResponseTypes:
             "timestamp": "2025-09-08T00:00:00Z"
         }
         assert result == expected
-    
+
     def test_daic_mode_result_with_trigger(self):
         """Test DAICModeResult with trigger phrase"""
         with_trigger = DAICModeResult(
@@ -326,13 +326,13 @@ class TestOutputResponseTypes:
             timestamp="2025-09-08T00:00:00Z",
             trigger="make it so"
         )
-        
+
         result = with_trigger.to_dict()
         assert result['trigger'] == "make it so"
         assert result['success'] is True
         assert result['old_mode'] == "discussion"
         assert result['new_mode'] == "implementation"
-    
+
     def test_daic_mode_result_without_trigger(self):
         """Test DAICModeResult without trigger"""
         without_trigger = DAICModeResult(
@@ -341,11 +341,11 @@ class TestOutputResponseTypes:
             new_mode="discussion",
             timestamp="2025-09-08T00:00:00Z"
         )
-        
+
         result = without_trigger.to_dict()
         assert 'trigger' not in result
         assert result['success'] is False
-    
+
     def test_tool_analysis_result(self):
         """Test ToolAnalysisResult serialization"""
         analysis = ToolAnalysisResult(
@@ -354,7 +354,7 @@ class TestOutputResponseTypes:
             execution_metrics={"duration_ms": 150, "memory_mb": 25, "cpu_percent": 12.5},
             risk_factors=["high_memory", "long_duration", "security_concern"]
         )
-        
+
         result = analysis.to_dict()
         assert result['success'] is False
         assert result['error_info']['code'] == "E001"
@@ -367,7 +367,7 @@ class TestOutputResponseTypes:
 
 class TestUniversalSerialization:
     """Test to_json_serializable() recursive conversion - HIGH RISK for performance and correctness"""
-    
+
     def test_to_json_serializable_complex_nested_object(self):
         """Test recursive conversion of complex nested structures"""
         # Create complex nested object with multiple response types
@@ -397,14 +397,14 @@ class TestUniversalSerialization:
                 "simple_data": {"key": "value", "number": 42}
             }
         )
-        
+
         # Execute: Convert to JSON serializable
         result = to_json_serializable(complex_obj)
-        
+
         # Verify recursive conversion
         assert isinstance(result, dict)
         assert 'hookSpecificOutput' in result
-        
+
         # Note: UserPromptContextResponse.to_dict() doesn't recursively process debug field
         # This is actually a potential improvement area - nested objects in debug aren't converted
         assert isinstance(result['debug']['nested_response'], SessionCorrelationResponse)
@@ -413,19 +413,19 @@ class TestUniversalSerialization:
         assert isinstance(result['debug']['list_data'][0], ToolAnalysisResult)
         assert isinstance(result['debug']['list_data'][1], DAICModeResult)
         assert result['debug']['simple_data']['number'] == 42
-        
+
         # The to_dict() result contains nested objects, so we need to_json_serializable for full conversion
         fully_serialized = to_json_serializable(result)
-        
+
         # Now nested objects should be fully converted
         assert isinstance(fully_serialized['debug']['nested_response'], dict)
         assert fully_serialized['debug']['nested_response']['success'] is True
         assert isinstance(fully_serialized['debug']['list_data'][0], dict)
-        
+
         # Should be JSON serializable
         json_str = json.dumps(fully_serialized)
         assert isinstance(json_str, str)
-    
+
     def test_to_json_serializable_edge_cases(self):
         """Test edge cases with primitive and empty types"""
         # Primitive types should pass through unchanged
@@ -435,11 +435,11 @@ class TestUniversalSerialization:
         assert to_json_serializable(True) is True
         assert to_json_serializable(False) is False
         assert to_json_serializable(None) is None
-        
+
         # Empty collections
         assert to_json_serializable([]) == []
         assert to_json_serializable({}) == {}
-        
+
         # Mixed collections with objects
         mixed = [
             HookSpecificOutput(hookEventName="Test"),
@@ -449,14 +449,14 @@ class TestUniversalSerialization:
             None
         ]
         result = to_json_serializable(mixed)
-        
+
         assert isinstance(result[0], dict)
         assert result[0]['hookEventName'] == "Test"
         assert result[1]['key'] == "value"
         assert result[2] == "string"
         assert result[3] == 123
         assert result[4] is None
-    
+
     def test_to_json_serializable_actual_json_compatibility(self):
         """HIGH RISK: Test output is actually JSON serializable"""
         # Create object with challenging data types
@@ -472,10 +472,10 @@ class TestUniversalSerialization:
                 "array": [1, 2, 3, None, True, False]
             }
         )
-        
+
         # Convert and test JSON serialization
         result = to_json_serializable(complex_response)
-        
+
         # Should be able to serialize to JSON (handling inf appropriately)
         try:
             json_str = json.dumps(result)
@@ -492,38 +492,38 @@ class TestUniversalSerialization:
 
 class TestClaudeCodeSpecificationCompliance:
     """Integration tests for Claude Code specification compliance - CRITICAL"""
-    
+
     def test_claude_code_specification_compliance_complete(self):
         """Test complete Claude Code specification compliance"""
         # Test approval response
         approval = PreToolUseDecisionOutput.approve("Approved by DAIC workflow")
         approval_json = approval.to_dict()
-        
+
         # Verify required fields per Claude Code spec
         required_fields = ['continue', 'hookSpecificOutput']
         for field in required_fields:
             assert field in approval_json, f"Missing required Claude Code field: {field}"
-        
+
         # Verify hookSpecificOutput structure
         hook_output = approval_json['hookSpecificOutput']
         assert 'hookEventName' in hook_output, "Missing hookEventName breaks Claude Code integration"
         assert hook_output['hookEventName'] == 'PreToolUse'
         assert 'permissionDecision' in hook_output
-        
+
         # Test blocking response compliance
         blocking = PreToolUseDecisionOutput.block(
             "Blocked by workflow",
             ["Validation error with Unicode: 🚫"]
         )
         blocking_json = blocking.to_dict()
-        
+
         assert blocking_json['continue'] is False
         assert blocking_json['hookSpecificOutput']['permissionDecision'] == 'deny'
-        
+
         # Should be JSON serializable
         json.dumps(approval_json)
         json.dumps(blocking_json)
-    
+
     def test_serialization_roundtrip_consistency_all_types(self):
         """Test serialization roundtrip consistency across all output types"""
         test_objects = [
@@ -533,17 +533,17 @@ class TestClaudeCodeSpecificationCompliance:
             DAICModeResult(True, "old", "new", "2025-09-08T00:00:00Z", "trigger"),
             ToolAnalysisResult(True, {}, {"time": 100}, [])
         ]
-        
+
         for obj in test_objects:
             # Serialize to dict
             serialized = obj.to_dict()
-            
+
             # Verify it's JSON serializable
             json_str = json.dumps(serialized)
-            
+
             # Verify we can deserialize back
             parsed_back = json.loads(json_str)
-            
+
             # Basic structure should be preserved
             assert isinstance(parsed_back, dict)
 

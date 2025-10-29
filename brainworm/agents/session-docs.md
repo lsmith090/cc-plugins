@@ -30,7 +30,7 @@ cat "$(pwd)/.brainworm/state/session-docs/service_context.json"
 
 **For Multi-Service Projects:**
 - **Service-Focused Memories**: Create session docs specific to current service context
-- **Cross-Service Activities**: Document when session work spans multiple services  
+- **Cross-Service Activities**: Document when session work spans multiple services
 - **Service Integration Points**: Capture discoveries about service interactions
 - **Service-Relative References**: Use service-specific file paths in documentation
 
@@ -72,7 +72,7 @@ Run these commands to understand current development state:
 ```bash
 # Check repository status
 git status
-git log --oneline -10  
+git log --oneline -10
 git branch --show-current
 
 # Check for uncommitted changes
@@ -186,7 +186,7 @@ Create the memory file using this EXACT template:
 
 **YOU MUST NEVER:**
 - Edit any files in `.brainworm/state/` directories
-- Modify session state files or DAIC workflow files  
+- Modify session state files or DAIC workflow files
 - Run git commands that change repository state (commit, add, push, etc.)
 - Edit task files in `.brainworm/tasks/`
 - Modify hook configuration or system files

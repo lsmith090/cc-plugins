@@ -71,7 +71,7 @@ cat "$(pwd)/.brainworm/state/context-refinement/service_context.json"
       # IMPORTANT: Use absolute paths from project root (pwd)
       cat "$(pwd)/.brainworm/state/context-refinement/current_transcript_"*.json
       ```
-   
+
    The transcript files contain processed conversation chunks with the full conversation history that led to this point. Each file contains a cleaned transcript segment with messages in `{role: "user"|"assistant", content: [...]}` format.
 
 2. **Analyze for Drift or Discoveries**
@@ -91,17 +91,17 @@ cat "$(pwd)/.brainworm/state/context-refinement/service_context.json"
 
 4. **Update Format** (ONLY if needed)
    Append to the existing Context Manifest:
-   
+
    ```markdown
    ### Discovered During Implementation
    [Date: YYYY-MM-DD / Session marker]
-   
+
    [NARRATIVE explanation of what was discovered]
-   
+
    During implementation, we discovered that [what was found]. This wasn't documented in the original context because [reason]. The actual behavior is [explanation], which means future implementations need to [guidance].
-   
+
    [Additional discoveries in narrative form...]
-   
+
    #### Updated Technical Details
    - [Any new signatures, endpoints, or patterns discovered]
    - [Updated understanding of data flows]

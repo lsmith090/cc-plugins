@@ -26,11 +26,13 @@ from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 @dataclass
 class FileManagerConfig:
     """Configuration for file management operations"""
+
     backup_count: int = 5
     create_parents: bool = True
     atomic_writes: bool = True
@@ -39,6 +41,7 @@ class FileManagerConfig:
     json_sort_keys: bool = False
     file_permissions: int = 0o644
     dir_permissions: int = 0o755
+
 
 class AtomicFileWriter:
     """
@@ -49,13 +52,15 @@ class AtomicFileWriter:
     file and atomic rename operation to achieve this.
     """
 
-    def __init__(self,
-                 file_path: Path,
-                 mode: str = 'w',
-                 encoding: str = 'utf-8',
-                 create_backup: bool = False,
-                 backup_suffix: str = '.backup',
-                 backup_count: int = 5):
+    def __init__(
+        self,
+        file_path: Path,
+        mode: str = "w",
+        encoding: str = "utf-8",
+        create_backup: bool = False,
+        backup_suffix: str = ".backup",
+        backup_count: int = 5,
+    ):
         self.file_path = file_path
         self.mode = mode
         self.encoding = encoding
@@ -100,16 +105,13 @@ class AtomicFileWriter:
         # This ensures the rename operation is atomic (same filesystem)
         # Security: temp_dir is derived from validated self.file_path.parent
         temp_dir = self.file_path.parent
-        temp_fd, temp_path = tempfile.mkstemp(
-            dir=temp_dir,
-            prefix=f".{self.file_path.name}.",
-            suffix=".tmp"
-        )
+        temp_fd, temp_path = tempfile.mkstemp(dir=temp_dir, prefix=f".{self.file_path.name}.", suffix=".tmp")
 
         self.temp_path = Path(temp_path)
 
         # Close the file descriptor and open with the requested mode
         import os
+
         os.close(temp_fd)
 
         self.file_handle = open(self.temp_path, self.mode, encoding=self.encoding)
@@ -142,10 +144,8 @@ class AtomicFileWriter:
 
     def _create_backup(self) -> Path:
         """Create a backup of the existing file and cleanup old backups"""
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-        backup_path = self.file_path.with_name(
-            f"{self.file_path.name}{self.backup_suffix}_{timestamp}"
-        )
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        backup_path = self.file_path.with_name(f"{self.file_path.name}{self.backup_suffix}_{timestamp}")
 
         try:
             shutil.copy2(self.file_path, backup_path)
@@ -169,7 +169,7 @@ class AtomicFileWriter:
             backup_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
 
             # Remove excess backups
-            for backup_file in backup_files[self.backup_count:]:
+            for backup_file in backup_files[self.backup_count :]:
                 try:
                     backup_file.unlink()
                     logger.debug(f"Removed old backup {backup_file}")
@@ -184,6 +184,7 @@ class AtomicFileWriter:
             except Exception as e:
                 logger.warning(f"Failed to clean up temp file {self.temp_path}: {e}")
 
+
 class StateFileManager:
     """
     Manager for brainworm state files with validation, atomic operations,
@@ -193,9 +194,7 @@ class StateFileManager:
     with proper error handling, validation, and atomic operations.
     """
 
-    def __init__(self,
-                 state_dir: Path,
-                 config: Optional[FileManagerConfig] = None):
+    def __init__(self, state_dir: Path, config: Optional[FileManagerConfig] = None):
         self.state_dir = state_dir
         self.config = config or FileManagerConfig()
         self._lock = threading.RLock()
@@ -204,10 +203,9 @@ class StateFileManager:
         if self.config.create_parents:
             self.state_dir.mkdir(parents=True, exist_ok=True)
 
-    def read_json_file(self,
-                      file_path: Path,
-                      default: Optional[Any] = None,
-                      validate_func: Optional[Callable[[Any], bool]] = None) -> Any:
+    def read_json_file(
+        self, file_path: Path, default: Optional[Any] = None, validate_func: Optional[Callable[[Any], bool]] = None
+    ) -> Any:
         """
         Read a JSON file with error handling and optional validation.
 
@@ -224,7 +222,7 @@ class StateFileManager:
             return default
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             # Validate data if validator provided
@@ -242,11 +240,13 @@ class StateFileManager:
             logger.warning(f"Failed to read {file_path}: {e}, returning default")
             return default
 
-    def write_json_file(self,
-                       file_path: Path,
-                       data: Any,
-                       create_backup: bool = None,
-                       validate_func: Optional[Callable[[Any], bool]] = None) -> bool:
+    def write_json_file(
+        self,
+        file_path: Path,
+        data: Any,
+        create_backup: bool = None,
+        validate_func: Optional[Callable[[Any], bool]] = None,
+    ) -> bool:
         """
         Write data to a JSON file atomically.
 
@@ -269,16 +269,10 @@ class StateFileManager:
 
         try:
             with AtomicFileWriter(
-                file_path,
-                create_backup=create_backup and file_path.exists(),
-                backup_count=self.config.backup_count
+                file_path, create_backup=create_backup and file_path.exists(), backup_count=self.config.backup_count
             ) as f:
                 json.dump(
-                    data,
-                    f,
-                    indent=self.config.json_indent,
-                    sort_keys=self.config.json_sort_keys,
-                    ensure_ascii=False
+                    data, f, indent=self.config.json_indent, sort_keys=self.config.json_sort_keys, ensure_ascii=False
                 )
 
             logger.debug(f"Successfully wrote JSON file {file_path}")
@@ -288,11 +282,13 @@ class StateFileManager:
             logger.error(f"Failed to write JSON file {file_path}: {e}")
             return False
 
-    def update_json_file(self,
-                        file_path: Path,
-                        updates: Dict[str, Any],
-                        create_if_missing: bool = True,
-                        merge_func: Optional[Callable[[Dict, Dict], Dict]] = None) -> bool:
+    def update_json_file(
+        self,
+        file_path: Path,
+        updates: Dict[str, Any],
+        create_if_missing: bool = True,
+        merge_func: Optional[Callable[[Dict, Dict], Dict]] = None,
+    ) -> bool:
         """
         Update specific fields in a JSON file atomically.
 
@@ -329,8 +325,8 @@ class StateFileManager:
                 updated_data = {**current_data, **updates}
 
             # Add timestamp
-            if 'last_updated' not in updates:  # Don't override explicit timestamp
-                updated_data['last_updated'] = datetime.now(timezone.utc).isoformat()
+            if "last_updated" not in updates:  # Don't override explicit timestamp
+                updated_data["last_updated"] = datetime.now(timezone.utc).isoformat()
 
             # Write updated data
             return self.write_json_file(file_path, updated_data)
@@ -349,7 +345,7 @@ class StateFileManager:
             logger.warning(f"Cannot backup non-existent file {file_path}")
             return None
 
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         backup_path = file_path.with_name(f"{file_path.name}.backup_{timestamp}")
 
         try:
@@ -374,7 +370,7 @@ class StateFileManager:
             backup_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
 
             # Remove excess backups
-            for backup_file in backup_files[self.config.backup_count:]:
+            for backup_file in backup_files[self.config.backup_count :]:
                 try:
                     backup_file.unlink()
                     logger.debug(f"Removed old backup {backup_file}")
@@ -414,7 +410,7 @@ class StateFileManager:
 
         try:
             # Use atomic write to restore
-            with open(backup_path, 'r', encoding='utf-8') as src:
+            with open(backup_path, "r", encoding="utf-8") as src:
                 with AtomicFileWriter(file_path) as dst:
                     dst.write(src.read())
 
@@ -425,6 +421,7 @@ class StateFileManager:
             logger.error(f"Failed to restore {file_path} from {backup_path}: {e}")
             return False
 
+
 class BrainwormStateManager(StateFileManager):
     """
     Specialized state manager for brainworm-specific state files.
@@ -434,24 +431,23 @@ class BrainwormStateManager(StateFileManager):
     """
 
     def __init__(self, project_root: Path, config: Optional[FileManagerConfig] = None):
-        state_dir = project_root / '.brainworm' / 'state'
+        state_dir = project_root / ".brainworm" / "state"
         super().__init__(state_dir, config)
         self.project_root = project_root
 
         # Common state file paths
-        self.unified_state_file = self.state_dir / 'unified_session_state.json'
-        self.correlation_state_file = self.state_dir / '.correlation_state'
-        self.daic_mode_file = self.state_dir / 'daic-mode.json'
+        self.unified_state_file = self.state_dir / "unified_session_state.json"
+        self.correlation_state_file = self.state_dir / ".correlation_state"
+        self.daic_mode_file = self.state_dir / "daic-mode.json"
 
     def read_unified_state(self) -> Dict[str, Any]:
         """Read unified session state with validation"""
+
         def validate_unified_state(data):
-            return isinstance(data, dict) and 'session_id' in data
+            return isinstance(data, dict) and "session_id" in data
 
         return self.read_json_file(
-            self.unified_state_file,
-            default=self._get_default_unified_state(),
-            validate_func=validate_unified_state
+            self.unified_state_file, default=self._get_default_unified_state(), validate_func=validate_unified_state
         )
 
     def update_unified_state(self, updates: Dict[str, Any]) -> bool:
@@ -460,17 +456,15 @@ class BrainwormStateManager(StateFileManager):
 
     def read_correlation_state(self) -> Dict[str, str]:
         """Read correlation state mapping"""
+
         def validate_correlation_state(data):
             return isinstance(data, dict)
 
-        return self.read_json_file(
-            self.correlation_state_file,
-            default={},
-            validate_func=validate_correlation_state
-        )
+        return self.read_json_file(self.correlation_state_file, default={}, validate_func=validate_correlation_state)
 
     def update_correlation_state(self, session_id: str, correlation_id: str) -> bool:
         """Update correlation mapping with cleanup of old entries"""
+
         def merge_correlations(current: Dict[str, str], updates: Dict[str, str]) -> Dict[str, str]:
             merged = {**current, **updates}
 
@@ -482,49 +476,46 @@ class BrainwormStateManager(StateFileManager):
             return merged
 
         return self.update_json_file(
-            self.correlation_state_file,
-            {session_id: correlation_id},
-            merge_func=merge_correlations
+            self.correlation_state_file, {session_id: correlation_id}, merge_func=merge_correlations
         )
 
     def read_daic_mode(self) -> Dict[str, Any]:
         """Read DAIC mode state"""
+
         def validate_daic_mode(data):
             return isinstance(data, dict)
 
         return self.read_json_file(
             self.daic_mode_file,
-            default={'mode': 'discussion', 'updated_at': datetime.now(timezone.utc).isoformat()},
-            validate_func=validate_daic_mode
+            default={"mode": "discussion", "updated_at": datetime.now(timezone.utc).isoformat()},
+            validate_func=validate_daic_mode,
         )
 
     def update_daic_mode(self, mode: str, trigger: Optional[str] = None) -> bool:
         """Update DAIC mode with validation"""
-        if mode not in ['discussion', 'implementation']:
+        if mode not in ["discussion", "implementation"]:
             logger.error(f"Invalid DAIC mode: {mode}")
             return False
 
-        updates = {
-            'mode': mode,
-            'updated_at': datetime.now(timezone.utc).isoformat()
-        }
+        updates = {"mode": mode, "updated_at": datetime.now(timezone.utc).isoformat()}
 
         if trigger:
-            updates['trigger'] = trigger
+            updates["trigger"] = trigger
 
         return self.update_json_file(self.daic_mode_file, updates)
 
     def _get_default_unified_state(self) -> Dict[str, Any]:
         """Get default unified state structure"""
         return {
-            'session_id': 'unknown',
-            'correlation_id': 'unknown',
-            'daic_mode': 'discussion',
-            'current_task': None,
-            'current_branch': None,
-            'created_at': datetime.now(timezone.utc).isoformat(),
-            'last_updated': datetime.now(timezone.utc).isoformat()
+            "session_id": "unknown",
+            "correlation_id": "unknown",
+            "daic_mode": "discussion",
+            "current_task": None,
+            "current_branch": None,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat(),
         }
+
 
 # Backward compatibility functions
 @contextmanager
@@ -542,6 +533,7 @@ def atomic_json_write(file_path: Path, create_backup: bool = False):
     with AtomicFileWriter(file_path, create_backup=create_backup) as f:
         yield f
 
+
 def safe_json_read(file_path: Path, default: Any = None) -> Any:
     """
     Safely read a JSON file with error handling (backward compatible).
@@ -555,6 +547,7 @@ def safe_json_read(file_path: Path, default: Any = None) -> Any:
     """
     manager = StateFileManager(file_path.parent)
     return manager.read_json_file(file_path, default)
+
 
 def safe_json_write(file_path: Path, data: Any, create_backup: bool = True) -> bool:
     """

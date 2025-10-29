@@ -33,14 +33,14 @@ This protocol manages context window limits in the DAIC-enhanced brainworm workf
 
 **Use logging agent to consolidate work progress:**
 ```
-Use the logging agent to consolidate and clean up the work log for the current task, 
+Use the logging agent to consolidate and clean up the work log for the current task,
 removing redundant information while preserving important progress and decisions.
 Task file: .brainworm/tasks/[current-task-name]/README.md
 ```
 
 **Use context-refinement agent for ongoing tasks:**
 ```
-Use the context-refinement agent to update the task context with any new discoveries 
+Use the context-refinement agent to update the task context with any new discoveries
 or insights from this work session before compaction.
 Task file: .brainworm/tasks/[current-task-name]/README.md
 ```
@@ -75,7 +75,7 @@ Task file: .brainworm/tasks/[current-task-name]/README.md
 
 **Update service documentation if significant discoveries:**
 ```
-Use the service-documentation agent to update relevant CLAUDE.md files 
+Use the service-documentation agent to update relevant CLAUDE.md files
 with any significant patterns or insights discovered during this session.
 ```
 

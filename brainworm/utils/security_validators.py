@@ -57,9 +57,7 @@ def validate_safe_path(path: Path, base_dir: Path, allow_symlinks: bool = False)
         try:
             resolved_path.relative_to(resolved_base)
         except ValueError:
-            raise ValueError(
-                f"Path traversal attempt detected: {path} escapes {base_dir}"
-            )
+            raise ValueError(f"Path traversal attempt detected: {path} escapes {base_dir}")
 
         return resolved_path
 
@@ -98,26 +96,24 @@ def validate_branch_name(branch_name: str, max_length: int = 255) -> str:
         raise ValueError(f"Branch name too long (max {max_length} characters)")
 
     # Check for shell metacharacters that could enable command injection
-    dangerous_chars = [';', '&', '|', '$', '`', '(', ')', '<', '>', '\n', '\r', '\\', '"', "'"]
+    dangerous_chars = [";", "&", "|", "$", "`", "(", ")", "<", ">", "\n", "\r", "\\", '"', "'"]
     for char in dangerous_chars:
         if char in branch_name:
-            raise ValueError(
-                f"Invalid branch name: contains dangerous character '{char}'"
-            )
+            raise ValueError(f"Invalid branch name: contains dangerous character '{char}'")
 
     # Git branch name rules
     # See: https://git-scm.com/docs/git-check-ref-format
     invalid_patterns = [
-        r'^/',              # Cannot start with /
-        r'/$',              # Cannot end with /
-        r'//',              # Cannot contain //
-        r'@{',              # Cannot contain @{
-        r'\.\.',            # Cannot contain ..
-        r'\.lock$',         # Cannot end with .lock
-        r'^\.',             # Cannot start with .
-        r'\.$',             # Cannot end with .
-        r'[\x00-\x1f\x7f]', # No control characters
-        r'[ \t]',           # No spaces or tabs (stricter than git, but safer)
+        r"^/",  # Cannot start with /
+        r"/$",  # Cannot end with /
+        r"//",  # Cannot contain //
+        r"@{",  # Cannot contain @{
+        r"\.\.",  # Cannot contain ..
+        r"\.lock$",  # Cannot end with .lock
+        r"^\.",  # Cannot start with .
+        r"\.$",  # Cannot end with .
+        r"[\x00-\x1f\x7f]",  # No control characters
+        r"[ \t]",  # No spaces or tabs (stricter than git, but safer)
     ]
 
     for pattern in invalid_patterns:
@@ -127,8 +123,9 @@ def validate_branch_name(branch_name: str, max_length: int = 255) -> str:
     return branch_name
 
 
-def validate_identifier(identifier: str, max_length: int = 100,
-                       allow_hyphen: bool = True, allow_underscore: bool = True) -> str:
+def validate_identifier(
+    identifier: str, max_length: int = 100, allow_hyphen: bool = True, allow_underscore: bool = True
+) -> str:
     """
     Validate an identifier (service name, task name, etc.) for safe use.
 
@@ -151,12 +148,12 @@ def validate_identifier(identifier: str, max_length: int = 100,
         raise ValueError(f"Identifier too long (max {max_length} characters)")
 
     # Build allowed character pattern
-    pattern = r'^[a-zA-Z0-9'
+    pattern = r"^[a-zA-Z0-9"
     if allow_hyphen:
-        pattern += r'\-'
+        pattern += r"\-"
     if allow_underscore:
-        pattern += r'_'
-    pattern += r']+$'
+        pattern += r"_"
+    pattern += r"]+$"
 
     if not re.match(pattern, identifier):
         raise ValueError(
@@ -188,7 +185,7 @@ def sanitize_for_display(text: str, max_length: int = 500) -> str:
         return ""
 
     # Remove control characters except newline and tab
-    sanitized = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    sanitized = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
 
     # Truncate if too long
     if len(sanitized) > max_length:
@@ -215,10 +212,7 @@ def validate_file_extension(path: Path, allowed_extensions: list[str]) -> Path:
     allowed_lower = [ext.lower() for ext in allowed_extensions]
 
     if extension not in allowed_lower:
-        raise ValueError(
-            f"Invalid file extension: {extension}. "
-            f"Allowed: {', '.join(allowed_extensions)}"
-        )
+        raise ValueError(f"Invalid file extension: {extension}. " f"Allowed: {', '.join(allowed_extensions)}")
 
     return path
 
@@ -237,7 +231,7 @@ def validate_session_id(session_id: str) -> str:
         ValueError: If session ID format is invalid
     """
     # Session IDs should be UUID format or alphanumeric with hyphens
-    if not re.match(r'^[a-zA-Z0-9\-]{8,64}$', session_id):
+    if not re.match(r"^[a-zA-Z0-9\-]{8,64}$", session_id):
         raise ValueError("Invalid session ID format")
 
     return session_id
@@ -259,15 +253,26 @@ def validate_sql_identifier(identifier: str) -> str:
         ValueError: If identifier contains dangerous characters
     """
     # SQL identifiers should only contain alphanumeric and underscores
-    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', identifier):
+    if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", identifier):
         raise ValueError(f"Invalid SQL identifier: {identifier}")
 
     if len(identifier) > 64:
         raise ValueError("SQL identifier too long")
 
     # Block SQL keywords
-    sql_keywords = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE',
-                    'ALTER', 'EXEC', 'EXECUTE', 'UNION', 'WHERE']
+    sql_keywords = [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "DROP",
+        "CREATE",
+        "ALTER",
+        "EXEC",
+        "EXECUTE",
+        "UNION",
+        "WHERE",
+    ]
     if identifier.upper() in sql_keywords:
         raise ValueError(f"SQL keyword not allowed as identifier: {identifier}")
 

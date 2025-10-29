@@ -71,7 +71,7 @@ class SubagentContextManager:
         """Set subagent context flag with metadata."""
         try:
             self.state_dir.mkdir(parents=True, exist_ok=True)
-            with open(self.subagent_flag, 'w') as f:
+            with open(self.subagent_flag, "w") as f:
                 f.write(f"{agent_type}\n{datetime.now(timezone.utc).isoformat()}")
             return True
         except Exception as e:
@@ -108,8 +108,7 @@ class DAICModeController:
         """
         if not self.state_manager or not DAICMode or not DAICModeOperationResult:
             return DAICModeOperationResult.failed_operation(
-                "MISSING_DEPENDENCIES",
-                "State manager or DAICMode not available"
+                "MISSING_DEPENDENCIES", "State manager or DAICMode not available"
             )
 
         try:
@@ -119,20 +118,14 @@ class DAICModeController:
 
             if success:
                 return DAICModeOperationResult.successful_toggle(
-                    old_mode=current_mode,
-                    new_mode=new_mode,
-                    trigger="toggle_command"
+                    old_mode=current_mode, new_mode=new_mode, trigger="toggle_command"
                 )
             else:
                 return DAICModeOperationResult.failed_operation(
-                    "SET_MODE_FAILED",
-                    f"Failed to set DAIC mode to {new_mode}"
+                    "SET_MODE_FAILED", f"Failed to set DAIC mode to {new_mode}"
                 )
         except Exception as e:
-            return DAICModeOperationResult.failed_operation(
-                "TOGGLE_EXCEPTION",
-                str(e)
-            )
+            return DAICModeOperationResult.failed_operation("TOGGLE_EXCEPTION", str(e))
 
     def set_mode(self, mode: str, trigger: str = None) -> DAICModeOperationResult:
         """Set specific DAIC mode.
@@ -142,16 +135,14 @@ class DAICModeController:
         """
         if not self.state_manager or not DAICMode or not DAICModeOperationResult:
             return DAICModeOperationResult.failed_operation(
-                "MISSING_DEPENDENCIES",
-                "State manager or DAICMode not available"
+                "MISSING_DEPENDENCIES", "State manager or DAICMode not available"
             )
 
         try:
             # Validate mode using DAICMode enum
             if not DAICMode.is_valid_mode(mode):
                 return DAICModeOperationResult.failed_operation(
-                    "INVALID_MODE",
-                    f"Invalid DAIC mode: {mode}. Must be 'discussion' or 'implementation'"
+                    "INVALID_MODE", f"Invalid DAIC mode: {mode}. Must be 'discussion' or 'implementation'"
                 )
 
             # Get current mode before changing
@@ -160,20 +151,11 @@ class DAICModeController:
             success = self.state_manager.set_daic_mode(daic_mode)
 
             if success:
-                return DAICModeOperationResult.successful_set(
-                    mode=daic_mode,
-                    trigger=trigger or "set_command"
-                )
+                return DAICModeOperationResult.successful_set(mode=daic_mode, trigger=trigger or "set_command")
             else:
-                return DAICModeOperationResult.failed_operation(
-                    "SET_MODE_FAILED",
-                    f"Failed to set DAIC mode to {mode}"
-                )
+                return DAICModeOperationResult.failed_operation("SET_MODE_FAILED", f"Failed to set DAIC mode to {mode}")
         except Exception as e:
-            return DAICModeOperationResult.failed_operation(
-                "SET_EXCEPTION",
-                str(e)
-            )
+            return DAICModeOperationResult.failed_operation("SET_EXCEPTION", str(e))
 
     def get_mode_with_display(self) -> ModeDisplayInfo:
         """Get current mode with display formatting."""
@@ -184,7 +166,7 @@ class DAICModeController:
             mode = self.state_manager.get_daic_mode()
             display_info = {
                 DAICMode.DISCUSSION: {"emoji": "💭", "color": "purple"},
-                DAICMode.IMPLEMENTATION: {"emoji": "⚡", "color": "green"}
+                DAICMode.IMPLEMENTATION: {"emoji": "⚡", "color": "green"},
             }
 
             info = display_info.get(mode, {"emoji": "❓", "color": "white"})
@@ -229,6 +211,7 @@ class SessionCorrelationController:
             if success:
                 try:
                     from .correlation_manager import CorrelationManager
+
                     corr_mgr = CorrelationManager(self.project_root)
                     corr_mgr._store_session_correlation(session_id, correlation_id)
                 except Exception as e:
@@ -272,16 +255,14 @@ class SessionCorrelationController:
 
             if len(inconsistencies) == 0:
                 return ConsistencyCheckResult.consistent_state(
-                    unified_session=unified_session,
-                    unified_correlation=unified_correlation,
-                    task_session=task_session
+                    unified_session=unified_session, unified_correlation=unified_correlation, task_session=task_session
                 )
             else:
                 return ConsistencyCheckResult.inconsistent_state(
                     inconsistencies=inconsistencies,
                     unified_session=unified_session,
                     unified_correlation=unified_correlation,
-                    task_session=task_session
+                    task_session=task_session,
                 )
 
         except Exception as e:

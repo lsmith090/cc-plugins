@@ -39,13 +39,16 @@ except ImportError:
     PreToolUseLogEvent = None
     PostToolUseLogEvent = None
     UserPromptSubmitLogEvent = None
+
     # Fallback timestamp functions
     def get_standard_timestamp():
         from datetime import datetime, timezone
+
         return datetime.now(timezone.utc).isoformat()
 
     def format_for_database(ts):
         return ts if ts else get_standard_timestamp()
+
 
 class HookEventStore:
     """Event storage system for Claude Code hooks with session correlation"""
@@ -69,14 +72,14 @@ class HookEventStore:
     def _extract_duration_ms(self, event_data: Dict[str, Any]) -> float:
         """Extract duration from various possible structures in event data"""
         # Check for direct duration_ms field first
-        if 'duration_ms' in event_data:
-            return float(event_data['duration_ms'])
+        if "duration_ms" in event_data:
+            return float(event_data["duration_ms"])
 
         # Check for nested timing structure from event data
-        if 'timing' in event_data and isinstance(event_data['timing'], dict):
-            timing_data = event_data['timing']
-            if 'execution_duration_ms' in timing_data:
-                return float(timing_data['execution_duration_ms'])
+        if "timing" in event_data and isinstance(event_data["timing"], dict):
+            timing_data = event_data["timing"]
+            if "execution_duration_ms" in timing_data:
+                return float(timing_data["execution_duration_ms"])
 
         # Default to 0 if no duration data found
         return 0.0
@@ -87,6 +90,7 @@ class HookEventStore:
             # Use connection pool if available, otherwise fallback to direct connection
             if self.db_manager:
                 from .sqlite_manager import get_hooks_sqlite_manager
+
                 manager = get_hooks_sqlite_manager()
 
                 # Use ensure_schema which handles connection pooling
@@ -153,52 +157,53 @@ class HookEventStore:
             if parse_log_event:
                 try:
                     typed_event = parse_log_event(event_data)
-                    hook_name = typed_event.hook_name or 'unknown'
+                    hook_name = typed_event.hook_name or "unknown"
                     correlation_id = typed_event.correlation_id
                     session_id = typed_event.session_id
                     self._extract_duration_ms(event_data)  # Extract from timing data
                     timestamp = get_standard_timestamp()  # Use standard ISO format
 
                     # Override with any direct fields from event_data
-                    if 'event_type' in event_data:
-                        event_data['event_type']
-                    if 'success' in event_data:
-                        event_data['success']
+                    if "event_type" in event_data:
+                        event_data["event_type"]
+                    if "success" in event_data:
+                        event_data["success"]
                     # Extract duration using helper function to handle nested timing structure
                     self._extract_duration_ms(event_data)
-                    if 'timestamp' in event_data:
-                        timestamp = format_for_database(str(event_data['timestamp']))
+                    if "timestamp" in event_data:
+                        timestamp = format_for_database(str(event_data["timestamp"]))
 
                 except Exception as e:
                     # Fallback to untyped parsing when typed parsing fails
                     print(f"Debug: Typed event parsing failed, using fallback: {e}", file=sys.stderr)
-                    hook_name = event_data.get('hook_name', 'unknown')
-                    event_data.get('event_type', 'hook_execution')
-                    correlation_id = event_data.get('correlation_id')
-                    session_id = event_data.get('session_id')
-                    event_data.get('success', True)
+                    hook_name = event_data.get("hook_name", "unknown")
+                    event_data.get("event_type", "hook_execution")
+                    correlation_id = event_data.get("correlation_id")
+                    session_id = event_data.get("session_id")
+                    event_data.get("success", True)
                     self._extract_duration_ms(event_data)
-                    raw_timestamp = event_data.get('timestamp')
+                    raw_timestamp = event_data.get("timestamp")
                     timestamp = format_for_database(str(raw_timestamp)) if raw_timestamp else get_standard_timestamp()
             else:
                 # Fallback to untyped parsing
-                hook_name = event_data.get('hook_name', 'unknown')
-                event_data.get('event_type', 'hook_execution')
-                correlation_id = event_data.get('correlation_id')
-                session_id = event_data.get('session_id')
-                event_data.get('success', True)
+                hook_name = event_data.get("hook_name", "unknown")
+                event_data.get("event_type", "hook_execution")
+                correlation_id = event_data.get("correlation_id")
+                session_id = event_data.get("session_id")
+                event_data.get("success", True)
                 self._extract_duration_ms(event_data)
-                raw_timestamp = event_data.get('timestamp')
+                raw_timestamp = event_data.get("timestamp")
                 timestamp = format_for_database(str(raw_timestamp)) if raw_timestamp else get_standard_timestamp()
 
             # Extract minimal indexed fields
-            execution_id = event_data.get('execution_id', None)
+            execution_id = event_data.get("execution_id", None)
 
             # Security: Validate inputs to prevent injection attacks
             # Note: Using parameterized queries (?) already prevents SQL injection,
             # but we validate inputs for defense in depth
             try:
                 from .security_validators import sanitize_for_display
+
                 # Validate string lengths to prevent DoS via huge inputs
                 if hook_name and len(hook_name) > 100:
                     hook_name = sanitize_for_display(hook_name, 100)
@@ -224,32 +229,33 @@ class HookEventStore:
             # Use connection pool if available, otherwise fallback to direct connection
             if self.db_manager:
                 from .sqlite_manager import get_hooks_sqlite_manager
+
                 manager = get_hooks_sqlite_manager()
 
                 # Use connection pool for better performance
                 with manager.connection(self.db_path) as conn:
-                    conn.execute("""
+                    conn.execute(
+                        """
                         INSERT INTO hook_events
                         (hook_name, correlation_id, session_id, execution_id,
                          timestamp, event_data)
                         VALUES (?, ?, ?, ?, ?, ?)
-                    """, (
-                        hook_name, correlation_id, session_id, execution_id,
-                        timestamp, json.dumps(event_data)
-                    ))
+                    """,
+                        (hook_name, correlation_id, session_id, execution_id, timestamp, json.dumps(event_data)),
+                    )
                     conn.commit()
             else:
                 # Fallback to direct connection
                 with sqlite3.connect(self.db_path, timeout=1.0) as conn:
-                    conn.execute("""
+                    conn.execute(
+                        """
                         INSERT INTO hook_events
                         (hook_name, correlation_id, session_id, execution_id,
                          timestamp, event_data)
                         VALUES (?, ?, ?, ?, ?, ?)
-                    """, (
-                        hook_name, correlation_id, session_id, execution_id,
-                        timestamp, json.dumps(event_data)
-                    ))
+                    """,
+                        (hook_name, correlation_id, session_id, execution_id, timestamp, json.dumps(event_data)),
+                    )
 
             return True
 
@@ -260,8 +266,8 @@ class HookEventStore:
     def process_hook_event(self, event_data: Dict[str, Any]) -> bool:
         """Process a hook event with type-aware processing"""
         # Add timestamp normalization for typed events
-        if parse_log_event and not event_data.get('logged_at'):
-            event_data['logged_at'] = get_standard_timestamp()
+        if parse_log_event and not event_data.get("logged_at"):
+            event_data["logged_at"] = get_standard_timestamp()
 
         return self.log_event(event_data)
 
@@ -271,24 +277,31 @@ class HookEventStore:
             # Use connection pool if available
             if self.db_manager:
                 from .sqlite_manager import get_hooks_sqlite_manager
+
                 manager = get_hooks_sqlite_manager()
 
                 with manager.connection(self.db_path) as conn:
-                    cursor = conn.execute("""
+                    cursor = conn.execute(
+                        """
                         SELECT * FROM hook_events
                         ORDER BY timestamp DESC
                         LIMIT ?
-                    """, (limit,))
+                    """,
+                        (limit,),
+                    )
                     return [dict(row) for row in cursor.fetchall()]
             else:
                 # Fallback to direct connection
                 with sqlite3.connect(self.db_path) as conn:
                     conn.row_factory = sqlite3.Row
-                    cursor = conn.execute("""
+                    cursor = conn.execute(
+                        """
                         SELECT * FROM hook_events
                         ORDER BY timestamp DESC
                         LIMIT ?
-                    """, (limit,))
+                    """,
+                        (limit,),
+                    )
                     return [dict(row) for row in cursor.fetchall()]
         except Exception:
             return []
@@ -299,6 +312,7 @@ class HookEventStore:
             # Use connection pool if available
             if self.db_manager:
                 from .sqlite_manager import get_hooks_sqlite_manager
+
                 manager = get_hooks_sqlite_manager()
 
                 with manager.connection(self.db_path) as conn:
@@ -314,10 +328,10 @@ class HookEventStore:
                     row = cursor.fetchone()
                     if row:
                         return {
-                            'total_events': row[0],
-                            'unique_sessions': row[1],
-                            'unique_correlations': row[2],
-                            'period': '24h'
+                            "total_events": row[0],
+                            "unique_sessions": row[1],
+                            "unique_correlations": row[2],
+                            "period": "24h",
                         }
             else:
                 # Fallback to direct connection
@@ -334,21 +348,16 @@ class HookEventStore:
                     row = cursor.fetchone()
                     if row:
                         return {
-                            'total_events': row[0],
-                            'unique_sessions': row[1],
-                            'unique_correlations': row[2],
-                            'period': '24h'
+                            "total_events": row[0],
+                            "unique_sessions": row[1],
+                            "unique_correlations": row[2],
+                            "period": "24h",
                         }
         except Exception as e:
             # Database query failed - return default stats
             print(f"Debug: Failed to query event summary: {e}", file=sys.stderr)
 
-        return {
-            'total_events': 0,
-            'unique_sessions': 0,
-            'unique_correlations': 0,
-            'period': '24h'
-        }
+        return {"total_events": 0, "unique_sessions": 0, "unique_correlations": 0, "period": "24h"}
 
     def cleanup_old_events(self, retention_days: int = 90) -> Dict[str, Any]:
         """Clean up events older than retention period (default 90 days)
@@ -363,43 +372,39 @@ class HookEventStore:
             # Use connection pool if available
             if self.db_manager:
                 from .sqlite_manager import get_hooks_sqlite_manager
+
                 manager = get_hooks_sqlite_manager()
 
                 with manager.connection(self.db_path) as conn:
                     # Delete events older than retention period
-                    cursor = conn.execute("""
+                    cursor = conn.execute(
+                        """
                         DELETE FROM hook_events
                         WHERE datetime(timestamp) < datetime('now', '-' || ? || ' days')
-                    """, (retention_days,))
+                    """,
+                        (retention_days,),
+                    )
                     deleted_count = cursor.rowcount
                     conn.commit()
 
-                    return {
-                        'success': True,
-                        'deleted_count': deleted_count,
-                        'retention_days': retention_days
-                    }
+                    return {"success": True, "deleted_count": deleted_count, "retention_days": retention_days}
             else:
                 # Fallback to direct connection
                 with sqlite3.connect(self.db_path) as conn:
-                    cursor = conn.execute("""
+                    cursor = conn.execute(
+                        """
                         DELETE FROM hook_events
                         WHERE datetime(timestamp) < datetime('now', '-' || ? || ' days')
-                    """, (retention_days,))
+                    """,
+                        (retention_days,),
+                    )
                     deleted_count = cursor.rowcount
                     conn.commit()
 
-                    return {
-                        'success': True,
-                        'deleted_count': deleted_count,
-                        'retention_days': retention_days
-                    }
+                    return {"success": True, "deleted_count": deleted_count, "retention_days": retention_days}
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'retention_days': retention_days
-            }
+            return {"success": False, "error": str(e), "retention_days": retention_days}
+
 
 def create_event_store(brainworm_dir: Path) -> HookEventStore:
     """Create an event store instance"""

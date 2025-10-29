@@ -67,6 +67,7 @@ def determine_tool_success(tool_response: Dict[str, Any]) -> bool:
 
     return True
 
+
 def post_tool_use_logic(framework, input_data: Dict[str, Any]):
     """Custom logic for post-tool use processing.
 
@@ -75,8 +76,8 @@ def post_tool_use_logic(framework, input_data: Dict[str, Any]):
         input_data: Raw input dict (always dict, typed input used for validation only)
     """
     # Extract data from dict - simple and direct
-    tool_name = input_data.get('tool_name', 'unknown')
-    tool_response = input_data.get('tool_response', {})
+    tool_name = input_data.get("tool_name", "unknown")
+    tool_response = input_data.get("tool_response", {})
 
     # Clean up subagent flag if Task tool completed
     subagent_manager = create_subagent_manager(framework.project_root)
@@ -99,18 +100,22 @@ def post_tool_use_logic(framework, input_data: Dict[str, Any]):
     # No decision output needed for post-tool-use hooks
     # (they observe what happened, don't control execution)
 
+
 def post_tool_use_success_message(framework):
     """Custom success message for post-tool use hook."""
     # Direct dict access - simple and clear
-    tool_name = framework.raw_input_data.get('tool_name', 'unknown')
-    session_id = framework.raw_input_data.get('session_id', 'unknown')
+    tool_name = framework.raw_input_data.get("tool_name", "unknown")
+    session_id = framework.raw_input_data.get("session_id", "unknown")
     session_short = session_id[:8] if len(session_id) >= 8 else session_id
 
     # Get success status
-    success = getattr(framework, 'tool_success', True)
+    success = getattr(framework, "tool_success", True)
     success_status = "✅" if success else "❌"
 
     print(f"{success_status} Tool completed: {tool_name} (Session: {session_short})", file=sys.stderr)
 
+
 if __name__ == "__main__":
-    HookFramework("post_tool_use", enable_event_logging=True).with_custom_logic(post_tool_use_logic).with_success_handler(post_tool_use_success_message).execute()
+    HookFramework("post_tool_use", enable_event_logging=True).with_custom_logic(
+        post_tool_use_logic
+    ).with_success_handler(post_tool_use_success_message).execute()

@@ -33,6 +33,7 @@ from utils.project import find_project_root
 
 console = Console()
 
+
 def main() -> None:
     """Main entry point for DAIC mode updates using Hooks Framework."""
     parser = argparse.ArgumentParser(
@@ -44,13 +45,13 @@ Examples:
   uv run update_daic_mode.py --mode="implementation"
   uv run update_daic_mode.py --toggle
   uv run update_daic_mode.py  # Show current mode
-        """
+        """,
     )
 
-    parser.add_argument("--mode", choices=[str(DAICMode.DISCUSSION), str(DAICMode.IMPLEMENTATION)],
-                       help="DAIC mode to set")
-    parser.add_argument("--toggle", action="store_true",
-                       help="Toggle between discussion and implementation")
+    parser.add_argument(
+        "--mode", choices=[str(DAICMode.DISCUSSION), str(DAICMode.IMPLEMENTATION)], help="DAIC mode to set"
+    )
+    parser.add_argument("--toggle", action="store_true", help="Toggle between discussion and implementation")
 
     args = parser.parse_args()
 
@@ -70,7 +71,9 @@ Examples:
             result = daic_controller.toggle_mode()
             if result.success:
                 mode_display = daic_controller.get_mode_with_display()
-                console.print(f"✅ {mode_display.emoji} [green]DAIC mode toggled from {result.old_mode} to:[/green] [{mode_display.color}]{result.new_mode}[/{mode_display.color}]")
+                console.print(
+                    f"✅ {mode_display.emoji} [green]DAIC mode toggled from {result.old_mode} to:[/green] [{mode_display.color}]{result.new_mode}[/{mode_display.color}]"
+                )
             else:
                 console.print(f"❌ [red]Failed to toggle DAIC mode:[/red] {result.error_message}")
                 sys.exit(1)
@@ -80,7 +83,9 @@ Examples:
             result = daic_controller.set_mode(args.mode, trigger="user_command")
             if result.success:
                 mode_display = daic_controller.get_mode_with_display()
-                console.print(f"✅ {mode_display.emoji} [green]DAIC mode set to:[/green] [{mode_display.color}]{result.new_mode}[/{mode_display.color}]")
+                console.print(
+                    f"✅ {mode_display.emoji} [green]DAIC mode set to:[/green] [{mode_display.color}]{result.new_mode}[/{mode_display.color}]"
+                )
             else:
                 console.print(f"❌ [red]Failed to set DAIC mode to {args.mode}:[/red] {result.error_message}")
                 sys.exit(1)
@@ -89,7 +94,9 @@ Examples:
             # Show current mode
             mode_display = daic_controller.get_mode_with_display()
             if mode_display.success:
-                console.print(f"\n{mode_display.emoji} [green]Current DAIC Mode:[/green] [{mode_display.color}]{mode_display.mode}[/{mode_display.color}]")
+                console.print(
+                    f"\n{mode_display.emoji} [green]Current DAIC Mode:[/green] [{mode_display.color}]{mode_display.mode}[/{mode_display.color}]"
+                )
             else:
                 console.print("❌ [red]Failed to get current DAIC mode[/red]")
                 sys.exit(1)
@@ -97,6 +104,7 @@ Examples:
     except Exception as e:
         console.print(f"❌ [red]Error updating DAIC mode:[/red] {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

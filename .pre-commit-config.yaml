@@ -1,0 +1,40 @@
+# Pre-commit hooks for cc-plugins repository
+# See https://pre-commit.com for more information
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      # Run ruff linter with auto-fix
+      - id: ruff
+        args: [--fix]
+        files: ^(brainworm|mcp-servers)/.*\.py$
+
+      # Run ruff formatter
+      - id: ruff-format
+        files: ^(brainworm|mcp-servers)/.*\.py$
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Prevent committing large files
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+
+      # Check for merge conflicts
+      - id: check-merge-conflict
+
+      # Check YAML syntax
+      - id: check-yaml
+        exclude: ^\.brainworm/
+
+      # Check JSON syntax
+      - id: check-json
+
+      # Trim trailing whitespace
+      - id: trailing-whitespace
+        exclude: ^\.brainworm/
+
+      # Ensure files end with newline
+      - id: end-of-file-fixer
+        exclude: ^\.brainworm/

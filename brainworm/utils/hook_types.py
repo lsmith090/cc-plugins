@@ -29,6 +29,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 # Utility helpers
 # ---------------------------------------------------------------------------
 
+
 def _now_iso() -> str:
     """Get current timestamp in standard ISO 8601 format with UTC timezone."""
     return _dt.datetime.now(_dt.timezone.utc).isoformat()
@@ -68,8 +69,10 @@ def _as_list(val: Any) -> List[Any]:
 # DAIC Mode enumeration
 # ---------------------------------------------------------------------------
 
+
 class DAICMode(Enum):
     """DAIC workflow modes with standardized string values"""
+
     DISCUSSION = "discussion"
     IMPLEMENTATION = "implementation"
 
@@ -78,7 +81,7 @@ class DAICMode(Enum):
         return self.value
 
     @classmethod
-    def from_string(cls, mode_str: str) -> 'DAICMode':
+    def from_string(cls, mode_str: str) -> "DAICMode":
         """Parse DAIC mode from string with case insensitivity"""
         if not mode_str:
             raise ValueError("Empty mode string")
@@ -104,6 +107,7 @@ class DAICMode(Enum):
 # Tool input / response variants
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class CommandToolInput:
     command: str
@@ -112,14 +116,15 @@ class CommandToolInput:
 
     @staticmethod
     def matches(data: Dict[str, Any]) -> bool:
-        return 'command' in data
+        return "command" in data
 
     def to_dict(self) -> Dict[str, Any]:
-        result = {'command': self.command}
+        result = {"command": self.command}
         if self.description:
-            result['description'] = self.description
+            result["description"] = self.description
         result.update(self.extra)
         return result
+
 
 @dataclass
 class FileWriteToolInput:
@@ -130,14 +135,15 @@ class FileWriteToolInput:
 
     @staticmethod
     def matches(data: Dict[str, Any]) -> bool:
-        return 'file_path' in data and 'content' in data
+        return "file_path" in data and "content" in data
 
     def to_dict(self) -> Dict[str, Any]:
-        result = {'file_path': self.file_path, 'content': self.content}
+        result = {"file_path": self.file_path, "content": self.content}
         if self.description:
-            result['description'] = self.description
+            result["description"] = self.description
         result.update(self.extra)
         return result
+
 
 @dataclass
 class FileEditToolInput:
@@ -151,16 +157,19 @@ class FileEditToolInput:
 
     @staticmethod
     def matches(data: Dict[str, Any]) -> bool:
-        return 'file_path' in data and any(k in data for k in ('old_string','new_string','oldString','newString','edits'))
+        return "file_path" in data and any(
+            k in data for k in ("old_string", "new_string", "oldString", "newString", "edits")
+        )
 
     def to_dict(self) -> Dict[str, Any]:
-        result = {'file_path': self.file_path}
-        for field_name in ['old_string', 'new_string', 'oldString', 'newString', 'edits']:
+        result = {"file_path": self.file_path}
+        for field_name in ["old_string", "new_string", "oldString", "newString", "edits"]:
             value = getattr(self, field_name)
             if value is not None:
                 result[field_name] = value
         result.update(self.extra)
         return result
+
 
 ToolInputVariant = Union[CommandToolInput, FileWriteToolInput, FileEditToolInput]
 
@@ -170,26 +179,30 @@ def parse_tool_input(data: Optional[Dict[str, Any]]) -> Optional[ToolInputVarian
         return None
     if CommandToolInput.matches(data):
         return CommandToolInput(
-            command=data['command'],
-            description=data.get('description'),
-            extra={k:v for k,v in data.items() if k not in {'command','description'}}
+            command=data["command"],
+            description=data.get("description"),
+            extra={k: v for k, v in data.items() if k not in {"command", "description"}},
         )
     if FileWriteToolInput.matches(data):
         return FileWriteToolInput(
-            file_path=data['file_path'],
-            content=data['content'],
-            description=data.get('description'),
-            extra={k:v for k,v in data.items() if k not in {'file_path','content','description'}}
+            file_path=data["file_path"],
+            content=data["content"],
+            description=data.get("description"),
+            extra={k: v for k, v in data.items() if k not in {"file_path", "content", "description"}},
         )
     if FileEditToolInput.matches(data):
         return FileEditToolInput(
-            file_path=data['file_path'],
-            old_string=data.get('old_string'),
-            new_string=data.get('new_string'),
-            oldString=data.get('oldString'),
-            newString=data.get('newString'),
-            edits=data.get('edits'),
-            extra={k:v for k,v in data.items() if k not in {'file_path','old_string','new_string','oldString','newString','edits'}}
+            file_path=data["file_path"],
+            old_string=data.get("old_string"),
+            new_string=data.get("new_string"),
+            oldString=data.get("oldString"),
+            newString=data.get("newString"),
+            edits=data.get("edits"),
+            extra={
+                k: v
+                for k, v in data.items()
+                if k not in {"file_path", "old_string", "new_string", "oldString", "newString", "edits"}
+            },
         )
     return None
 
@@ -205,16 +218,18 @@ class ToolResponse:
     extra: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def parse(raw: Any) -> Optional['ToolResponse']:
+    def parse(raw: Any) -> Optional["ToolResponse"]:
         if not isinstance(raw, dict):
             return None
-        known = {k: raw.get(k) for k in ('filePath','oldString','newString','originalFile','structuredPatch','type')}
-        extra = {k:v for k,v in raw.items() if k not in known}
+        known = {
+            k: raw.get(k) for k in ("filePath", "oldString", "newString", "originalFile", "structuredPatch", "type")
+        }
+        extra = {k: v for k, v in raw.items() if k not in known}
         return ToolResponse(**known, extra=extra)
 
     def to_dict(self) -> Dict[str, Any]:
         result = {}
-        for field_name in ['filePath', 'oldString', 'newString', 'originalFile', 'structuredPatch', 'type']:
+        for field_name in ["filePath", "oldString", "newString", "originalFile", "structuredPatch", "type"]:
             value = getattr(self, field_name)
             if value is not None:
                 result[field_name] = value
@@ -226,6 +241,7 @@ class ToolResponse:
 # Hook stdin input structures (Claude -> Hook)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class BaseHookInput:
     session_id: str
@@ -235,13 +251,13 @@ class BaseHookInput:
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'BaseHookInput':
+    def parse(data: Dict[str, Any]) -> "BaseHookInput":
         return BaseHookInput(
-            session_id=data.get('session_id',''),
-            transcript_path=data.get('transcript_path',''),
-            cwd=data.get('cwd',''),
-            hook_event_name=data.get('hook_event_name',''),
-            raw=data
+            session_id=data.get("session_id", ""),
+            transcript_path=data.get("transcript_path", ""),
+            cwd=data.get("cwd", ""),
+            hook_event_name=data.get("hook_event_name", ""),
+            raw=data,
         )
 
 
@@ -256,15 +272,15 @@ class PreToolUseInput:
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'PreToolUseInput':
+    def parse(data: Dict[str, Any]) -> "PreToolUseInput":
         return PreToolUseInput(
-            session_id=data.get('session_id',''),
-            transcript_path=data.get('transcript_path',''),
-            cwd=data.get('cwd',''),
-            hook_event_name=data.get('hook_event_name',''),
-            tool_name=data.get('tool_name', ''),
-            tool_input=parse_tool_input(data.get('tool_input')),
-            raw=data
+            session_id=data.get("session_id", ""),
+            transcript_path=data.get("transcript_path", ""),
+            cwd=data.get("cwd", ""),
+            hook_event_name=data.get("hook_event_name", ""),
+            tool_name=data.get("tool_name", ""),
+            tool_input=parse_tool_input(data.get("tool_input")),
+            raw=data,
         )
 
 
@@ -280,16 +296,16 @@ class PostToolUseInput:
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'PostToolUseInput':
+    def parse(data: Dict[str, Any]) -> "PostToolUseInput":
         return PostToolUseInput(
-            session_id=data.get('session_id',''),
-            transcript_path=data.get('transcript_path',''),
-            cwd=data.get('cwd',''),
-            hook_event_name=data.get('hook_event_name',''),
-            tool_name=data.get('tool_name', ''),
-            tool_input=parse_tool_input(data.get('tool_input')),
-            tool_response=ToolResponse.parse(data.get('tool_response')),
-            raw=data
+            session_id=data.get("session_id", ""),
+            transcript_path=data.get("transcript_path", ""),
+            cwd=data.get("cwd", ""),
+            hook_event_name=data.get("hook_event_name", ""),
+            tool_name=data.get("tool_name", ""),
+            tool_input=parse_tool_input(data.get("tool_input")),
+            tool_response=ToolResponse.parse(data.get("tool_response")),
+            raw=data,
         )
 
 
@@ -303,14 +319,14 @@ class UserPromptSubmitInput:
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'UserPromptSubmitInput':
+    def parse(data: Dict[str, Any]) -> "UserPromptSubmitInput":
         return UserPromptSubmitInput(
-            session_id=data.get('session_id',''),
-            transcript_path=data.get('transcript_path',''),
-            cwd=data.get('cwd',''),
-            hook_event_name=data.get('hook_event_name',''),
-            prompt=data.get('prompt', ''),
-            raw=data
+            session_id=data.get("session_id", ""),
+            transcript_path=data.get("transcript_path", ""),
+            cwd=data.get("cwd", ""),
+            hook_event_name=data.get("hook_event_name", ""),
+            prompt=data.get("prompt", ""),
+            raw=data,
         )
 
 
@@ -323,13 +339,13 @@ class SessionStartInput:
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'SessionStartInput':
+    def parse(data: Dict[str, Any]) -> "SessionStartInput":
         return SessionStartInput(
-            session_id=data.get('session_id',''),
-            transcript_path=data.get('transcript_path',''),
-            cwd=data.get('cwd',''),
-            hook_event_name=data.get('hook_event_name',''),
-            raw=data
+            session_id=data.get("session_id", ""),
+            transcript_path=data.get("transcript_path", ""),
+            cwd=data.get("cwd", ""),
+            hook_event_name=data.get("hook_event_name", ""),
+            raw=data,
         )
 
 
@@ -343,14 +359,14 @@ class SessionEndInput:
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'SessionEndInput':
+    def parse(data: Dict[str, Any]) -> "SessionEndInput":
         return SessionEndInput(
-            session_id=data.get('session_id',''),
-            transcript_path=data.get('transcript_path',''),
-            cwd=data.get('cwd',''),
-            hook_event_name=data.get('hook_event_name',''),
-            reason=data.get('reason'),
-            raw=data
+            session_id=data.get("session_id", ""),
+            transcript_path=data.get("transcript_path", ""),
+            cwd=data.get("cwd", ""),
+            hook_event_name=data.get("hook_event_name", ""),
+            reason=data.get("reason"),
+            raw=data,
         )
 
 
@@ -363,13 +379,13 @@ class StopInput:
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'StopInput':
+    def parse(data: Dict[str, Any]) -> "StopInput":
         return StopInput(
-            session_id=data.get('session_id',''),
-            transcript_path=data.get('transcript_path',''),
-            cwd=data.get('cwd',''),
-            hook_event_name=data.get('hook_event_name',''),
-            raw=data
+            session_id=data.get("session_id", ""),
+            transcript_path=data.get("transcript_path", ""),
+            cwd=data.get("cwd", ""),
+            hook_event_name=data.get("hook_event_name", ""),
+            raw=data,
         )
 
 
@@ -384,21 +400,22 @@ class NotificationInput:
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'NotificationInput':
+    def parse(data: Dict[str, Any]) -> "NotificationInput":
         return NotificationInput(
-            session_id=data.get('session_id',''),
-            transcript_path=data.get('transcript_path',''),
-            cwd=data.get('cwd',''),
-            hook_event_name=data.get('hook_event_name',''),
-            message=data.get('message', ''),
-            severity=data.get('severity'),
-            raw=data
+            session_id=data.get("session_id", ""),
+            transcript_path=data.get("transcript_path", ""),
+            cwd=data.get("cwd", ""),
+            hook_event_name=data.get("hook_event_name", ""),
+            message=data.get("message", ""),
+            severity=data.get("severity"),
+            raw=data,
         )
 
 
 # ---------------------------------------------------------------------------
 # Hook output response schemas (for context injection and responses)
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class HookSpecificOutput:
@@ -414,6 +431,7 @@ class HookSpecificOutput:
             result["metadata"] = self.metadata
         return result
 
+
 @dataclass
 class UserPromptContextResponse:
     hookSpecificOutput: HookSpecificOutput
@@ -426,15 +444,13 @@ class UserPromptContextResponse:
         return result
 
     @staticmethod
-    def create_context(context: str, debug_info: Dict[str, Any] = None) -> 'UserPromptContextResponse':
+    def create_context(context: str, debug_info: Dict[str, Any] = None) -> "UserPromptContextResponse":
         """Factory method for creating UserPromptSubmit context responses"""
         return UserPromptContextResponse(
-            hookSpecificOutput=HookSpecificOutput(
-                hookEventName="UserPromptSubmit",
-                additionalContext=context
-            ),
-            debug=debug_info
+            hookSpecificOutput=HookSpecificOutput(hookEventName="UserPromptSubmit", additionalContext=context),
+            debug=debug_info,
         )
+
 
 @dataclass
 class SessionCorrelationResponse:
@@ -448,8 +464,9 @@ class SessionCorrelationResponse:
             "success": self.success,
             "session_id": self.session_id,
             "correlation_id": self.correlation_id,
-            "timestamp": self.timestamp
+            "timestamp": self.timestamp,
         }
+
 
 @dataclass
 class DAICModeResult:
@@ -464,11 +481,12 @@ class DAICModeResult:
             "success": self.success,
             "old_mode": str(self.old_mode),
             "new_mode": str(self.new_mode),
-            "timestamp": self.timestamp
+            "timestamp": self.timestamp,
         }
         if self.trigger:
             result["trigger"] = self.trigger
         return result
+
 
 @dataclass
 class ToolAnalysisResult:
@@ -482,12 +500,14 @@ class ToolAnalysisResult:
             "success": self.success,
             "error_info": self.error_info,
             "execution_metrics": self.execution_metrics,
-            "risk_factors": self.risk_factors
+            "risk_factors": self.risk_factors,
         }
+
 
 # ---------------------------------------------------------------------------
 # Hook stdout decision (only enforced for pre_tool_use currently)
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class PreToolUseDecisionOutput:
@@ -500,19 +520,17 @@ class PreToolUseDecisionOutput:
     raw: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        result = {'continue': self.continue_}
+        result = {"continue": self.continue_}
 
         if self.stop_reason:
-            result['stopReason'] = self.stop_reason
+            result["stopReason"] = self.stop_reason
         if self.suppress_output is not None:
-            result['suppressOutput'] = self.suppress_output
+            result["suppressOutput"] = self.suppress_output
         if self.system_message:
-            result['systemMessage'] = self.system_message
+            result["systemMessage"] = self.system_message
 
         # Hook-specific output per Claude Code specification
-        hook_specific = {
-            "hookEventName": "PreToolUse"
-        }
+        hook_specific = {"hookEventName": "PreToolUse"}
 
         # Add permission decision based on continue status
         if self.continue_:
@@ -524,29 +542,35 @@ class PreToolUseDecisionOutput:
             if self.stop_reason:
                 hook_specific["permissionDecisionReason"] = self.stop_reason
 
-        result['hookSpecificOutput'] = hook_specific
+        result["hookSpecificOutput"] = hook_specific
         return result
 
     @staticmethod
-    def approve(reason: Optional[str] = None, session_id: Optional[str] = None) -> 'PreToolUseDecisionOutput':
+    def approve(reason: Optional[str] = None, session_id: Optional[str] = None) -> "PreToolUseDecisionOutput":
         return PreToolUseDecisionOutput(True, stop_reason=reason, session_id=session_id)
 
     @staticmethod
-    def block(reason: str, validation_issues: Iterable[str | Dict[str, Any]],
-              session_id: Optional[str] = None, suppress_output: bool = False) -> 'PreToolUseDecisionOutput':
+    def block(
+        reason: str,
+        validation_issues: Iterable[str | Dict[str, Any]],
+        session_id: Optional[str] = None,
+        suppress_output: bool = False,
+    ) -> "PreToolUseDecisionOutput":
         norm = []
         for v in validation_issues:
             if isinstance(v, str):
-                norm.append({'message': v})
+                norm.append({"message": v})
             else:
                 norm.append(v)
-        return PreToolUseDecisionOutput(False, stop_reason=reason, suppress_output=suppress_output,
-                                      validation_issues=norm, session_id=session_id)
+        return PreToolUseDecisionOutput(
+            False, stop_reason=reason, suppress_output=suppress_output, validation_issues=norm, session_id=session_id
+        )
 
 
 # ---------------------------------------------------------------------------
 # Logged JSONL events (after enrichment)
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class BaseLogEvent:
@@ -564,23 +588,37 @@ class BaseLogEvent:
     extra: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'BaseLogEvent':
+    def parse(data: Dict[str, Any]) -> "BaseLogEvent":
         return BaseLogEvent(
-            session_id=data.get('session_id',''),
-            hook_event_name=data.get('hook_event_name',''),
-            hook_name=data.get('hook_name',''),
-            logged_at=data.get('logged_at') or _now_iso(),
-            cwd=data.get('cwd'),
-            working_directory=data.get('working_directory'),
-            project_root=data.get('project_root'),
-            correlation_id=data.get('correlation_id'),
-            schema_version=data.get('schema_version'),
-            workflow_phase=data.get('workflow_phase'),
-            timestamp_ns=data.get('timestamp_ns'),
-            extra={k:v for k,v in data.items() if k not in {
-                'session_id','hook_event_name','hook_name','logged_at','cwd','working_directory','project_root',
-                'correlation_id','schema_version','workflow_phase','timestamp_ns'
-            }}
+            session_id=data.get("session_id", ""),
+            hook_event_name=data.get("hook_event_name", ""),
+            hook_name=data.get("hook_name", ""),
+            logged_at=data.get("logged_at") or _now_iso(),
+            cwd=data.get("cwd"),
+            working_directory=data.get("working_directory"),
+            project_root=data.get("project_root"),
+            correlation_id=data.get("correlation_id"),
+            schema_version=data.get("schema_version"),
+            workflow_phase=data.get("workflow_phase"),
+            timestamp_ns=data.get("timestamp_ns"),
+            extra={
+                k: v
+                for k, v in data.items()
+                if k
+                not in {
+                    "session_id",
+                    "hook_event_name",
+                    "hook_name",
+                    "logged_at",
+                    "cwd",
+                    "working_directory",
+                    "project_root",
+                    "correlation_id",
+                    "schema_version",
+                    "workflow_phase",
+                    "timestamp_ns",
+                }
+            },
         )
 
 
@@ -592,21 +630,21 @@ class PreToolUseLogEvent(BaseLogEvent):
     tool_input: Optional[ToolInputVariant] = None
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'PreToolUseLogEvent':
+    def parse(data: Dict[str, Any]) -> "PreToolUseLogEvent":
         base = BaseLogEvent.parse(data)
-        raw_issues = data.get('validation_issues') or []
+        raw_issues = data.get("validation_issues") or []
         issues: List[Dict[str, Any]] = []
         for v in raw_issues:
             if isinstance(v, str):
-                issues.append({'message': v})
+                issues.append({"message": v})
             elif isinstance(v, dict):
                 issues.append(v)
         return PreToolUseLogEvent(
             **base.__dict__,
-            tool_name=data.get('tool_name'),
-            blocked=data.get('blocked'),
+            tool_name=data.get("tool_name"),
+            blocked=data.get("blocked"),
             validation_issues=issues,
-            tool_input=parse_tool_input(data.get('tool_input'))
+            tool_input=parse_tool_input(data.get("tool_input")),
         )
 
 
@@ -617,13 +655,13 @@ class PostToolUseLogEvent(BaseLogEvent):
     tool_response: Optional[ToolResponse] = None
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'PostToolUseLogEvent':
+    def parse(data: Dict[str, Any]) -> "PostToolUseLogEvent":
         base = BaseLogEvent.parse(data)
         return PostToolUseLogEvent(
             **base.__dict__,
-            tool_name=data.get('tool_name'),
-            tool_input=parse_tool_input(data.get('tool_input')),
-            tool_response=ToolResponse.parse(data.get('tool_response'))
+            tool_name=data.get("tool_name"),
+            tool_input=parse_tool_input(data.get("tool_input")),
+            tool_response=ToolResponse.parse(data.get("tool_response")),
         )
 
 
@@ -635,14 +673,14 @@ class UserPromptSubmitLogEvent(BaseLogEvent):
     intent_analysis: Optional[Dict[str, Any]] = None
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'UserPromptSubmitLogEvent':
+    def parse(data: Dict[str, Any]) -> "UserPromptSubmitLogEvent":
         base = BaseLogEvent.parse(data)
         return UserPromptSubmitLogEvent(
             **base.__dict__,
-            prompt=data.get('prompt'),
-            context_injected=data.get('context_injected'),
-            context_length=data.get('context_length'),
-            intent_analysis=data.get('intent_analysis')
+            prompt=data.get("prompt"),
+            context_injected=data.get("context_injected"),
+            context_length=data.get("context_length"),
+            intent_analysis=data.get("intent_analysis"),
         )
 
 
@@ -650,77 +688,68 @@ LogEventVariant = Union[PreToolUseLogEvent, PostToolUseLogEvent, UserPromptSubmi
 
 
 def parse_log_event(data: Dict[str, Any]) -> LogEventVariant:
-    name = data.get('hook_name') or ''
-    if name == 'pre_tool_use':
+    name = data.get("hook_name") or ""
+    if name == "pre_tool_use":
         return PreToolUseLogEvent.parse(data)
-    if name == 'post_tool_use':
+    if name == "post_tool_use":
         return PostToolUseLogEvent.parse(data)
-    if name == 'user_prompt_submit':
+    if name == "user_prompt_submit":
         return UserPromptSubmitLogEvent.parse(data)
     return BaseLogEvent.parse(data)
-
-
 
 
 # ---------------------------------------------------------------------------
 # Developer attribution
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class DeveloperInfo:
     """Developer attribution information for analytics and tracking"""
+
     name: Optional[str] = None
     email: Optional[str] = None
     source: str = "unknown"  # git, config, unknown
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> 'DeveloperInfo':
+    def parse(data: Dict[str, Any]) -> "DeveloperInfo":
         """Parse developer info from dict (backward compatibility)"""
-        return DeveloperInfo(
-            name=data.get('name'),
-            email=data.get('email'),
-            source=data.get('source', 'unknown')
-        )
+        return DeveloperInfo(name=data.get("name"), email=data.get("email"), source=data.get("source", "unknown"))
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dict for serialization"""
-        return {
-            'name': self.name,
-            'email': self.email,
-            'source': self.source
-        }
+        return {"name": self.name, "email": self.email, "source": self.source}
 
 
 # ---------------------------------------------------------------------------
 # Configuration Data Classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class DeveloperConfig:
     """Developer information configuration"""
+
     name: str = "Developer"
     email: str = "developer@example.com"
     git_identity_source: str = "auto"  # "auto", "config", "manual"
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "name": self.name,
-            "email": self.email,
-            "git_identity_source": self.git_identity_source
-        }
+        return {"name": self.name, "email": self.email, "git_identity_source": self.git_identity_source}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'DeveloperConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "DeveloperConfig":
         return cls(
             name=data.get("name", "Developer"),
             email=data.get("email", "developer@example.com"),
-            git_identity_source=data.get("git_identity_source", "auto")
+            git_identity_source=data.get("git_identity_source", "auto"),
         )
 
 
 @dataclass
 class PreferencesConfig:
     """User preferences configuration"""
+
     daic_default_mode: str = field(default_factory=lambda: str(DAICMode.DISCUSSION))
     context_warning_threshold: int = 75
     analytics_participation: bool = True
@@ -731,42 +760,38 @@ class PreferencesConfig:
             "daic_default_mode": self.daic_default_mode,
             "context_warning_threshold": self.context_warning_threshold,
             "analytics_participation": self.analytics_participation,
-            "statusline_format": self.statusline_format
+            "statusline_format": self.statusline_format,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'PreferencesConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "PreferencesConfig":
         return cls(
             daic_default_mode=data.get("daic_default_mode", str(DAICMode.DISCUSSION)),
             context_warning_threshold=data.get("context_warning_threshold", 75),
             analytics_participation=data.get("analytics_participation", True),
-            statusline_format=data.get("statusline_format", "full")
+            statusline_format=data.get("statusline_format", "full"),
         )
 
 
 @dataclass
 class TeamConfig:
     """Team and organization configuration"""
+
     organization: str = ""
     project_role: str = "developer"
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "organization": self.organization,
-            "project_role": self.project_role
-        }
+        return {"organization": self.organization, "project_role": self.project_role}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'TeamConfig':
-        return cls(
-            organization=data.get("organization", ""),
-            project_role=data.get("project_role", "developer")
-        )
+    def from_dict(cls, data: Dict[str, Any]) -> "TeamConfig":
+        return cls(organization=data.get("organization", ""), project_role=data.get("project_role", "developer"))
 
 
 @dataclass
 class UserConfig:
     """Complete user configuration structure"""
+
     developer: DeveloperConfig = field(default_factory=DeveloperConfig)
     preferences: PreferencesConfig = field(default_factory=PreferencesConfig)
     team: TeamConfig = field(default_factory=TeamConfig)
@@ -777,52 +802,113 @@ class UserConfig:
             "developer": self.developer.to_dict(),
             "preferences": self.preferences.to_dict(),
             "team": self.team.to_dict(),
-            "version": self.version
+            "version": self.version,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'UserConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "UserConfig":
         return cls(
             developer=DeveloperConfig.from_dict(data.get("developer", {})),
             preferences=PreferencesConfig.from_dict(data.get("preferences", {})),
             team=TeamConfig.from_dict(data.get("team", {})),
-            version=data.get("version", "1.0")
+            version=data.get("version", "1.0"),
         )
 
 
 @dataclass
 class ReadOnlyCommandsConfig:
     """Configuration for read-only bash commands"""
-    basic: List[str] = field(default_factory=lambda: [
-        "ls", "ll", "pwd", "cd", "echo", "cat", "head", "tail", "less", "more",
-        "grep", "rg", "find", "fd", "which", "whereis", "type", "file", "stat",
-        "du", "df", "tree", "basename", "dirname", "realpath", "readlink",
-        "whoami", "env", "printenv", "date", "cal", "uptime", "wc", "cut",
-        "sort", "uniq", "comm", "diff", "cmp", "md5sum", "sha256sum"
-    ])
-    git: List[str] = field(default_factory=lambda: [
-        "git status", "git log", "git diff", "git show", "git branch",
-        "git remote", "git fetch", "git describe", "git rev-parse", "git blame"
-    ])
-    docker: List[str] = field(default_factory=lambda: [
-        "docker ps", "docker images", "docker logs"
-    ])
-    package_managers: List[str] = field(default_factory=lambda: [
-        "npm list", "npm ls", "pip list", "pip show", "yarn list"
-    ])
-    network: List[str] = field(default_factory=lambda: [
-        "curl", "wget", "ping", "nslookup", "dig"
-    ])
-    text_processing: List[str] = field(default_factory=lambda: [
-        "jq", "awk", "sed -n"
-    ])
-    testing: List[str] = field(default_factory=lambda: [
-        "pytest", "python -m pytest", "python -m unittest", "uv run pytest",
-        "npm test", "npm run test", "yarn test", "yarn run test",
-        "npx jest", "npx vitest", "pnpm test", "pnpm run test",
-        "cargo test", "go test", "mvn test", "gradle test",
-        "rake test", "mix test", "dotnet test", "rspec", "make test"
-    ])
+
+    basic: List[str] = field(
+        default_factory=lambda: [
+            "ls",
+            "ll",
+            "pwd",
+            "cd",
+            "echo",
+            "cat",
+            "head",
+            "tail",
+            "less",
+            "more",
+            "grep",
+            "rg",
+            "find",
+            "fd",
+            "which",
+            "whereis",
+            "type",
+            "file",
+            "stat",
+            "du",
+            "df",
+            "tree",
+            "basename",
+            "dirname",
+            "realpath",
+            "readlink",
+            "whoami",
+            "env",
+            "printenv",
+            "date",
+            "cal",
+            "uptime",
+            "wc",
+            "cut",
+            "sort",
+            "uniq",
+            "comm",
+            "diff",
+            "cmp",
+            "md5sum",
+            "sha256sum",
+        ]
+    )
+    git: List[str] = field(
+        default_factory=lambda: [
+            "git status",
+            "git log",
+            "git diff",
+            "git show",
+            "git branch",
+            "git remote",
+            "git fetch",
+            "git describe",
+            "git rev-parse",
+            "git blame",
+        ]
+    )
+    docker: List[str] = field(default_factory=lambda: ["docker ps", "docker images", "docker logs"])
+    package_managers: List[str] = field(
+        default_factory=lambda: ["npm list", "npm ls", "pip list", "pip show", "yarn list"]
+    )
+    network: List[str] = field(default_factory=lambda: ["curl", "wget", "ping", "nslookup", "dig"])
+    text_processing: List[str] = field(default_factory=lambda: ["jq", "awk", "sed -n"])
+    testing: List[str] = field(
+        default_factory=lambda: [
+            "pytest",
+            "python -m pytest",
+            "python -m unittest",
+            "uv run pytest",
+            "npm test",
+            "npm run test",
+            "yarn test",
+            "yarn run test",
+            "npx jest",
+            "npx vitest",
+            "pnpm test",
+            "pnpm run test",
+            "cargo test",
+            "go test",
+            "mvn test",
+            "gradle test",
+            "rake test",
+            "mix test",
+            "dotnet test",
+            "rspec",
+            "make test",
+        ]
+    )
 
     def to_dict(self) -> Dict[str, List[str]]:
         return {
@@ -832,11 +918,11 @@ class ReadOnlyCommandsConfig:
             "package_managers": self.package_managers,
             "network": self.network,
             "text_processing": self.text_processing,
-            "testing": self.testing
+            "testing": self.testing,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'ReadOnlyCommandsConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "ReadOnlyCommandsConfig":
         return cls(
             basic=data.get("basic", []),
             git=data.get("git", []),
@@ -844,45 +930,45 @@ class ReadOnlyCommandsConfig:
             package_managers=data.get("package_managers", []),
             network=data.get("network", []),
             text_processing=data.get("text_processing", []),
-            testing=data.get("testing", [])
+            testing=data.get("testing", []),
         )
 
 
 @dataclass
 class BranchEnforcementConfig:
     """Configuration for branch enforcement rules"""
+
     enabled: bool = True
-    task_prefixes: List[str] = field(default_factory=lambda: [
-        "implement-", "fix-", "refactor-", "migrate-", "test-", "docs-"
-    ])
-    branch_prefixes: Dict[str, str] = field(default_factory=lambda: {
-        "implement-": "feature/",
-        "fix-": "fix/",
-        "refactor-": "feature/",
-        "migrate-": "feature/",
-        "test-": "feature/",
-        "docs-": "feature/"
-    })
+    task_prefixes: List[str] = field(
+        default_factory=lambda: ["implement-", "fix-", "refactor-", "migrate-", "test-", "docs-"]
+    )
+    branch_prefixes: Dict[str, str] = field(
+        default_factory=lambda: {
+            "implement-": "feature/",
+            "fix-": "fix/",
+            "refactor-": "feature/",
+            "migrate-": "feature/",
+            "test-": "feature/",
+            "docs-": "feature/",
+        }
+    )
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "enabled": self.enabled,
-            "task_prefixes": self.task_prefixes,
-            "branch_prefixes": self.branch_prefixes
-        }
+        return {"enabled": self.enabled, "task_prefixes": self.task_prefixes, "branch_prefixes": self.branch_prefixes}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'BranchEnforcementConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "BranchEnforcementConfig":
         return cls(
             enabled=data.get("enabled", True),
             task_prefixes=data.get("task_prefixes", []),
-            branch_prefixes=data.get("branch_prefixes", {})
+            branch_prefixes=data.get("branch_prefixes", {}),
         )
 
 
 @dataclass
 class IntelligenceConfig:
     """Configuration for DAIC intelligence features"""
+
     codebase_learning: bool = True
     pattern_recognition: bool = True
     smart_recommendations: bool = True
@@ -891,42 +977,50 @@ class IntelligenceConfig:
         return {
             "codebase_learning": self.codebase_learning,
             "pattern_recognition": self.pattern_recognition,
-            "smart_recommendations": self.smart_recommendations
+            "smart_recommendations": self.smart_recommendations,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'IntelligenceConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "IntelligenceConfig":
         return cls(
             codebase_learning=data.get("codebase_learning", True),
             pattern_recognition=data.get("pattern_recognition", True),
-            smart_recommendations=data.get("smart_recommendations", True)
+            smart_recommendations=data.get("smart_recommendations", True),
         )
 
 
 @dataclass
 class TaskDetectionConfig:
     """Configuration for task detection features"""
+
     enabled: bool = True
 
     def to_dict(self) -> Dict[str, Any]:
         return {"enabled": self.enabled}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'TaskDetectionConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "TaskDetectionConfig":
         return cls(enabled=data.get("enabled", True))
 
 
 @dataclass
 class DAICConfig:
     """Complete DAIC configuration structure"""
+
     enabled: bool = True
     default_mode: str = field(default_factory=lambda: str(DAICMode.DISCUSSION))
-    trigger_phrases: List[str] = field(default_factory=lambda: [
-        "make it so", "run that", "go ahead", "ship it", "let's do it", "execute", "implement it"
-    ])
-    blocked_tools: List[str] = field(default_factory=lambda: [
-        "Edit", "Write", "MultiEdit", "NotebookEdit"
-    ])
+    trigger_phrases: List[str] = field(
+        default_factory=lambda: [
+            "make it so",
+            "run that",
+            "go ahead",
+            "ship it",
+            "let's do it",
+            "execute",
+            "implement it",
+        ]
+    )
+    blocked_tools: List[str] = field(default_factory=lambda: ["Edit", "Write", "MultiEdit", "NotebookEdit"])
     branch_enforcement: BranchEnforcementConfig = field(default_factory=BranchEnforcementConfig)
     read_only_bash_commands: ReadOnlyCommandsConfig = field(default_factory=ReadOnlyCommandsConfig)
     intelligence: IntelligenceConfig = field(default_factory=IntelligenceConfig)
@@ -941,11 +1035,11 @@ class DAICConfig:
             "branch_enforcement": self.branch_enforcement.to_dict(),
             "read_only_bash_commands": self.read_only_bash_commands.to_dict(),
             "intelligence": self.intelligence.to_dict(),
-            "task_detection": self.task_detection.to_dict()
+            "task_detection": self.task_detection.to_dict(),
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'DAICConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "DAICConfig":
         return cls(
             enabled=data.get("enabled", True),
             default_mode=data.get("default_mode", str(DAICMode.DISCUSSION)),
@@ -954,7 +1048,7 @@ class DAICConfig:
             branch_enforcement=BranchEnforcementConfig.from_dict(data.get("branch_enforcement", {})),
             read_only_bash_commands=ReadOnlyCommandsConfig.from_dict(data.get("read_only_bash_commands", {})),
             intelligence=IntelligenceConfig.from_dict(data.get("intelligence", {})),
-            task_detection=TaskDetectionConfig.from_dict(data.get("task_detection", {}))
+            task_detection=TaskDetectionConfig.from_dict(data.get("task_detection", {})),
         )
 
 
@@ -962,9 +1056,11 @@ class DAICConfig:
 # Operation Result Types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class OperationResult:
     """Base class for standardized operation results across the system"""
+
     success: bool = field()
     timestamp: str = field(default_factory=_now_iso)
     error_code: Optional[str] = None
@@ -978,28 +1074,24 @@ class OperationResult:
             "timestamp": self.timestamp,
             "error_code": self.error_code,
             "error_message": self.error_message,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
     @classmethod
-    def success_result(cls, **metadata) -> 'OperationResult':
+    def success_result(cls, **metadata) -> "OperationResult":
         """Factory method for successful operations"""
         return cls(success=True, metadata=metadata)
 
     @classmethod
-    def error_result(cls, error_code: str, error_message: str, **metadata) -> 'OperationResult':
+    def error_result(cls, error_code: str, error_message: str, **metadata) -> "OperationResult":
         """Factory method for failed operations"""
-        return cls(
-            success=False,
-            error_code=error_code,
-            error_message=error_message,
-            metadata=metadata
-        )
+        return cls(success=False, error_code=error_code, error_message=error_message, metadata=metadata)
 
 
 @dataclass
 class DAICModeOperationResult(OperationResult):
     """Result type for DAIC mode operations (toggle, set, etc.)"""
+
     old_mode: Optional[DAICMode] = None
     new_mode: Optional[DAICMode] = None
     trigger: Optional[str] = None
@@ -1007,45 +1099,37 @@ class DAICModeOperationResult(OperationResult):
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         result = super().to_dict()
-        result.update({
-            "old_mode": str(self.old_mode) if self.old_mode else None,
-            "new_mode": str(self.new_mode) if self.new_mode else None,
-            "trigger": self.trigger
-        })
+        result.update(
+            {
+                "old_mode": str(self.old_mode) if self.old_mode else None,
+                "new_mode": str(self.new_mode) if self.new_mode else None,
+                "trigger": self.trigger,
+            }
+        )
         return result
 
     @classmethod
-    def successful_toggle(cls, old_mode: DAICMode, new_mode: DAICMode, trigger: str = None) -> 'DAICModeOperationResult':
+    def successful_toggle(
+        cls, old_mode: DAICMode, new_mode: DAICMode, trigger: str = None
+    ) -> "DAICModeOperationResult":
         """Factory method for successful mode toggles"""
-        return cls(
-            success=True,
-            old_mode=old_mode,
-            new_mode=new_mode,
-            trigger=trigger
-        )
+        return cls(success=True, old_mode=old_mode, new_mode=new_mode, trigger=trigger)
 
     @classmethod
-    def successful_set(cls, mode: DAICMode, trigger: str = None) -> 'DAICModeOperationResult':
+    def successful_set(cls, mode: DAICMode, trigger: str = None) -> "DAICModeOperationResult":
         """Factory method for successful mode sets"""
-        return cls(
-            success=True,
-            new_mode=mode,
-            trigger=trigger
-        )
+        return cls(success=True, new_mode=mode, trigger=trigger)
 
     @classmethod
-    def failed_operation(cls, error_code: str, error_message: str) -> 'DAICModeOperationResult':
+    def failed_operation(cls, error_code: str, error_message: str) -> "DAICModeOperationResult":
         """Factory method for failed DAIC operations"""
-        return cls(
-            success=False,
-            error_code=error_code,
-            error_message=error_message
-        )
+        return cls(success=False, error_code=error_code, error_message=error_message)
 
 
 @dataclass
 class ModeDisplayInfo:
     """Display information for DAIC mode with emoji, color, and success status"""
+
     mode: str = field()
     emoji: str = field()
     color: str = field()
@@ -1053,37 +1137,23 @@ class ModeDisplayInfo:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
-        return {
-            "mode": self.mode,
-            "emoji": self.emoji,
-            "color": self.color,
-            "success": self.success
-        }
+        return {"mode": self.mode, "emoji": self.emoji, "color": self.color, "success": self.success}
 
     @classmethod
-    def success_display(cls, mode: DAICMode, emoji: str, color: str) -> 'ModeDisplayInfo':
+    def success_display(cls, mode: DAICMode, emoji: str, color: str) -> "ModeDisplayInfo":
         """Factory method for successful mode display"""
-        return cls(
-            mode=str(mode),
-            emoji=emoji,
-            color=color,
-            success=True
-        )
+        return cls(mode=str(mode), emoji=emoji, color=color, success=True)
 
     @classmethod
-    def error_display(cls, mode: str = "unknown", emoji: str = "❓", color: str = "white") -> 'ModeDisplayInfo':
+    def error_display(cls, mode: str = "unknown", emoji: str = "❓", color: str = "white") -> "ModeDisplayInfo":
         """Factory method for error mode display"""
-        return cls(
-            mode=mode,
-            emoji=emoji,
-            color=color,
-            success=False
-        )
+        return cls(mode=mode, emoji=emoji, color=color, success=False)
 
 
 @dataclass
 class ToolBlockingResult:
     """Result type for tool blocking decisions in DAIC workflow"""
+
     should_block: bool = field()
     reason: str = field()
     blocking_type: Optional[str] = None
@@ -1095,7 +1165,7 @@ class ToolBlockingResult:
             "should_block": self.should_block,
             "reason": self.reason,
             "blocking_type": self.blocking_type,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
     def to_tuple(self) -> tuple[bool, str]:
@@ -1103,34 +1173,22 @@ class ToolBlockingResult:
         return self.should_block, self.reason
 
     @classmethod
-    def allow_tool(cls, reason: str = "Tool allowed") -> 'ToolBlockingResult':
+    def allow_tool(cls, reason: str = "Tool allowed") -> "ToolBlockingResult":
         """Factory method for allowing tools"""
-        return cls(
-            should_block=False,
-            reason=reason,
-            blocking_type=None
-        )
+        return cls(should_block=False, reason=reason, blocking_type=None)
 
     @classmethod
-    def block_tool(cls, reason: str, blocking_type: str = "DAIC_BLOCKED") -> 'ToolBlockingResult':
+    def block_tool(cls, reason: str, blocking_type: str = "DAIC_BLOCKED") -> "ToolBlockingResult":
         """Factory method for blocking tools"""
-        return cls(
-            should_block=True,
-            reason=reason,
-            blocking_type=blocking_type
-        )
+        return cls(should_block=True, reason=reason, blocking_type=blocking_type)
 
     @classmethod
-    def security_block(cls, reason: str) -> 'ToolBlockingResult':
+    def security_block(cls, reason: str) -> "ToolBlockingResult":
         """Factory method for security-related blocks"""
-        return cls(
-            should_block=True,
-            reason=reason,
-            blocking_type="SECURITY_BLOCKED"
-        )
+        return cls(should_block=True, reason=reason, blocking_type="SECURITY_BLOCKED")
 
     @classmethod
-    def discussion_mode_block(cls, tool_name: str, detail: str = None) -> 'ToolBlockingResult':
+    def discussion_mode_block(cls, tool_name: str, detail: str = None) -> "ToolBlockingResult":
         """Factory method for discussion mode blocks"""
         if detail:
             reason = f"[DAIC: Tool Blocked] {detail}"
@@ -1141,11 +1199,11 @@ class ToolBlockingResult:
             should_block=True,
             reason=reason,
             blocking_type="DISCUSSION_MODE_BLOCKED",
-            metadata={"blocked_tool": tool_name}
+            metadata={"blocked_tool": tool_name},
         )
 
     @classmethod
-    def command_block(cls, command: str, detail: str = None) -> 'ToolBlockingResult':
+    def command_block(cls, command: str, detail: str = None) -> "ToolBlockingResult":
         """Factory method for command-specific blocks"""
         if detail:
             reason = f"[DAIC: Command Blocked] {detail}"
@@ -1153,16 +1211,14 @@ class ToolBlockingResult:
             reason = f"[DAIC: Command Blocked] Potentially modifying Bash command blocked in discussion mode: {command}"
 
         return cls(
-            should_block=True,
-            reason=reason,
-            blocking_type="COMMAND_BLOCKED",
-            metadata={"blocked_command": command}
+            should_block=True, reason=reason, blocking_type="COMMAND_BLOCKED", metadata={"blocked_command": command}
         )
 
 
 @dataclass
 class CorrelationUpdateResult:
     """Result type for session correlation update operations"""
+
     success: bool = field()
     session_id: str = field()
     correlation_id: str = field()
@@ -1176,7 +1232,7 @@ class CorrelationUpdateResult:
             "success": self.success,
             "session_id": self.session_id,
             "correlation_id": self.correlation_id,
-            "timestamp": self.timestamp
+            "timestamp": self.timestamp,
         }
         if self.error:
             result["error"] = self.error
@@ -1185,48 +1241,30 @@ class CorrelationUpdateResult:
         return result
 
     @classmethod
-    def successful_update(cls, session_id: str, correlation_id: str) -> 'CorrelationUpdateResult':
+    def successful_update(cls, session_id: str, correlation_id: str) -> "CorrelationUpdateResult":
         """Factory method for successful correlation updates"""
-        return cls(
-            success=True,
-            session_id=session_id,
-            correlation_id=correlation_id
-        )
+        return cls(success=True, session_id=session_id, correlation_id=correlation_id)
 
     @classmethod
-    def failed_update(cls, session_id: str, correlation_id: str, error: str) -> 'CorrelationUpdateResult':
+    def failed_update(cls, session_id: str, correlation_id: str, error: str) -> "CorrelationUpdateResult":
         """Factory method for failed correlation updates"""
-        return cls(
-            success=False,
-            session_id=session_id,
-            correlation_id=correlation_id,
-            error=error
-        )
+        return cls(success=False, session_id=session_id, correlation_id=correlation_id, error=error)
 
     @classmethod
-    def invalid_session_id(cls) -> 'CorrelationUpdateResult':
+    def invalid_session_id(cls) -> "CorrelationUpdateResult":
         """Factory method for invalid session ID error"""
-        return cls(
-            success=False,
-            session_id="",
-            correlation_id="",
-            error="Invalid session_id"
-        )
+        return cls(success=False, session_id="", correlation_id="", error="Invalid session_id")
 
     @classmethod
-    def invalid_correlation_id(cls) -> 'CorrelationUpdateResult':
+    def invalid_correlation_id(cls) -> "CorrelationUpdateResult":
         """Factory method for invalid correlation ID error"""
-        return cls(
-            success=False,
-            session_id="",
-            correlation_id="",
-            error="Invalid correlation_id"
-        )
+        return cls(success=False, session_id="", correlation_id="", error="Invalid correlation_id")
 
 
 @dataclass
 class ConsistencyCheckResult:
     """Result type for session correlation consistency checks"""
+
     consistent: bool = field()
     inconsistencies: List[str] = field(default_factory=list)
     unified_session: Optional[str] = None
@@ -1242,7 +1280,7 @@ class ConsistencyCheckResult:
             "inconsistencies": self.inconsistencies,
             "unified_session": self.unified_session,
             "unified_correlation": self.unified_correlation,
-            "task_session": self.task_session
+            "task_session": self.task_session,
         }
         if self.error:
             result["error"] = self.error
@@ -1251,40 +1289,44 @@ class ConsistencyCheckResult:
         return result
 
     @classmethod
-    def consistent_state(cls, unified_session: str = None, unified_correlation: str = None,
-                        task_session: str = None) -> 'ConsistencyCheckResult':
+    def consistent_state(
+        cls, unified_session: str = None, unified_correlation: str = None, task_session: str = None
+    ) -> "ConsistencyCheckResult":
         """Factory method for consistent state"""
         return cls(
             consistent=True,
             unified_session=unified_session,
             unified_correlation=unified_correlation,
-            task_session=task_session
+            task_session=task_session,
         )
 
     @classmethod
-    def inconsistent_state(cls, inconsistencies: List[str], unified_session: str = None,
-                          unified_correlation: str = None, task_session: str = None) -> 'ConsistencyCheckResult':
+    def inconsistent_state(
+        cls,
+        inconsistencies: List[str],
+        unified_session: str = None,
+        unified_correlation: str = None,
+        task_session: str = None,
+    ) -> "ConsistencyCheckResult":
         """Factory method for inconsistent state"""
         return cls(
             consistent=False,
             inconsistencies=inconsistencies,
             unified_session=unified_session,
             unified_correlation=unified_correlation,
-            task_session=task_session
+            task_session=task_session,
         )
 
     @classmethod
-    def check_failed(cls, error: str) -> 'ConsistencyCheckResult':
+    def check_failed(cls, error: str) -> "ConsistencyCheckResult":
         """Factory method for failed consistency checks"""
-        return cls(
-            consistent=False,
-            error=error
-        )
+        return cls(consistent=False, error=error)
 
 
 @dataclass
 class IdGenerationResult:
     """Result type for session and correlation ID generation"""
+
     session_id: str = field()
     correlation_id: str = field()
     timestamp: str = field(default_factory=_now_iso)
@@ -1296,7 +1338,7 @@ class IdGenerationResult:
             "session_id": self.session_id,
             "correlation_id": self.correlation_id,
             "timestamp": self.timestamp,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
     def to_tuple(self) -> Tuple[str, str]:
@@ -1304,18 +1346,17 @@ class IdGenerationResult:
         return self.session_id, self.correlation_id
 
 
-
-
 # ---------------------------------------------------------------------------
 # Normalization convenience for tests / analytics
 # ---------------------------------------------------------------------------
+
 
 def normalize_validation_issues(issues: List[Dict[str, Any]]) -> List[str]:
     """Return only message strings for comparison use."""
     out = []
     for issue in issues:
         if isinstance(issue, dict):
-            msg = issue.get('message') or issue.get('detail') or str(issue)
+            msg = issue.get("message") or issue.get("detail") or str(issue)
             out.append(msg)
         elif isinstance(issue, str):
             out.append(issue)
@@ -1324,9 +1365,9 @@ def normalize_validation_issues(issues: List[Dict[str, Any]]) -> List[str]:
 
 def to_json_serializable(obj: Any) -> Any:
     """Convert typed objects to JSON-serializable format."""
-    if hasattr(obj, 'to_dict'):
+    if hasattr(obj, "to_dict"):
         return obj.to_dict()
-    elif hasattr(obj, '__dict__'):
+    elif hasattr(obj, "__dict__"):
         # For dataclasses without to_dict method
         result = {}
         for key, value in obj.__dict__.items():
@@ -1344,6 +1385,7 @@ def to_json_serializable(obj: Any) -> Any:
 # Timestamp utilities for standardization
 # ---------------------------------------------------------------------------
 
+
 def get_standard_timestamp() -> str:
     """Get current timestamp in standard ISO 8601 format with UTC timezone.
 
@@ -1351,6 +1393,7 @@ def get_standard_timestamp() -> str:
     Format: "2025-08-11T13:34:27.254010+00:00"
     """
     return _dt.datetime.now(_dt.timezone.utc).isoformat()
+
 
 def parse_standard_timestamp(ts: str) -> _dt.datetime:
     """Parse standard timestamp with fallback for legacy formats.
@@ -1369,7 +1412,7 @@ def parse_standard_timestamp(ts: str) -> _dt.datetime:
 
     # Try ISO format first
     try:
-        return _dt.datetime.fromisoformat(ts.replace('Z', '+00:00'))
+        return _dt.datetime.fromisoformat(ts.replace("Z", "+00:00"))
     except (ValueError, AttributeError):
         pass
 
@@ -1386,6 +1429,7 @@ def parse_standard_timestamp(ts: str) -> _dt.datetime:
         pass
 
     raise ValueError(f"Cannot parse timestamp: {ts}")
+
 
 def format_for_database(ts: str) -> str:
     """Ensure timestamp is in correct format for database storage.
@@ -1407,21 +1451,52 @@ def format_for_database(ts: str) -> str:
         # Fallback to current timestamp
         return get_standard_timestamp()
 
+
 __all__ = [
-    'BaseHookInput','PreToolUseInput','PostToolUseInput','UserPromptSubmitInput',
-    'SessionStartInput','SessionEndInput','StopInput','NotificationInput',
-    'PreToolUseDecisionOutput','CommandToolInput','FileWriteToolInput','FileEditToolInput',
-    'ToolResponse','parse_tool_input','BaseLogEvent','PreToolUseLogEvent','PostToolUseLogEvent',
-    'UserPromptSubmitLogEvent','parse_log_event','DeveloperInfo','normalize_validation_issues',
-    'to_json_serializable','get_standard_timestamp','parse_standard_timestamp','format_for_database',
+    "BaseHookInput",
+    "PreToolUseInput",
+    "PostToolUseInput",
+    "UserPromptSubmitInput",
+    "SessionStartInput",
+    "SessionEndInput",
+    "StopInput",
+    "NotificationInput",
+    "PreToolUseDecisionOutput",
+    "CommandToolInput",
+    "FileWriteToolInput",
+    "FileEditToolInput",
+    "ToolResponse",
+    "parse_tool_input",
+    "BaseLogEvent",
+    "PreToolUseLogEvent",
+    "PostToolUseLogEvent",
+    "UserPromptSubmitLogEvent",
+    "parse_log_event",
+    "DeveloperInfo",
+    "normalize_validation_issues",
+    "to_json_serializable",
+    "get_standard_timestamp",
+    "parse_standard_timestamp",
+    "format_for_database",
     # DAIC Mode enumeration
-    'DAICMode',
+    "DAICMode",
     # Configuration data classes
-    'DeveloperConfig','PreferencesConfig','TeamConfig','UserConfig',
-    'ReadOnlyCommandsConfig','BranchEnforcementConfig','IntelligenceConfig','TaskDetectionConfig','DAICConfig',
+    "DeveloperConfig",
+    "PreferencesConfig",
+    "TeamConfig",
+    "UserConfig",
+    "ReadOnlyCommandsConfig",
+    "BranchEnforcementConfig",
+    "IntelligenceConfig",
+    "TaskDetectionConfig",
+    "DAICConfig",
     # Operation result types
-    'OperationResult','DAICModeOperationResult',
+    "OperationResult",
+    "DAICModeOperationResult",
     # Output schema classes for type-safe responses
-    'HookSpecificOutput','UserPromptContextResponse','SessionCorrelationResponse',
-    'DAICModeResult','ToolAnalysisResult'
+    "HookSpecificOutput",
+    "UserPromptContextResponse",
+    "SessionCorrelationResponse",
+    "DAICModeResult",
+    "ToolAnalysisResult",
 ]

@@ -284,7 +284,7 @@ Before saving, verify you have:
 **YOU MUST NEVER:**
 - Edit or touch any files in .brainworm/state/ directories
 - Modify unified_session_state.json or any state files
-- Change DAIC mode or run daic command  
+- Change DAIC mode or run daic command
 - Edit any system state files
 - Try to control workflow or session state
 

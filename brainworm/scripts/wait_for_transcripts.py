@@ -25,18 +25,16 @@ def find_project_root() -> Path:
 
     # Check current directory and parents
     for path in [current] + list(current.parents):
-        brainworm_dir = path / '.brainworm'
+        brainworm_dir = path / ".brainworm"
         if brainworm_dir.exists() and brainworm_dir.is_dir():
             return path
 
     # Fallback to current directory
     return current
 
+
 def wait_for_transcripts(
-    subagent_type: str,
-    project_root: Path,
-    timeout_ms: int = 5000,
-    initial_delay_ms: int = 50
+    subagent_type: str, project_root: Path, timeout_ms: int = 5000, initial_delay_ms: int = 50
 ) -> List[Path]:
     """
     Wait for transcript files to be ready in subagent directory.
@@ -62,10 +60,10 @@ def wait_for_transcripts(
     previous_sizes: Optional[dict] = None
     # Normalize subagent_type (strip plugin namespace prefix if present)
     # e.g., "brainworm:context-gathering" -> "context-gathering"
-    subagent_dir_name = subagent_type.split(':', 1)[-1] if ':' in subagent_type else subagent_type
+    subagent_dir_name = subagent_type.split(":", 1)[-1] if ":" in subagent_type else subagent_type
 
     # Target directory where hook writes files
-    batch_dir = project_root / '.brainworm' / 'state' / subagent_dir_name
+    batch_dir = project_root / ".brainworm" / "state" / subagent_dir_name
 
     # First check: does the directory exist at all?
     if not batch_dir.exists():
@@ -139,6 +137,7 @@ def wait_for_transcripts(
         # Exponential backoff: 50ms -> 100ms -> 200ms -> 400ms -> 800ms -> 1600ms
         delay_ms = min(delay_ms * 2, 1600)  # Cap at 1.6 seconds
 
+
 def main():
     """Main entry point for wait script."""
     # Parse arguments
@@ -184,5 +183,6 @@ def main():
         print(f"Unexpected error: {e}", file=sys.stderr)
         sys.exit(1)  # Exit code 1 = general error
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

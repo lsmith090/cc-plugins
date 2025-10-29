@@ -22,27 +22,24 @@ def get_basic_git_context(project_root: Path) -> Dict[str, Any]:
     try:
         # Current branch
         result = subprocess.run(
-            ['git', 'branch', '--show-current'],
-            capture_output=True, text=True, timeout=3, cwd=project_root
+            ["git", "branch", "--show-current"], capture_output=True, text=True, timeout=3, cwd=project_root
         )
         if result.returncode == 0:
-            context['branch'] = result.stdout.strip()
+            context["branch"] = result.stdout.strip()
 
         # Current commit
         result = subprocess.run(
-            ['git', 'rev-parse', '--short', 'HEAD'],
-            capture_output=True, text=True, timeout=3, cwd=project_root
+            ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=3, cwd=project_root
         )
         if result.returncode == 0:
-            context['commit'] = result.stdout.strip()
+            context["commit"] = result.stdout.strip()
 
         # Uncommitted file count
         result = subprocess.run(
-            ['git', 'status', '--porcelain'],
-            capture_output=True, text=True, timeout=3, cwd=project_root
+            ["git", "status", "--porcelain"], capture_output=True, text=True, timeout=3, cwd=project_root
         )
         if result.returncode == 0:
-            context['uncommitted_files'] = len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
+            context["uncommitted_files"] = len(result.stdout.strip().split("\n")) if result.stdout.strip() else 0
     except Exception as e:
         # Git commands failed - continue with partial context
         print(f"Debug: Failed to get git context: {e}", file=sys.stderr)

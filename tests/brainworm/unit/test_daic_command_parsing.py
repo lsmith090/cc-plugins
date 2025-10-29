@@ -61,7 +61,7 @@ class TestDAICCommandParsing:
         """Test basic read-only commands are correctly identified"""
         test_cases = [
             ("ls", True, "List directory"),
-            ("ls -la", True, "List with options"),  
+            ("ls -la", True, "List with options"),
             ("pwd", True, "Print working directory"),
             ("cat file.txt", True, "Read file"),
             ("grep pattern", True, "Search pattern"),
@@ -73,7 +73,7 @@ class TestDAICCommandParsing:
             ("sort data.txt", True, "Sort command"),
             ("uniq data.txt", True, "Unique command")
         ]
-        
+
         for cmd, expected, description in test_cases:
             result = is_read_only_bash_command(cmd, config)
             assert result == expected, f"{description}: '{cmd}' should be {'allowed' if expected else 'blocked'}"
@@ -82,7 +82,7 @@ class TestDAICCommandParsing:
         """Test commands that modify files are blocked"""
         test_cases = [
             ("echo 'data' > file.txt", False, "Output redirection"),
-            ("ls >> log.txt", False, "Append redirection"),  
+            ("ls >> log.txt", False, "Append redirection"),
             ("mv file1 file2", False, "Move/rename"),
             ("cp file1 file2", False, "Copy"),
             ("rm file.txt", False, "Remove file"),
@@ -94,7 +94,7 @@ class TestDAICCommandParsing:
             ("find . -name '*.tmp' -delete", False, "Find with delete (SECURITY)"),
             ("find . -name '*.log' -exec rm {} \\;", False, "Find with rm exec (SECURITY)")
         ]
-        
+
         for cmd, expected, description in test_cases:
             result = is_read_only_bash_command(cmd, config)
             assert result == expected, f"{description}: '{cmd}' should be {'allowed' if expected else 'blocked'}"
@@ -102,7 +102,7 @@ class TestDAICCommandParsing:
     def test_pipe_commands_fixed(self, config):
         """
         Test pipe commands work correctly after the quote-parsing fix
-        
+
         CRITICAL: This validates the main bug fix for quoted patterns in pipes
         """
         test_cases = [
@@ -114,7 +114,7 @@ class TestDAICCommandParsing:
             ("echo hello | grep hello", True, "Echo pipe should work"),
             ("cat file.txt | head -5", True, "Cat to head pipe should work")
         ]
-        
+
         for cmd, expected, description in test_cases:
             result = is_read_only_bash_command(cmd, config)
             assert result == expected, f"{description}: '{cmd}'"
@@ -122,8 +122,8 @@ class TestDAICCommandParsing:
     def test_quoted_strings_main_fix(self, config):
         """
         Test quoted string parsing - THE MAIN BUG FIX
-        
-        This was the core issue: pipes inside quoted strings were being 
+
+        This was the core issue: pipes inside quoted strings were being
         incorrectly parsed as command separators.
         """
         test_cases = [
@@ -134,7 +134,7 @@ class TestDAICCommandParsing:
             ('find . -name "*.py" | grep -v __pycache__ | head -20', True, "Complex quoted pipe"),
             ('echo "hello|world" | cat', True, "Pipe in quoted string"),
         ]
-        
+
         for cmd, expected, description in test_cases:
             result = is_read_only_bash_command(cmd, config)
             assert result == expected, f"MAIN FIX - {description}: '{cmd}'"
@@ -144,14 +144,14 @@ class TestDAICCommandParsing:
         test_cases = [
             ("ls && pwd", True, "AND chain of read-only commands"),
             ("cat file1 && cat file2", True, "Multiple read-only with AND"),
-            ("ls || pwd", True, "OR chain of read-only commands"),  
+            ("ls || pwd", True, "OR chain of read-only commands"),
             ("ls; pwd; echo done", True, "Semicolon chain of read-only"),
             ("ls && rm file", False, "Read-only AND write command"),
             ("rm file || ls", False, "Write OR read-only command"),
             ("ls && pwd && git status", True, "Triple AND chain"),
             ("ls || pwd || echo 'fallback'", True, "Triple OR chain")
         ]
-        
+
         for cmd, expected, description in test_cases:
             result = is_read_only_bash_command(cmd, config)
             assert result == expected, f"{description}: '{cmd}'"
@@ -164,13 +164,13 @@ class TestDAICCommandParsing:
             ("sed 's/old/new/g' file.txt", False, "Sed modification without -n"),
             ("awk '{print $0 > \"output.txt\"}' input.txt", False, "Awk with output redirection"),
         ]
-        
+
         safe_alternatives = [
             ("find . -name '*.tmp'", True, "Find without delete"),
             ("sed -n 's/old/new/p' file.txt", True, "Sed with -n flag"),
             ("awk '{print $0}' input.txt", True, "Awk without output redirection"),
         ]
-        
+
         for cmd, expected, description in dangerous_commands + safe_alternatives:
             result = is_read_only_bash_command(cmd, config)
             assert result == expected, f"SECURITY - {description}: '{cmd}'"
@@ -306,7 +306,7 @@ class TestDAICCommandParsing:
             ("   ", True, "Whitespace only"),
             ("ls|||grep", True, "Malformed triple pipe - parsing handles it")
         ]
-        
+
         for cmd, expected, description in test_cases:
             result = is_read_only_bash_command(cmd, config)
             # For malformed commands, we expect them to be blocked for safety
@@ -317,23 +317,23 @@ class TestDAICCommandParsing:
         scenarios = [
             # The original user's exact failing command
             ('ls -la | grep -E "(task|script)"', True, "User's original failing command"),
-            
+
             # Investigation commands users run
             ("find . -name '*test*' -type f", True, "Test file search"),
             ("cat package.json | jq '.dependencies'", True, "Package inspection"),
             ("git log --oneline | head -10", True, "Recent commits"),
             ("ls -la | grep python", True, "Simple file filtering"),
-            
+
             # Complex but safe pipe chains
             ("find . -name '*.py' | grep -v __pycache__ | head -20", True, "Python file search"),
             ("ls -la && pwd && git status", True, "Status check chain"),
             ("curl -s http://api.example.com | jq '.data'", True, "API inspection"),
-            
+
             # Commands that should still be blocked
             ("ls -la > filelist.txt", False, "Output redirection"),
             ("find . -name '*.tmp' -delete", False, "Find with delete"),
         ]
-        
+
         for cmd, expected, description in scenarios:
             result = is_read_only_bash_command(cmd, config)
             assert result == expected, f"REAL USER - {description}: '{cmd}'"
@@ -348,7 +348,7 @@ class TestDAICCommandParsing:
             ('find . -name "*.py" | grep -E "(test|spec)"', ['find . -name "*.py"', 'grep -E "(test|spec)"']),
             ("ls || echo 'failed'", ['ls', 'echo \'failed\'']),
         ]
-        
+
         for cmd, expected in test_cases:
             result = split_command_respecting_quotes(cmd)
             assert result == expected, f"Split function failed for: '{cmd}' -> got {result}, expected {expected}"

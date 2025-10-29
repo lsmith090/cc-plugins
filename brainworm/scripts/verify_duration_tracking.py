@@ -26,7 +26,7 @@ def find_project_root(start_path: Optional[Path] = None) -> Optional[Path]:
 
     current = start_path.resolve()
     while current != current.parent:
-        if (current / '.brainworm').exists():
+        if (current / ".brainworm").exists():
             return current
         current = current.parent
 
@@ -36,7 +36,7 @@ def find_project_root(start_path: Optional[Path] = None) -> Optional[Path]:
 def verify_duration_tracking(project_root: Path) -> None:
     """Verify duration tracking in brainworm events"""
 
-    db_path = project_root / '.brainworm' / 'events' / 'hooks.db'
+    db_path = project_root / ".brainworm" / "events" / "hooks.db"
 
     if not db_path.exists():
         print(f"❌ No event database found at: {db_path}")
@@ -81,22 +81,22 @@ def verify_duration_tracking(project_root: Path) -> None:
     total_duration_ms = 0.0
 
     for row in rows:
-        event_id = row['id']
-        session_id = row['session_id'][:12] if row['session_id'] else 'unknown'
-        timestamp = row['timestamp']
+        event_id = row["id"]
+        session_id = row["session_id"][:12] if row["session_id"] else "unknown"
+        timestamp = row["timestamp"]
 
         # Parse event_data JSON
-        event_data = json.loads(row['event_data'])
+        event_data = json.loads(row["event_data"])
 
         # Extract tool name
-        tool_name = event_data.get('tool_name', 'unknown')
+        tool_name = event_data.get("tool_name", "unknown")
 
         # Extract duration from nested timing structure (CORRECT WAY)
-        timing = event_data.get('timing', {})
-        duration_ms = timing.get('execution_duration_ms')
+        timing = event_data.get("timing", {})
+        duration_ms = timing.get("execution_duration_ms")
 
         # Check for success field
-        success = event_data.get('success', True)
+        success = event_data.get("success", True)
 
         print(f"\nEvent #{event_id} | Session: {session_id}")
         print(f"  Tool: {tool_name}")
@@ -139,9 +139,9 @@ def verify_duration_tracking(project_root: Path) -> None:
         print("   3. Events logged before duration tracking was implemented")
 
         # Check timing directory
-        timing_dir = project_root / '.brainworm' / 'timing'
+        timing_dir = project_root / ".brainworm" / "timing"
         if timing_dir.exists():
-            timing_files = list(timing_dir.glob('*.json'))
+            timing_files = list(timing_dir.glob("*.json"))
             print(f"\n   Timing directory exists: {timing_dir}")
             print(f"   Timing files found: {len(timing_files)}")
         else:
@@ -207,5 +207,5 @@ def main():
     show_extraction_examples()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

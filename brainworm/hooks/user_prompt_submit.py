@@ -32,21 +32,23 @@ from utils.hook_types import DAICMode, UserPromptContextResponse
 def get_basic_prompt_info(prompt: str) -> Dict[str, Any]:
     """Get basic prompt information - no intent analysis, just facts"""
     return {
-        'length_chars': len(prompt),
-        'word_count': len(prompt.split()),
-        'has_question': '?' in prompt,
-        'has_code_references': bool('`' in prompt or '.py' in prompt or '.js' in prompt),
-        'is_empty': len(prompt.strip()) == 0
+        "length_chars": len(prompt),
+        "word_count": len(prompt.split()),
+        "has_question": "?" in prompt,
+        "has_code_references": bool("`" in prompt or ".py" in prompt or ".js" in prompt),
+        "is_empty": len(prompt.strip()) == 0,
     }
+
 
 def get_context_length_from_transcript(transcript_path: str) -> int:
     """Get current context length from the most recent main-chain message in transcript"""
     try:
         import os
+
         if not os.path.exists(transcript_path):
             return 0
 
-        with open(transcript_path, 'r') as f:
+        with open(transcript_path, "r") as f:
             lines = f.readlines()
 
         most_recent_usage = None
@@ -57,31 +59,32 @@ def get_context_length_from_transcript(transcript_path: str) -> int:
             try:
                 data = json.loads(line.strip())
                 # Skip sidechain entries (subagent calls)
-                if data.get('isSidechain', False):
+                if data.get("isSidechain", False):
                     continue
 
                 # Check if this entry has usage data
-                if data.get('message', {}).get('usage'):
-                    entry_time = data.get('timestamp')
+                if data.get("message", {}).get("usage"):
+                    entry_time = data.get("timestamp")
                     # Track the most recent main-chain entry with usage
                     if entry_time and (not most_recent_timestamp or entry_time > most_recent_timestamp):
                         most_recent_timestamp = entry_time
-                        most_recent_usage = data['message']['usage']
+                        most_recent_usage = data["message"]["usage"]
             except json.JSONDecodeError:
                 continue
 
         # Calculate context length from most recent usage
         if most_recent_usage:
             context_length = (
-                most_recent_usage.get('input_tokens', 0) +
-                most_recent_usage.get('cache_read_input_tokens', 0) +
-                most_recent_usage.get('cache_creation_input_tokens', 0)
+                most_recent_usage.get("input_tokens", 0)
+                + most_recent_usage.get("cache_read_input_tokens", 0)
+                + most_recent_usage.get("cache_creation_input_tokens", 0)
             )
             return context_length
     except Exception as e:
         # Failed to read transcript for context length - return 0 as fallback
         print(f"Debug: Failed to get context length: {e}", file=sys.stderr)
     return 0
+
 
 def check_context_warnings(transcript_path: str, project_root: Path) -> str:
     """Check and create context usage warnings based on transcript context length"""
@@ -119,6 +122,7 @@ def check_context_warnings(transcript_path: str, project_root: Path) -> str:
 
 # DAIC Workflow Functions using Hooks Framework
 
+
 def get_daic_state(project_root: Path) -> Dict[str, Any]:
     """Get current DAIC state using business controllers"""
     try:
@@ -129,7 +133,7 @@ def get_daic_state(project_root: Path) -> Dict[str, Any]:
             "mode": mode_info.mode,
             "timestamp": None,  # Not tracked in this interface
             "previous_mode": None,  # Not tracked in this interface
-            "trigger": "business_controller"
+            "trigger": "business_controller",
         }
     except Exception:
         return {"mode": str(DAICMode.DISCUSSION), "timestamp": None, "previous_mode": None, "trigger": None}
@@ -147,7 +151,7 @@ def set_daic_mode(project_root: Path, mode: str, trigger: str = None) -> Dict[st
             "previous_mode": str(result.old_mode) if result.old_mode else None,
             "trigger": result.trigger or trigger or "user_prompt_submit",
             "success": result.success,
-            "error": result.error_message if not result.success else None
+            "error": result.error_message if not result.success else None,
         }
     except Exception as e:
         return {
@@ -156,7 +160,7 @@ def set_daic_mode(project_root: Path, mode: str, trigger: str = None) -> Dict[st
             "previous_mode": None,
             "trigger": trigger or "user_prompt_submit",
             "success": False,
-            "error": str(e)
+            "error": str(e),
         }
 
 
@@ -184,13 +188,24 @@ def detect_protocols(prompt: str) -> List[str]:
         protocols.append("context-compaction")
 
     # Task completion detection
-    if any(phrase in prompt_lower for phrase in ["complete the task", "finish the task", "task is done",
-                                                   "mark as complete", "close the task", "wrap up the task"]):
+    if any(
+        phrase in prompt_lower
+        for phrase in [
+            "complete the task",
+            "finish the task",
+            "task is done",
+            "mark as complete",
+            "close the task",
+            "wrap up the task",
+        ]
+    ):
         protocols.append("task-completion")
 
     # Task creation detection
-    if any(phrase in prompt_lower for phrase in ["create a new task", "create a task", "make a task",
-                                                   "new task for", "add a task"]):
+    if any(
+        phrase in prompt_lower
+        for phrase in ["create a new task", "create a task", "make a task", "new task for", "add a task"]
+    ):
         protocols.append("task-creation")
 
     # Task switching detection
@@ -200,15 +215,17 @@ def detect_protocols(prompt: str) -> List[str]:
     return protocols
 
 
-def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, config: Dict[str, Any], debug_logger=None) -> Dict[str, Any]:
+def user_prompt_submit_logic(
+    input_data: Dict[str, Any], project_root: Path, config: Dict[str, Any], debug_logger=None
+) -> Dict[str, Any]:
     """Custom logic for user prompt submit processing"""
     # Get DAIC configuration
     daic_config = config.get("daic", {})
 
     # Extract data
-    session_id = input_data.get('session_id', 'unknown')
-    prompt = input_data.get('prompt', '')
-    transcript_path = input_data.get('transcript_path', '')
+    session_id = input_data.get("session_id", "unknown")
+    prompt = input_data.get("prompt", "")
+    transcript_path = input_data.get("transcript_path", "")
 
     # Initialize context response
     context = ""
@@ -251,11 +268,12 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
 
             if detected_trigger:
                 # Use file locking to prevent race condition in flag creation/deletion
-                trigger_flag = project_root / '.brainworm' / 'state' / 'trigger_phrase_detected.flag'
-                lock_file = project_root / '.brainworm' / 'state' / 'trigger_phrase.lock'
+                trigger_flag = project_root / ".brainworm" / "state" / "trigger_phrase_detected.flag"
+                lock_file = project_root / ".brainworm" / "state" / "trigger_phrase.lock"
 
                 try:
                     from filelock import FileLock
+
                     lock = FileLock(str(lock_file), timeout=5)
 
                     with lock:
@@ -290,7 +308,7 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
         # Protocol detection with subagent reminders
         detected_protocols = detect_protocols(prompt)
         for protocol in detected_protocols:
-            protocol_name = protocol.replace('-', ' ')
+            protocol_name = protocol.replace("-", " ")
             context += f"{protocol_name} protocol found in prompt, read and follow .brainworm/protocols/{protocol}.md protocol.\n"
 
             # Add protocol-specific subagent reminders
@@ -307,15 +325,11 @@ def user_prompt_submit_logic(input_data: Dict[str, Any], project_root: Path, con
                 debug_logger.info(f"📋 Protocol detected: {protocol}")
 
         # Add ultrathink if not in API mode
-        if not config.get("api_mode", False) and not prompt.strip().startswith('/'):
+        if not config.get("api_mode", False) and not prompt.strip().startswith("/"):
             context = "[[ ultrathink ]]\n" + context
 
     # Return processing results
-    return {
-        "context": context,
-        "prompt_info": get_basic_prompt_info(prompt),
-        "session_id": session_id
-    }
+    return {"context": context, "prompt_info": get_basic_prompt_info(prompt), "session_id": session_id}
 
 
 def user_prompt_submit_framework_logic(framework, input_data: Dict[str, Any]):
@@ -334,11 +348,12 @@ def user_prompt_submit_framework_logic(framework, input_data: Dict[str, Any]):
 
     # Load configuration
     from utils.config import load_config
+
     config = load_config(project_root)
 
     # Debug logging - INFO level
     if framework.debug_logger:
-        prompt = input_data['prompt']
+        prompt = input_data["prompt"]
         prompt_len = len(prompt) if prompt else 0
         framework.debug_logger.info(f"Processing user prompt ({prompt_len} chars)")
 
@@ -347,13 +362,11 @@ def user_prompt_submit_framework_logic(framework, input_data: Dict[str, Any]):
 
     # Debug logging - context injection summary
     if framework.debug_logger and result.get("context"):
-        context_summary = result["context"][:100].replace('\n', ' ')
+        context_summary = result["context"][:100].replace("\n", " ")
         framework.debug_logger.debug(f"Context injected: {context_summary}...")
 
     # Generate typed JSON response for Claude
-    typed_response = UserPromptContextResponse.create_context(
-        result["context"], None
-    )
+    typed_response = UserPromptContextResponse.create_context(result["context"], None)
 
     # Set typed JSON response for framework to handle
     framework.set_json_response(typed_response.to_dict())
@@ -362,13 +375,14 @@ def user_prompt_submit_framework_logic(framework, input_data: Dict[str, Any]):
 def main() -> None:
     """Main entry point for user prompt submit hook - Pure Framework Approach"""
     try:
-        HookFramework("user_prompt_submit", enable_event_logging=True) \
-            .with_custom_logic(user_prompt_submit_framework_logic) \
-            .execute()
+        HookFramework("user_prompt_submit", enable_event_logging=True).with_custom_logic(
+            user_prompt_submit_framework_logic
+        ).execute()
 
     except Exception:
         # Emergency fallback - always provide some JSON
         print(json.dumps({"context": ""}))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

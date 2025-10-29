@@ -86,8 +86,7 @@ Detailed traceback:
     # Re-raise to fail the hook execution
     # This is INTENTIONAL - we want the hook to fail visibly, not silently
     raise RuntimeError(
-        f"Hook infrastructure import failed: {import_error}. "
-        "Fix dependency issues before running hooks."
+        f"Hook infrastructure import failed: {import_error}. " "Fix dependency issues before running hooks."
     ) from import_error
 
 
@@ -112,8 +111,14 @@ class HookFramework:
     Reduces individual hook files from 60-80 lines to 5-10 lines.
     """
 
-    def __init__(self, hook_name: str, enable_event_logging: bool = True, security_critical: bool = False,
-                 prevent_duplicate_execution: bool = True, lock_duration_seconds: int = 10):
+    def __init__(
+        self,
+        hook_name: str,
+        enable_event_logging: bool = True,
+        security_critical: bool = False,
+        prevent_duplicate_execution: bool = True,
+        lock_duration_seconds: int = 10,
+    ):
         """
         Initialize framework for a specific hook.
 
@@ -135,6 +140,7 @@ class HookFramework:
 
         # Capture which hook script file invoked the framework
         import inspect
+
         frame = inspect.currentframe()
         if frame and frame.f_back:
             caller_file = frame.f_back.f_code.co_filename
@@ -143,7 +149,9 @@ class HookFramework:
             self.hook_script = "unknown"
 
         self.raw_input_data: Dict[str, Any] = {}
-        self.typed_input: Optional[Union[BaseHookInput, PreToolUseInput, PostToolUseInput, UserPromptSubmitInput]] = None
+        self.typed_input: Optional[Union[BaseHookInput, PreToolUseInput, PostToolUseInput, UserPromptSubmitInput]] = (
+            None
+        )
         self.project_root: Optional[Path] = None
         self.session_id: str = "unknown"
         self.custom_logic_fn: Optional[Callable] = None
@@ -217,12 +225,15 @@ class HookFramework:
 
             # Security: Limit input size to prevent memory exhaustion attacks
             if len(input_text) > MAX_INPUT_SIZE:
-                print(f"Warning: Input size ({len(input_text)} bytes) exceeds maximum allowed ({MAX_INPUT_SIZE} bytes)", file=sys.stderr)
+                print(
+                    f"Warning: Input size ({len(input_text)} bytes) exceeds maximum allowed ({MAX_INPUT_SIZE} bytes)",
+                    file=sys.stderr,
+                )
                 self.raw_input_data = {}
                 return
 
             self.raw_input_data = json.loads(input_text) if input_text.strip() else {}
-            self.session_id = self.raw_input_data.get('session_id', 'unknown')
+            self.session_id = self.raw_input_data.get("session_id", "unknown")
 
             # Type-safe input processing using sophisticated schemas
             self._parse_typed_input()
@@ -242,27 +253,29 @@ class HookFramework:
 
         try:
             # Parse based on hook type for type-safe processing
-            if self.hook_name in ('pre_tool_use', 'daic_pre_tool_use') and PreToolUseInput:
+            if self.hook_name in ("pre_tool_use", "daic_pre_tool_use") and PreToolUseInput:
                 self.typed_input = PreToolUseInput.parse(self.raw_input_data)
-            elif self.hook_name == 'post_tool_use' and PostToolUseInput:
+            elif self.hook_name == "post_tool_use" and PostToolUseInput:
                 self.typed_input = PostToolUseInput.parse(self.raw_input_data)
-            elif self.hook_name == 'user_prompt_submit' and UserPromptSubmitInput:
+            elif self.hook_name == "user_prompt_submit" and UserPromptSubmitInput:
                 self.typed_input = UserPromptSubmitInput.parse(self.raw_input_data)
-            elif self.hook_name == 'session_start' and SessionStartInput:
+            elif self.hook_name == "session_start" and SessionStartInput:
                 self.typed_input = SessionStartInput.parse(self.raw_input_data)
-            elif self.hook_name == 'session_end' and SessionEndInput:
+            elif self.hook_name == "session_end" and SessionEndInput:
                 self.typed_input = SessionEndInput.parse(self.raw_input_data)
-            elif self.hook_name == 'stop' and StopInput:
+            elif self.hook_name == "stop" and StopInput:
                 self.typed_input = StopInput.parse(self.raw_input_data)
-            elif self.hook_name == 'notification' and NotificationInput:
+            elif self.hook_name == "notification" and NotificationInput:
                 self.typed_input = NotificationInput.parse(self.raw_input_data)
             elif BaseHookInput:
                 # Fallback to base input for other hooks
                 self.typed_input = BaseHookInput.parse(self.raw_input_data)
         except Exception as e:
             # Log the actual error for debugging
-            if '--verbose' in sys.argv:
-                print(f"Warning: Type-safe parsing failed for {self.hook_name}: {type(e).__name__}: {e}", file=sys.stderr)
+            if "--verbose" in sys.argv:
+                print(
+                    f"Warning: Type-safe parsing failed for {self.hook_name}: {type(e).__name__}: {e}", file=sys.stderr
+                )
             else:
                 print(f"Warning: Type-safe parsing failed for {self.hook_name}, using raw input", file=sys.stderr)
             # Continue with raw input
@@ -271,6 +284,7 @@ class HookFramework:
         """Discover project root with fallback strategy."""
         try:
             from utils.project import find_project_root
+
             self.project_root = find_project_root()
         except (ImportError, RuntimeError):
             # Fallback to current directory
@@ -292,21 +306,16 @@ class HookFramework:
             # Load debug configuration and initialize debug logger
             if create_debug_logger and load_config:
                 config = load_config(self.project_root)
-                debug_config_data = config.get('debug', {})
+                debug_config_data = config.get("debug", {})
                 debug_config = DebugConfig.from_dict(debug_config_data) if DebugConfig else None
                 self.debug_logger = create_debug_logger(
-                    self.hook_name,
-                    self.project_root,
-                    debug_config,
-                    check_verbose_flag=True
+                    self.hook_name, self.project_root, debug_config, check_verbose_flag=True
                 )
 
             # Initialize event logger with Claude Code session correlation
             if self.enable_event_logging and create_event_logger:
                 self.event_logger = create_event_logger(
-                    self.project_root, self.hook_name,
-                    enable_event_logging=True,
-                    session_id=self.session_id
+                    self.project_root, self.hook_name, enable_event_logging=True, session_id=self.session_id
                 )
         except Exception:
             # Sanitize error message to prevent information disclosure
@@ -321,11 +330,11 @@ class HookFramework:
             debug_mode = self.debug_logger.is_enabled() if self.debug_logger else False
 
             # Use hook-specific event logging methods based on hook type
-            if self.hook_name in ('pre_tool_use', 'daic_pre_tool_use'):
+            if self.hook_name in ("pre_tool_use", "daic_pre_tool_use"):
                 success = self.event_logger.log_pre_tool_execution(self.raw_input_data, debug=debug_mode)
-            elif self.hook_name == 'post_tool_use':
+            elif self.hook_name == "post_tool_use":
                 success = self.event_logger.log_post_tool_execution(self.raw_input_data, debug=debug_mode)
-            elif self.hook_name == 'user_prompt_submit':
+            elif self.hook_name == "user_prompt_submit":
                 success = self.event_logger.log_user_prompt(self.raw_input_data, debug=debug_mode)
             else:
                 # General event logging with session context
@@ -392,25 +401,25 @@ class HookFramework:
         key_parts = [self.hook_name, self.session_id]
 
         # Add context-specific components
-        if self.hook_name in ('pre_tool_use', 'post_tool_use', 'daic_pre_tool_use'):
+        if self.hook_name in ("pre_tool_use", "post_tool_use", "daic_pre_tool_use"):
             # Tool hooks: per-operation granularity
-            tool_name = self.raw_input_data.get('tool_name', '')
-            correlation_id = self.raw_input_data.get('correlation_id', '')
+            tool_name = self.raw_input_data.get("tool_name", "")
+            correlation_id = self.raw_input_data.get("correlation_id", "")
             key_parts.extend([tool_name, correlation_id])
-        elif self.hook_name == 'user_prompt_submit':
+        elif self.hook_name == "user_prompt_submit":
             # User prompt: per-prompt granularity
-            prompt = self.raw_input_data.get('prompt', '')
+            prompt = self.raw_input_data.get("prompt", "")
             # Hash prompt to keep key short
             prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()[:12]
             key_parts.append(prompt_hash)
-        elif self.hook_name in ('stop', 'notification'):
+        elif self.hook_name in ("stop", "notification"):
             # Stop/Notification: per-second granularity to catch rapid duplicates
             time_window = str(int(time.time()))
             key_parts.append(time_window)
         # else: SessionStart/SessionEnd use session_id only
 
         # Create hash of all components
-        key_string = '|'.join(key_parts)
+        key_string = "|".join(key_parts)
         key_hash = hashlib.sha256(key_string.encode()).hexdigest()[:16]
         return f"{self.hook_name}_{key_hash}"
 
@@ -427,7 +436,7 @@ class HookFramework:
 
         try:
             # Ensure lock directory exists
-            lock_dir = self.project_root / '.brainworm' / 'state' / 'hook_locks'
+            lock_dir = self.project_root / ".brainworm" / "state" / "hook_locks"
             lock_dir.mkdir(parents=True, exist_ok=True)
 
             # Generate lock key and file paths
@@ -445,13 +454,13 @@ class HookFramework:
                 if marker_file.exists():
                     try:
                         marker_data = json.loads(marker_file.read_text())
-                        marker_timestamp = marker_data.get('timestamp', 0)
+                        marker_timestamp = marker_data.get("timestamp", 0)
                         marker_age = current_time - marker_timestamp
 
                         if marker_age < self.lock_duration_seconds:
                             # This is a duplicate within the time window
                             if self.debug_logger:
-                                first_execution = marker_data.get('execution_id', 'unknown')
+                                first_execution = marker_data.get("execution_id", "unknown")
                                 self.debug_logger.debug(
                                     f"⏭️  Skipping duplicate execution\n"
                                     f"  First execution: {first_execution}\n"
@@ -465,10 +474,10 @@ class HookFramework:
 
                 # Not a duplicate - create marker
                 marker_data = {
-                    'execution_id': self.execution_id,
-                    'timestamp': current_time,
-                    'session_id': self.session_id,
-                    'hook_name': self.hook_name
+                    "execution_id": self.execution_id,
+                    "timestamp": current_time,
+                    "session_id": self.session_id,
+                    "hook_name": self.hook_name,
                 }
                 marker_file.write_text(json.dumps(marker_data))
 
@@ -476,7 +485,9 @@ class HookFramework:
                 self.lock_file = marker_file
 
                 if self.debug_logger:
-                    self.debug_logger.debug(f"Execution marker created for {self.hook_name}", execution_id=self.execution_id)
+                    self.debug_logger.debug(
+                        f"Execution marker created for {self.hook_name}", execution_id=self.execution_id
+                    )
 
                 # Clean up old markers while we have the lock
                 self._cleanup_old_locks_internal(lock_dir, current_time)
@@ -511,10 +522,10 @@ class HookFramework:
         """
         try:
             # Clean up old marker files
-            for marker_file in lock_dir.glob('*.marker'):
+            for marker_file in lock_dir.glob("*.marker"):
                 try:
                     marker_data = json.loads(marker_file.read_text())
-                    marker_timestamp = marker_data.get('timestamp', 0)
+                    marker_timestamp = marker_data.get("timestamp", 0)
                     marker_age = current_time - marker_timestamp
 
                     if marker_age > self.lock_duration_seconds:
@@ -539,7 +550,7 @@ class HookFramework:
             return
 
         try:
-            lock_dir = self.project_root / '.brainworm' / 'state' / 'hook_locks'
+            lock_dir = self.project_root / ".brainworm" / "state" / "hook_locks"
             if not lock_dir.exists():
                 return
 
@@ -548,7 +559,7 @@ class HookFramework:
         except Exception:
             pass  # Don't fail execution due to cleanup issues
 
-    def with_custom_logic(self, logic_fn: Callable[['HookFramework', Any], None]) -> 'HookFramework':
+    def with_custom_logic(self, logic_fn: Callable[["HookFramework", Any], None]) -> "HookFramework":
         """
         Add custom business logic to be executed within the framework.
 
@@ -573,7 +584,7 @@ class HookFramework:
         self.custom_logic_fn = logic_fn
         return self
 
-    def with_success_handler(self, handler_fn: Callable) -> 'HookFramework':
+    def with_success_handler(self, handler_fn: Callable) -> "HookFramework":
         """
         Add custom success message handler.
 
@@ -586,7 +597,7 @@ class HookFramework:
         self.success_handler_fn = handler_fn
         return self
 
-    def set_json_response(self, response_data: Dict[str, Any]) -> 'HookFramework':
+    def set_json_response(self, response_data: Dict[str, Any]) -> "HookFramework":
         """
         DEPRECATED: Use set_typed_response() for type-safe response handling.
 
@@ -599,7 +610,7 @@ class HookFramework:
         self.json_response = response_data
         return self
 
-    def set_typed_response(self, response_schema) -> 'HookFramework':
+    def set_typed_response(self, response_schema) -> "HookFramework":
         """
         Set typed response using schema classes for Claude Code compliance.
 
@@ -609,7 +620,7 @@ class HookFramework:
         Returns:
             Self for method chaining
         """
-        if not hasattr(response_schema, 'to_dict'):
+        if not hasattr(response_schema, "to_dict"):
             raise ValueError(f"Response schema must have .to_dict() method, got: {type(response_schema)}")
 
         self.json_response = response_schema.to_dict()
@@ -618,7 +629,7 @@ class HookFramework:
     # DEPRECATED METHOD REMOVED: set_exit_decision()
     # Use approve_tool() or block_tool() for type-safe decisions
 
-    def approve_tool(self, reason: Optional[str] = None) -> 'HookFramework':
+    def approve_tool(self, reason: Optional[str] = None) -> "HookFramework":
         """
         Approve tool execution (for pre_tool_use hooks).
 
@@ -632,7 +643,7 @@ class HookFramework:
             self.decision_output = PreToolUseDecisionOutput.approve(reason, self.session_id)
         return self
 
-    def block_tool(self, reason: str, validation_issues: list = None, suppress_output: bool = False) -> 'HookFramework':
+    def block_tool(self, reason: str, validation_issues: list = None, suppress_output: bool = False) -> "HookFramework":
         """
         Block tool execution (for pre_tool_use hooks).
 
@@ -646,20 +657,18 @@ class HookFramework:
         """
         if PreToolUseDecisionOutput:
             issues = validation_issues or [reason]
-            self.decision_output = PreToolUseDecisionOutput.block(
-                reason, issues, self.session_id, suppress_output
-            )
+            self.decision_output = PreToolUseDecisionOutput.block(reason, issues, self.session_id, suppress_output)
         # Exit code 2 triggers blocking behavior in Claude Code
         self.exit_code = 2
         return self
 
     def _output_decision(self) -> None:
         """Output decision for pre_tool_use hooks using official Claude Code format."""
-        if self.hook_name in ('pre_tool_use', 'daic_pre_tool_use') and self.decision_output:
+        if self.hook_name in ("pre_tool_use", "daic_pre_tool_use") and self.decision_output:
             try:
                 decision_dict = self.decision_output.to_dict()
                 # Secure JSON output with ASCII encoding to prevent injection
-                print(json.dumps(decision_dict, ensure_ascii=True, separators=(',', ':')))
+                print(json.dumps(decision_dict, ensure_ascii=True, separators=(",", ":")))
             except Exception:
                 # Sanitize error message to prevent information disclosure
                 print("Warning: Decision output formatting failed", file=sys.stderr)
@@ -674,7 +683,7 @@ class HookFramework:
                     self.debug_logger.trace(f"JSON TO STDOUT: {json_str}", execution_id=self.execution_id)
 
                 # Secure JSON output with ASCII encoding to prevent injection
-                print(json.dumps(self.json_response, ensure_ascii=True, separators=(',', ':')))
+                print(json.dumps(self.json_response, ensure_ascii=True, separators=(",", ":")))
                 sys.stdout.flush()  # Ensure JSON reaches Claude Code
             except Exception as e:
                 # Emergency fallback - always provide some JSON
@@ -712,12 +721,18 @@ class HookFramework:
             self._cleanup_old_locks()
 
             # Add execution_id and hook_script to raw_input_data for downstream systems
-            self.raw_input_data['execution_id'] = self.execution_id
-            self.raw_input_data['hook_script'] = self.hook_script
+            self.raw_input_data["execution_id"] = self.execution_id
+            self.raw_input_data["hook_script"] = self.hook_script
 
             if self.debug_logger:
-                self.debug_logger.info(f"Hook {self.hook_name} [{self.hook_script}] executing (session: {self.session_id[:8]})", execution_id=self.execution_id)
-                self.debug_logger.debug(f"Typed input available: {self.typed_input is not None and not isinstance(self.typed_input, dict)}", execution_id=self.execution_id)
+                self.debug_logger.info(
+                    f"Hook {self.hook_name} [{self.hook_script}] executing (session: {self.session_id[:8]})",
+                    execution_id=self.execution_id,
+                )
+                self.debug_logger.debug(
+                    f"Typed input available: {self.typed_input is not None and not isinstance(self.typed_input, dict)}",
+                    execution_id=self.execution_id,
+                )
 
             # 3. Execute custom logic if provided
             # ARCHITECTURE: Custom logic always receives dict (raw_input_data)
@@ -725,7 +740,9 @@ class HookFramework:
             if self.custom_logic_fn:
                 try:
                     if self.debug_logger:
-                        self.debug_logger.debug(f"Executing custom logic for {self.hook_name}", execution_id=self.execution_id)
+                        self.debug_logger.debug(
+                            f"Executing custom logic for {self.hook_name}", execution_id=self.execution_id
+                        )
 
                     # Always pass raw dict to custom logic - typed input is for validation only
                     self.custom_logic_fn(self, self.raw_input_data)
@@ -734,7 +751,9 @@ class HookFramework:
                         self.debug_logger.debug("Custom logic completed successfully", execution_id=self.execution_id)
                 except Exception as e:
                     if self.debug_logger:
-                        self.debug_logger.error(f"Custom logic failed: {type(e).__name__}: {str(e)}", execution_id=self.execution_id)
+                        self.debug_logger.error(
+                            f"Custom logic failed: {type(e).__name__}: {str(e)}", execution_id=self.execution_id
+                        )
                     # Sanitize error message to prevent information disclosure
                     print(f"Error: Custom logic failed for {self.hook_name}: {str(e)}", file=sys.stderr)
                     sys.exit(1)
@@ -761,7 +780,7 @@ class HookFramework:
             self._handle_error(e)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # This is a framework module, not a standalone hook
     print("Hook Framework - use HookFramework class in your hooks", file=sys.stderr)
     sys.exit(1)

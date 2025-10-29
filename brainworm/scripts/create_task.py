@@ -28,7 +28,7 @@ from rich.prompt import Confirm
 script_path = Path(__file__).resolve()
 
 # Determine plugin root based on location
-if '.claude/plugins' in str(script_path):
+if ".claude/plugins" in str(script_path):
     # Running from installed location: ~/.claude/plugins/.../brainworm/scripts/
     plugin_root = script_path.parent.parent
 else:
@@ -85,7 +85,7 @@ def should_be_interactive() -> bool:
         return False
 
     # Check for CI environment variables
-    if os.getenv('CI') or os.getenv('GITHUB_ACTIONS'):
+    if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
         return False
 
     # Default to interactive for terminal use
@@ -102,18 +102,18 @@ def determine_branch_prefix(task_name: str) -> str:
     Returns:
         Branch prefix (feature, fix, refactor, etc.)
     """
-    if task_name.startswith('fix-'):
-        return 'fix'
-    elif task_name.startswith('refactor-'):
-        return 'refactor'
-    elif task_name.startswith('test-'):
-        return 'test'
-    elif task_name.startswith('docs-'):
-        return 'docs'
-    elif task_name.startswith('migrate-'):
-        return 'migrate'
+    if task_name.startswith("fix-"):
+        return "fix"
+    elif task_name.startswith("refactor-"):
+        return "refactor"
+    elif task_name.startswith("test-"):
+        return "test"
+    elif task_name.startswith("docs-"):
+        return "docs"
+    elif task_name.startswith("migrate-"):
+        return "migrate"
     else:
-        return 'feature'
+        return "feature"
 
 
 def create_task(
@@ -123,7 +123,7 @@ def create_task(
     interactive: bool = True,
     link_issue: int | None = None,
     create_issue: bool = False,
-    no_github: bool = False
+    no_github: bool = False,
 ) -> bool:
     """
     Create task with submodule-aware branch management and GitHub integration.
@@ -165,7 +165,7 @@ def create_task(
         # 3. Validate submodule if specified
         if submodule and not sm.validate_submodule(submodule):
             console.print(f"[red]Error: Submodule '{submodule}' not found[/red]")
-            available = ', '.join(sm.list_submodules())
+            available = ", ".join(sm.list_submodules())
             console.print(f"[yellow]Available submodules: {available}[/yellow]")
             return False
 
@@ -189,16 +189,16 @@ def create_task(
             console.print(f"[yellow]Plugin root: {plugin_root}[/yellow]")
             return False
 
-        with open(template_path, 'r') as f:
+        with open(template_path, "r") as f:
             template = f.read()
 
         # Replace template placeholders
-        content = template.replace('[prefix]-[descriptive-name]', task_name)
-        content = content.replace('feature/[name]|fix/[name]|experiment/[name]|none', branch_name)
-        content = content.replace('[submodule-path]|none', submodule or 'none')
-        content = content.replace('YYYY-MM-DD', datetime.now().strftime('%Y-%m-%d'))
-        content = content.replace('[current-session-id]', 'pending')
-        content = content.replace('[brainworm-correlation-id]', f'{task_name}_correlation')
+        content = template.replace("[prefix]-[descriptive-name]", task_name)
+        content = content.replace("feature/[name]|fix/[name]|experiment/[name]|none", branch_name)
+        content = content.replace("[submodule-path]|none", submodule or "none")
+        content = content.replace("YYYY-MM-DD", datetime.now().strftime("%Y-%m-%d"))
+        content = content.replace("[current-session-id]", "pending")
+        content = content.replace("[brainworm-correlation-id]", f"{task_name}_correlation")
 
         # Write task README
         task_readme.write_text(content)
@@ -242,7 +242,7 @@ def create_task(
                             created_issue = create_github_issue(
                                 repo=repo,
                                 title=task_name,
-                                body=f"Task: {task_name}\n\nCreated via brainworm task management."
+                                body=f"Task: {task_name}\n\nCreated via brainworm task management.",
                             )
                             if created_issue:
                                 issue_to_link = created_issue
@@ -271,7 +271,7 @@ def create_task(
 
         # Get current branch in main repo (or submodule if specified)
         current_branch = sm.get_current_branch(submodule=submodule if submodule else None)
-        stable_branches = ['main', 'master', 'develop', 'dev']
+        stable_branches = ["main", "master", "develop", "dev"]
 
         # Decide: create new branch or use current?
         should_create_new_branch = False
@@ -319,7 +319,7 @@ def create_task(
                         branch_results = sm.create_branches_for_services(
                             branch_name=branch_name,
                             services=services,
-                            create_main_branch=False  # Keep main on current branch
+                            create_main_branch=False,  # Keep main on current branch
                         )
 
                         # Track successful branch creations
@@ -330,13 +330,9 @@ def create_task(
                 else:
                     # Non-interactive: create without prompting
                     branch_results = sm.create_branches_for_services(
-                        branch_name=branch_name,
-                        services=services,
-                        create_main_branch=False
+                        branch_name=branch_name, services=services, create_main_branch=False
                     )
-                    active_submodule_branches = {
-                        svc: branch_name for svc, success in branch_results.items() if success
-                    }
+                    active_submodule_branches = {svc: branch_name for svc, success in branch_results.items() if success}
                     branch_created = len(active_submodule_branches) > 0
             else:
                 # Using current branches in services
@@ -399,7 +395,7 @@ def create_task(
             services=services or [],
             correlation_id=current_unified.get("correlation_id"),
             session_id=current_unified.get("session_id"),
-            active_submodule_branches=active_submodule_branches
+            active_submodule_branches=active_submodule_branches,
         )
         console.print("[green]✓ DAIC state updated[/green]")
 
@@ -430,7 +426,9 @@ def create_task(
         console.print("  3. Start work in discussion mode (already active)")
 
         if active_submodule_branches:
-            console.print(f"\n[yellow]Note:[/yellow] Your work spans multiple services: {', '.join(active_submodule_branches.keys())}")
+            console.print(
+                f"\n[yellow]Note:[/yellow] Your work spans multiple services: {', '.join(active_submodule_branches.keys())}"
+            )
             console.print("Work in each service will be on its feature branch.")
             console.print(f"Main repo stays on [cyan]{main_branch}[/cyan]")
         elif submodule:
@@ -442,6 +440,7 @@ def create_task(
     except Exception as e:
         console.print(f"[red]Error creating task: {e}[/red]")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -476,46 +475,23 @@ Examples:
 
   # Skip GitHub integration
   %(prog)s task-name --no-github
-        """
+        """,
     )
 
+    parser.add_argument("task_name", help="Task identifier (e.g., implement-login-ui, fix-bug-#123)")
+    parser.add_argument("--submodule", help="Target submodule name (e.g., one-mit, one-mit-backend)")
+    parser.add_argument("--services", help="Comma-separated list of affected services/modules")
     parser.add_argument(
-        'task_name',
-        help='Task identifier (e.g., implement-login-ui, fix-bug-#123)'
+        "--no-interactive", action="store_true", help="Force non-interactive mode (auto-detected by default)"
     )
-    parser.add_argument(
-        '--submodule',
-        help='Target submodule name (e.g., one-mit, one-mit-backend)'
-    )
-    parser.add_argument(
-        '--services',
-        help='Comma-separated list of affected services/modules'
-    )
-    parser.add_argument(
-        '--no-interactive',
-        action='store_true',
-        help='Force non-interactive mode (auto-detected by default)'
-    )
-    parser.add_argument(
-        '--link-issue',
-        type=int,
-        help='Link task to existing GitHub issue number'
-    )
-    parser.add_argument(
-        '--create-issue',
-        action='store_true',
-        help='Create new GitHub issue for this task'
-    )
-    parser.add_argument(
-        '--no-github',
-        action='store_true',
-        help='Skip GitHub integration completely'
-    )
+    parser.add_argument("--link-issue", type=int, help="Link task to existing GitHub issue number")
+    parser.add_argument("--create-issue", action="store_true", help="Create new GitHub issue for this task")
+    parser.add_argument("--no-github", action="store_true", help="Skip GitHub integration completely")
 
     args = parser.parse_args()
 
     # Parse services
-    services = args.services.split(',') if args.services else None
+    services = args.services.split(",") if args.services else None
 
     # Auto-detect interactive mode if not explicitly set
     if args.no_interactive:
@@ -532,11 +508,11 @@ Examples:
         interactive=interactive,
         link_issue=args.link_issue,
         create_issue=args.create_issue,
-        no_github=args.no_github
+        no_github=args.no_github,
     )
 
     sys.exit(0 if success else 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

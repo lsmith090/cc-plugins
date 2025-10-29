@@ -37,12 +37,12 @@ def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
 
         # Check for frontmatter (strip leading whitespace)
         content_stripped = content.lstrip()
-        if not content_stripped.startswith('---'):
+        if not content_stripped.startswith("---"):
             return None
 
         # Extract frontmatter (between first two --- markers)
         # Use lstrip() content to handle indented frontmatter
-        parts = content_stripped.split('---', 2)
+        parts = content_stripped.split("---", 2)
         if len(parts) < 3:
             return None
 
@@ -52,13 +52,13 @@ def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
 
         # Parse simple YAML (key: value format)
         metadata = {}
-        for line in frontmatter.split('\n'):
+        for line in frontmatter.split("\n"):
             line = line.strip()
-            if not line or ':' not in line:
+            if not line or ":" not in line:
                 continue
 
             # Split on first colon only (handles values with colons)
-            key, value = line.split(':', 1)
+            key, value = line.split(":", 1)
             key = key.strip()
             value = value.strip()
 
@@ -67,17 +67,17 @@ def parse_task_frontmatter(readme_path: Path) -> Optional[Dict[str, any]]:
                 continue
 
             # Strip YAML comments (everything after #, but not inside lists)
-            if '#' in value and not (value.startswith('[') and value.endswith(']')):
-                value = value.split('#')[0].strip()
+            if "#" in value and not (value.startswith("[") and value.endswith("]")):
+                value = value.split("#")[0].strip()
 
             # Handle lists [item1, item2]
-            if value.startswith('[') and value.endswith(']'):
+            if value.startswith("[") and value.endswith("]"):
                 inner = value[1:-1].strip()
                 # Handle empty lists
                 if not inner:
                     value = []
                 else:
-                    value = [v.strip() for v in inner.split(',') if v.strip()]
+                    value = [v.strip() for v in inner.split(",") if v.strip()]
 
             # Store non-empty values
             if value or value == []:  # Allow empty lists but not empty strings
@@ -97,9 +97,9 @@ def get_current_task(project_root: Path) -> Optional[str]:
         if not state_file.exists():
             return None
 
-        with open(state_file, 'r') as f:
+        with open(state_file, "r") as f:
             data = json.load(f)
-            return data.get('current_task')
+            return data.get("current_task")
 
     except Exception:
         return None
@@ -109,8 +109,8 @@ def format_date(date_str: str) -> str:
     """Format date string for display"""
     try:
         # Parse YYYY-MM-DD format
-        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-        return date_obj.strftime('%b %d, %Y')
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        return date_obj.strftime("%b %d, %Y")
     except Exception:
         return date_str
 
@@ -119,16 +119,16 @@ def get_status_style(status: str) -> tuple[str, str]:
     """Get color and symbol for task status"""
     status_lower = status.lower()
 
-    if status_lower == 'completed':
-        return 'green', '✓'
-    elif status_lower == 'in_progress' or status_lower == 'active':
-        return 'yellow', '◉'
-    elif status_lower == 'pending':
-        return 'blue', '○'
-    elif status_lower == 'blocked':
-        return 'red', '✗'
+    if status_lower == "completed":
+        return "green", "✓"
+    elif status_lower == "in_progress" or status_lower == "active":
+        return "yellow", "◉"
+    elif status_lower == "pending":
+        return "blue", "○"
+    elif status_lower == "blocked":
+        return "red", "✗"
     else:
-        return 'white', '·'
+        return "white", "·"
 
 
 def list_tasks(project_root: Path, filter_status: Optional[str] = None, show_all: bool = False) -> None:
@@ -145,7 +145,7 @@ def list_tasks(project_root: Path, filter_status: Optional[str] = None, show_all
     current_task = get_current_task(project_root)
 
     # Find all task directories
-    task_dirs = [d for d in tasks_dir.iterdir() if d.is_dir() and not d.name.startswith('.')]
+    task_dirs = [d for d in tasks_dir.iterdir() if d.is_dir() and not d.name.startswith(".")]
 
     if not task_dirs:
         console.print("[yellow]No tasks found.[/yellow]")
@@ -164,19 +164,21 @@ def list_tasks(project_root: Path, filter_status: Optional[str] = None, show_all
 
         # Apply status filter if specified
         if filter_status:
-            task_status = metadata.get('status', '').lower()
+            task_status = metadata.get("status", "").lower()
             if task_status != filter_status.lower():
                 continue
 
-        tasks.append({
-            'name': metadata.get('task', task_dir.name),
-            'status': metadata.get('status', 'unknown'),
-            'branch': metadata.get('branch', 'N/A'),
-            'created': metadata.get('created', 'N/A'),
-            'completed': metadata.get('completed', ''),
-            'modules': metadata.get('modules', []),
-            'is_current': metadata.get('task', task_dir.name) == current_task
-        })
+        tasks.append(
+            {
+                "name": metadata.get("task", task_dir.name),
+                "status": metadata.get("status", "unknown"),
+                "branch": metadata.get("branch", "N/A"),
+                "created": metadata.get("created", "N/A"),
+                "completed": metadata.get("completed", ""),
+                "modules": metadata.get("modules", []),
+                "is_current": metadata.get("task", task_dir.name) == current_task,
+            }
+        )
 
     if not tasks:
         if filter_status:
@@ -187,10 +189,10 @@ def list_tasks(project_root: Path, filter_status: Optional[str] = None, show_all
 
     # Sort tasks: current first, then by status (in_progress, pending, completed), then by created date
     def sort_key(task):
-        if task['is_current']:
-            return (0, task['created'])
-        status_order = {'in_progress': 1, 'active': 1, 'pending': 2, 'blocked': 3, 'completed': 4}
-        return (status_order.get(task['status'].lower(), 5), task['created'])
+        if task["is_current"]:
+            return (0, task["created"])
+        status_order = {"in_progress": 1, "active": 1, "pending": 2, "blocked": 3, "completed": 4}
+        return (status_order.get(task["status"].lower(), 5), task["created"])
 
     tasks.sort(key=sort_key)
 
@@ -207,34 +209,34 @@ def list_tasks(project_root: Path, filter_status: Optional[str] = None, show_all
 
     # Add rows
     for task in tasks:
-        status_style, status_symbol = get_status_style(task['status'])
+        status_style, status_symbol = get_status_style(task["status"])
 
         # Format status
         status_text = Text()
         status_text.append(f"{status_symbol} ", style=status_style)
-        status_text.append(task['status'].capitalize()[:8], style=status_style)
+        status_text.append(task["status"].capitalize()[:8], style=status_style)
 
         # Format task name (highlight current task)
-        task_name = task['name']
-        if task['is_current']:
+        task_name = task["name"]
+        if task["is_current"]:
             task_text = Text(f"→ {task_name}", style="bold yellow")
         else:
             task_text = Text(task_name)
 
         # Format dates
-        created = format_date(task['created']) if task['created'] != 'N/A' else 'N/A'
+        created = format_date(task["created"]) if task["created"] != "N/A" else "N/A"
 
         # Add row
         row = [
             status_text,
             task_text,
-            task['branch'],
+            task["branch"],
             created,
         ]
 
         if show_all:
-            completed = format_date(task['completed']) if task['completed'] else '-'
-            modules = ', '.join(task['modules']) if isinstance(task['modules'], list) else str(task['modules'])
+            completed = format_date(task["completed"]) if task["completed"] else "-"
+            modules = ", ".join(task["modules"]) if isinstance(task["modules"], list) else str(task["modules"])
             row.extend([completed, modules])
 
         table.add_row(*row)
@@ -246,9 +248,9 @@ def list_tasks(project_root: Path, filter_status: Optional[str] = None, show_all
 
     # Summary
     total = len(tasks)
-    completed = sum(1 for t in tasks if t['status'].lower() == 'completed')
-    in_progress = sum(1 for t in tasks if t['status'].lower() in ['in_progress', 'active'])
-    pending = sum(1 for t in tasks if t['status'].lower() == 'pending')
+    completed = sum(1 for t in tasks if t["status"].lower() == "completed")
+    in_progress = sum(1 for t in tasks if t["status"].lower() in ["in_progress", "active"])
+    pending = sum(1 for t in tasks if t["status"].lower() == "pending")
 
     summary_parts = [f"Total: {total} tasks"]
     if in_progress > 0:
@@ -282,6 +284,7 @@ def main() -> None:
     try:
         # Find project root
         from utils.project import find_project_root
+
         project_root = find_project_root()
 
         # Parse arguments
@@ -289,12 +292,12 @@ def main() -> None:
         show_all = False
 
         for arg in sys.argv[1:]:
-            if arg in ['--help', '-h', 'help']:
+            if arg in ["--help", "-h", "help"]:
                 show_usage()
                 return
-            elif arg.startswith('--status='):
-                filter_status = arg.split('=', 1)[1]
-            elif arg == '--all':
+            elif arg.startswith("--status="):
+                filter_status = arg.split("=", 1)[1]
+            elif arg == "--all":
                 show_all = True
 
         # List tasks
@@ -305,5 +308,5 @@ def main() -> None:
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

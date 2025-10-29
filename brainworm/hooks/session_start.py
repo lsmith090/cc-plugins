@@ -33,6 +33,7 @@ from utils.hook_framework import HookFramework
 
 console = Console(stderr=True)
 
+
 def auto_setup_minimal_brainworm(project_root: Path) -> None:
     """
     Auto-create minimal .brainworm/ structure if needed.
@@ -40,13 +41,13 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
     """
     try:
         # Try to get plugin root from environment first
-        plugin_root_str = os.environ.get('CLAUDE_PLUGIN_ROOT', '')
+        plugin_root_str = os.environ.get("CLAUDE_PLUGIN_ROOT", "")
 
         # If not set, derive from script location (hook is in plugin/hooks/)
         if not plugin_root_str:
             script_path = Path(__file__).resolve()
             # Check if we're running from a plugin directory
-            if '.claude/plugins/marketplaces' in str(script_path):
+            if ".claude/plugins/marketplaces" in str(script_path):
                 # script_path is like: ~/.claude/plugins/marketplaces/xxx/brainworm/hooks/session_start.py
                 plugin_root_str = str(script_path.parent.parent)  # Go up to brainworm/
             else:
@@ -58,19 +59,19 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
         if not plugin_root.exists():
             return  # Can't auto-setup without valid plugin
 
-        brainworm_dir = project_root / '.brainworm'
-        state_file = brainworm_dir / 'state' / 'unified_session_state.json'
+        brainworm_dir = project_root / ".brainworm"
+        state_file = brainworm_dir / "state" / "unified_session_state.json"
 
         # Quick check - if state exists with valid plugin_root, just update if needed
         if state_file.exists():
             try:
-                with open(state_file, 'r') as f:
+                with open(state_file, "r") as f:
                     state = json.load(f)
-                current_plugin = state.get('plugin_root')
+                current_plugin = state.get("plugin_root")
 
                 # Update plugin_root if changed (plugin moved/updated)
                 if current_plugin != str(plugin_root):
-                    state['plugin_root'] = str(plugin_root)
+                    state["plugin_root"] = str(plugin_root)
                     with AtomicFileWriter(state_file) as f:
                         json.dump(state, f, indent=2)
 
@@ -78,11 +79,11 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
                 generate_wrappers(project_root, plugin_root)
 
                 # Always copy protocols to ensure latest versions
-                protocols_source = plugin_root / 'templates' / 'protocols'
-                protocols_dest = brainworm_dir / 'protocols'
+                protocols_source = plugin_root / "templates" / "protocols"
+                protocols_dest = brainworm_dir / "protocols"
                 protocols_dest.mkdir(parents=True, exist_ok=True)
                 if protocols_source.exists():
-                    for protocol_file in protocols_source.glob('*.md'):
+                    for protocol_file in protocols_source.glob("*.md"):
                         shutil.copy(protocol_file, protocols_dest / protocol_file.name)
 
                 # Always configure statusline to ensure it's up to date
@@ -101,24 +102,24 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
         console.print("[dim]⚙️  Initializing brainworm...[/dim]")
 
         # 1. Create minimal directory structure
-        (brainworm_dir / 'state').mkdir(parents=True, exist_ok=True)
-        (brainworm_dir / 'events').mkdir(parents=True, exist_ok=True)
-        (brainworm_dir / 'tasks').mkdir(parents=True, exist_ok=True)
-        (brainworm_dir / 'timing').mkdir(parents=True, exist_ok=True)
-        (brainworm_dir / 'protocols').mkdir(parents=True, exist_ok=True)
+        (brainworm_dir / "state").mkdir(parents=True, exist_ok=True)
+        (brainworm_dir / "events").mkdir(parents=True, exist_ok=True)
+        (brainworm_dir / "tasks").mkdir(parents=True, exist_ok=True)
+        (brainworm_dir / "timing").mkdir(parents=True, exist_ok=True)
+        (brainworm_dir / "protocols").mkdir(parents=True, exist_ok=True)
 
         # 2. Copy config.toml from plugin template (if not exists)
-        config_file = brainworm_dir / 'config.toml'
+        config_file = brainworm_dir / "config.toml"
         if not config_file.exists():
-            template = plugin_root / 'templates' / 'config.toml.template'
+            template = plugin_root / "templates" / "config.toml.template"
             if template.exists():
                 shutil.copy(template, config_file)
 
         # 2b. Copy protocol files from plugin templates (always refresh)
-        protocols_source = plugin_root / 'templates' / 'protocols'
-        protocols_dest = brainworm_dir / 'protocols'
+        protocols_source = plugin_root / "templates" / "protocols"
+        protocols_dest = brainworm_dir / "protocols"
         if protocols_source.exists():
-            for protocol_file in protocols_source.glob('*.md'):
+            for protocol_file in protocols_source.glob("*.md"):
                 shutil.copy(protocol_file, protocols_dest / protocol_file.name)
 
         # 3. Initialize unified session state with plugin_root
@@ -133,27 +134,22 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
             "correlation_id": None,
             "session_id": None,
             "plugin_root": str(plugin_root),
-            "developer": {
-                "name": "",
-                "email": ""
-            },
-            "last_updated": datetime.now(timezone.utc).isoformat()
+            "developer": {"name": "", "email": ""},
+            "last_updated": datetime.now(timezone.utc).isoformat(),
         }
 
         # Try to get git identity
         try:
             name_result = subprocess.run(
-                ['git', 'config', 'user.name'],
-                capture_output=True, text=True, timeout=3, cwd=project_root
+                ["git", "config", "user.name"], capture_output=True, text=True, timeout=3, cwd=project_root
             )
             email_result = subprocess.run(
-                ['git', 'config', 'user.email'],
-                capture_output=True, text=True, timeout=3, cwd=project_root
+                ["git", "config", "user.email"], capture_output=True, text=True, timeout=3, cwd=project_root
             )
             if name_result.returncode == 0:
-                initial_state['developer']['name'] = name_result.stdout.strip()
+                initial_state["developer"]["name"] = name_result.stdout.strip()
             if email_result.returncode == 0:
-                initial_state['developer']['email'] = email_result.stdout.strip()
+                initial_state["developer"]["email"] = email_result.stdout.strip()
         except Exception:
             pass
 
@@ -162,7 +158,7 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
             json.dump(initial_state, f, indent=2)
 
         # 4. Initialize event store database with schema
-        init_event_database(brainworm_dir / 'events' / 'hooks.db')
+        init_event_database(brainworm_dir / "events" / "hooks.db")
 
         # 5. Generate wrapper scripts
         generate_wrappers(project_root, plugin_root)
@@ -185,6 +181,7 @@ def auto_setup_minimal_brainworm(project_root: Path) -> None:
         # Don't fail session start if auto-setup fails
         console.print(f"[dim yellow]⚠️  Auto-setup warning: {e}[/dim yellow]")
 
+
 def init_event_database(db_path: Path) -> None:
     """Initialize event store database with simplified schema"""
     if db_path.exists():
@@ -195,7 +192,7 @@ def init_event_database(db_path: Path) -> None:
         cursor = conn.cursor()
 
         # Create hook_events table with simplified schema (minimal columns + rich JSON)
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS hook_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 hook_name TEXT NOT NULL,
@@ -205,48 +202,49 @@ def init_event_database(db_path: Path) -> None:
                 timestamp DATETIME NOT NULL,
                 event_data TEXT NOT NULL
             )
-        ''')
+        """)
 
         # Create indexes for efficient querying
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp ON hook_events(timestamp)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_hook_events_correlation ON hook_events(correlation_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_hook_events_session ON hook_events(session_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_hook_events_execution_id ON hook_events(execution_id)')
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_hook_events_timestamp ON hook_events(timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_hook_events_correlation ON hook_events(correlation_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_hook_events_session ON hook_events(session_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_hook_events_execution_id ON hook_events(execution_id)")
 
         conn.commit()
         conn.close()
     except Exception:
         pass  # Don't fail if database init fails
 
+
 def generate_wrappers(project_root: Path, plugin_root: Path) -> None:
     """Generate ./daic and ./tasks wrapper scripts"""
     try:
         # DAIC wrapper
-        daic_wrapper = '''#!/usr/bin/env bash
+        daic_wrapper = """#!/usr/bin/env bash
 # Generated by brainworm session_start hook
 # Uses plugin-launcher to execute daic_command.py
 
 exec .brainworm/plugin-launcher daic_command.py "$@"
-'''
+"""
 
-        daic_path = project_root / 'daic'
+        daic_path = project_root / "daic"
         daic_path.write_text(daic_wrapper)
         daic_path.chmod(0o755)
 
         # Tasks wrapper
-        tasks_wrapper = '''#!/usr/bin/env bash
+        tasks_wrapper = """#!/usr/bin/env bash
 # Generated by brainworm session_start hook
 # Uses plugin-launcher to execute tasks_command.py
 
 exec .brainworm/plugin-launcher tasks_command.py "$@"
-'''
+"""
 
-        tasks_path = project_root / 'tasks'
+        tasks_path = project_root / "tasks"
         tasks_path.write_text(tasks_wrapper)
         tasks_path.chmod(0o755)
 
         # Plugin launcher wrapper (for slash commands and statusline)
-        plugin_launcher_wrapper = '''#!/usr/bin/env bash
+        plugin_launcher_wrapper = """#!/usr/bin/env bash
 # Generated by brainworm session_start hook
 # Generic plugin script launcher for slash commands and statusline
 
@@ -287,154 +285,149 @@ else
     echo "Error: Script ${SCRIPT_NAME} not found in plugin" >&2
     exit 1
 fi
-'''
+"""
 
-        plugin_launcher_path = project_root / '.brainworm' / 'plugin-launcher'
+        plugin_launcher_path = project_root / ".brainworm" / "plugin-launcher"
         plugin_launcher_path.write_text(plugin_launcher_wrapper)
         plugin_launcher_path.chmod(0o755)
 
     except Exception:
         pass  # Don't fail if wrapper generation fails
 
+
 def update_gitignore(project_root: Path) -> None:
     """Update .gitignore with brainworm patterns"""
     try:
-        gitignore_path = project_root / '.gitignore'
+        gitignore_path = project_root / ".gitignore"
 
-        patterns = [
-            '# Brainworm',
-            '.brainworm/',
-            'CLAUDE.sessions.md',
-            'daic',
-            'tasks',
-            ''
-        ]
+        patterns = ["# Brainworm", ".brainworm/", "CLAUDE.sessions.md", "daic", "tasks", ""]
 
         # Read existing gitignore
-        existing = gitignore_path.read_text() if gitignore_path.exists() else ''
+        existing = gitignore_path.read_text() if gitignore_path.exists() else ""
 
         # Check if patterns already exist
-        if '.brainworm/' in existing or 'Brainworm' in existing:
+        if ".brainworm/" in existing or "Brainworm" in existing:
             return  # Already configured
 
         # Append patterns
-        with open(gitignore_path, 'a') as f:
+        with open(gitignore_path, "a") as f:
             # Only add leading newline if file exists and has content
-            prefix = '\n' if existing and not existing.endswith('\n') else ''
-            f.write(prefix + '\n'.join(patterns))
+            prefix = "\n" if existing and not existing.endswith("\n") else ""
+            f.write(prefix + "\n".join(patterns))
     except Exception:
         pass  # Don't fail if gitignore update fails
+
 
 def configure_statusline(project_root: Path, plugin_root: Path) -> None:
     """Configure statusLine in .claude/settings.json"""
     try:
-        claude_dir = project_root / '.claude'
+        claude_dir = project_root / ".claude"
         claude_dir.mkdir(exist_ok=True)
 
-        settings_file = claude_dir / 'settings.json'
+        settings_file = claude_dir / "settings.json"
 
         # Read existing settings or create new
         if settings_file.exists():
-            with open(settings_file, 'r') as f:
+            with open(settings_file, "r") as f:
                 settings = json.load(f)
         else:
             settings = {}
 
         # Add statusLine configuration
-        settings['statusLine'] = {
-            'type': 'command',
-            'command': '.brainworm/plugin-launcher statusline-script.py',
-            'padding': 0
+        settings["statusLine"] = {
+            "type": "command",
+            "command": ".brainworm/plugin-launcher statusline-script.py",
+            "padding": 0,
         }
 
         # Ensure env section exists with CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR
-        if 'env' not in settings:
-            settings['env'] = {}
-        if 'CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR' not in settings['env']:
-            settings['env']['CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR'] = 'true'
+        if "env" not in settings:
+            settings["env"] = {}
+        if "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR" not in settings["env"]:
+            settings["env"]["CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR"] = "true"
 
         # Write back
-        with open(settings_file, 'w') as f:
+        with open(settings_file, "w") as f:
             json.dump(settings, f, indent=2)
 
     except Exception:
         pass  # Don't fail session start
 
+
 def configure_daic_permissions(project_root: Path) -> None:
     """Configure DAIC mode-switching deny rules in .claude/settings.local.json"""
     try:
-        claude_dir = project_root / '.claude'
+        claude_dir = project_root / ".claude"
         claude_dir.mkdir(exist_ok=True)
 
-        settings_local_file = claude_dir / 'settings.local.json'
+        settings_local_file = claude_dir / "settings.local.json"
 
         # Read existing settings or create new
         if settings_local_file.exists():
-            with open(settings_local_file, 'r') as f:
+            with open(settings_local_file, "r") as f:
                 settings = json.load(f)
         else:
             settings = {}
 
         # Ensure permissions structure exists
-        if 'permissions' not in settings:
-            settings['permissions'] = {}
-        if 'deny' not in settings['permissions']:
-            settings['permissions']['deny'] = []
+        if "permissions" not in settings:
+            settings["permissions"] = {}
+        if "deny" not in settings["permissions"]:
+            settings["permissions"]["deny"] = []
 
         # Add DAIC mode-switching deny rules if not already present
-        deny_rules = [
-            "SlashCommand(/brainworm:daic implementation)",
-            "SlashCommand(/brainworm:daic toggle)"
-        ]
+        deny_rules = ["SlashCommand(/brainworm:daic implementation)", "SlashCommand(/brainworm:daic toggle)"]
 
         for rule in deny_rules:
-            if rule not in settings['permissions']['deny']:
-                settings['permissions']['deny'].append(rule)
+            if rule not in settings["permissions"]["deny"]:
+                settings["permissions"]["deny"].append(rule)
 
         # Write back
-        with open(settings_local_file, 'w') as f:
+        with open(settings_local_file, "w") as f:
             json.dump(settings, f, indent=2)
 
     except Exception:
         pass  # Don't fail session start
 
+
 def setup_claude_sessions_docs(project_root: Path, plugin_root: Path) -> None:
     """Setup CLAUDE.sessions.md and ensure it's referenced in CLAUDE.md"""
     try:
         # 1. Copy CLAUDE.sessions.md from plugin templates if needed
-        sessions_file = project_root / 'CLAUDE.sessions.md'
-        template_file = plugin_root / 'templates' / 'CLAUDE.sessions.md'
+        sessions_file = project_root / "CLAUDE.sessions.md"
+        template_file = plugin_root / "templates" / "CLAUDE.sessions.md"
 
         if template_file.exists():
             # Always copy to ensure latest version (it's documentation, not state)
             shutil.copy(template_file, sessions_file)
 
         # 2. Ensure CLAUDE.md exists and has the @CLAUDE.sessions.md reference
-        claude_md = project_root / 'CLAUDE.md'
+        claude_md = project_root / "CLAUDE.md"
 
         if claude_md.exists():
             content = claude_md.read_text()
 
             # Check if reference already exists
-            if '@CLAUDE.sessions.md' not in content:
+            if "@CLAUDE.sessions.md" not in content:
                 # Add reference at the end
-                if not content.endswith('\n'):
-                    content += '\n'
-                content += '\n## Brainworm System Behaviors\n\n@CLAUDE.sessions.md\n'
+                if not content.endswith("\n"):
+                    content += "\n"
+                content += "\n## Brainworm System Behaviors\n\n@CLAUDE.sessions.md\n"
                 claude_md.write_text(content)
         else:
             # Create minimal CLAUDE.md with reference
-            claude_md.write_text('''# CLAUDE.md
+            claude_md.write_text("""# CLAUDE.md
 
 Guidance for Claude Code when working with this project.
 
 ## Brainworm System Behaviors
 
 @CLAUDE.sessions.md
-''')
+""")
 
     except Exception:
         pass  # Don't fail session start if docs setup fails
+
 
 def initialize_user_config(project_root: Path) -> None:
     """Initialize user config if it doesn't exist"""
@@ -456,27 +449,25 @@ def initialize_user_config(project_root: Path) -> None:
 
             # Try to populate with git identity
             try:
-                with open(user_config_path, 'r') as f:
+                with open(user_config_path, "r") as f:
                     config = json.load(f)
 
                 # Get git identity if available
                 name_result = subprocess.run(
-                    ['git', 'config', 'user.name'],
-                    capture_output=True, text=True, timeout=3, cwd=project_root
+                    ["git", "config", "user.name"], capture_output=True, text=True, timeout=3, cwd=project_root
                 )
                 email_result = subprocess.run(
-                    ['git', 'config', 'user.email'],
-                    capture_output=True, text=True, timeout=3, cwd=project_root
+                    ["git", "config", "user.email"], capture_output=True, text=True, timeout=3, cwd=project_root
                 )
 
                 if name_result.returncode == 0 and email_result.returncode == 0:
-                    config['developer']['name'] = name_result.stdout.strip()
-                    config['developer']['email'] = email_result.stdout.strip()
-                    config['developer']['git_identity_source'] = 'auto'
-                    config['created'] = datetime.now(timezone.utc).isoformat()
-                    config['updated'] = datetime.now(timezone.utc).isoformat()
+                    config["developer"]["name"] = name_result.stdout.strip()
+                    config["developer"]["email"] = email_result.stdout.strip()
+                    config["developer"]["git_identity_source"] = "auto"
+                    config["created"] = datetime.now(timezone.utc).isoformat()
+                    config["updated"] = datetime.now(timezone.utc).isoformat()
 
-                    with open(user_config_path, 'w') as f:
+                    with open(user_config_path, "w") as f:
                         json.dump(config, f, indent=2)
 
             except Exception:
@@ -484,6 +475,7 @@ def initialize_user_config(project_root: Path) -> None:
 
     except Exception:
         pass  # Don't fail session start due to user config initialization issues
+
 
 def cleanup_session_flags(project_root: Path, debug_logger=None) -> None:
     """Clean up flags from previous sessions based on cc-sessions logic"""
@@ -516,17 +508,18 @@ def cleanup_session_flags(project_root: Path, debug_logger=None) -> None:
         if debug_logger:
             debug_logger.warning(f"Failed to clean up session flags: {e}")
 
+
 def session_start_logic(framework, typed_input):
     """Custom logic for session start with auto-setup, user config, and flag cleanup."""
     project_root = framework.project_root
 
     # Handle both typed input and raw dict for graceful degradation
-    if hasattr(typed_input, 'session_id'):
+    if hasattr(typed_input, "session_id"):
         session_id = typed_input.session_id
     elif isinstance(typed_input, dict):
-        session_id = typed_input.get('session_id', 'unknown')
+        session_id = typed_input.get("session_id", "unknown")
     else:
-        session_id = 'unknown'
+        session_id = "unknown"
 
     # Debug logging - INFO level
     if framework.debug_logger:
@@ -559,23 +552,25 @@ def session_start_logic(framework, typed_input):
         state_mgr = DAICStateManager(project_root)
         current_state = state_mgr.get_unified_state()
 
-        current_session_id = current_state.get('session_id')
+        current_session_id = current_state.get("session_id")
         new_session_id = session_id
 
         # Only update if session_id is different (avoid unnecessary writes)
         if current_session_id != new_session_id:
             if framework.debug_logger:
-                current_short = current_session_id[:8] if current_session_id and len(current_session_id) >= 8 else 'none'
+                current_short = (
+                    current_session_id[:8] if current_session_id and len(current_session_id) >= 8 else "none"
+                )
                 new_short = new_session_id[:8] if len(new_session_id) >= 8 else new_session_id
                 framework.debug_logger.info(f"📝 Updating session_id: {current_short} → {new_short}")
 
             # Use public API - preserve existing correlation_id
-            current_correlation_id = current_state.get('correlation_id', new_session_id[:16])
+            current_correlation_id = current_state.get("correlation_id", new_session_id[:16])
             state_mgr.update_session_correlation(new_session_id, current_correlation_id)
 
             # Verify the update worked
             verified_state = state_mgr.get_unified_state()
-            final_session_id = verified_state.get('session_id')
+            final_session_id = verified_state.get("session_id")
 
             if framework.debug_logger:
                 if final_session_id == new_session_id:
@@ -592,9 +587,11 @@ def session_start_logic(framework, typed_input):
 
         try:
             import traceback
-            error_log = project_root / '.brainworm' / 'session_start_errors.log'
-            with open(error_log, 'a') as f:
+
+            error_log = project_root / ".brainworm" / "session_start_errors.log"
+            with open(error_log, "a") as f:
                 from datetime import datetime, timezone
+
                 f.write(f"\n{'='*80}\n")
                 f.write(f"Session Start Error: {datetime.now(timezone.utc).isoformat()}\n")
                 f.write(f"Session ID: {session_id}\n")
@@ -624,23 +621,23 @@ def session_start_logic(framework, typed_input):
                 if task_file.exists():
                     content = task_file.read_text()
                     # Parse frontmatter to get github_issue and github_repo
-                    lines = content.split('\n')
-                    if lines and lines[0] == '---':
+                    lines = content.split("\n")
+                    if lines and lines[0] == "---":
                         github_issue = None
                         github_repo = None
                         for i in range(1, min(20, len(lines))):  # Check first 20 lines for frontmatter
-                            if lines[i] == '---':
+                            if lines[i] == "---":
                                 break
-                            if lines[i].startswith('github_issue:'):
-                                issue_str = lines[i].split(':', 1)[1].strip()
-                                if issue_str and issue_str != 'null':
+                            if lines[i].startswith("github_issue:"):
+                                issue_str = lines[i].split(":", 1)[1].strip()
+                                if issue_str and issue_str != "null":
                                     try:
                                         github_issue = int(issue_str)
                                     except ValueError:
                                         pass
-                            elif lines[i].startswith('github_repo:'):
-                                repo_str = lines[i].split(':', 1)[1].strip()
-                                if repo_str and repo_str != 'null':
+                            elif lines[i].startswith("github_repo:"):
+                                repo_str = lines[i].split(":", 1)[1].strip()
+                                if repo_str and repo_str != "null":
                                     github_repo = repo_str
 
                         # If both issue and repo are present, fetch context
@@ -667,12 +664,11 @@ def session_start_logic(framework, typed_input):
             if framework.debug_logger:
                 framework.debug_logger.debug("📸 Creating session snapshot")
 
-            subprocess.run([
-                str(snapshot_script),
-                "--action", "start",
-                "--session-id", session_id,
-                "--quiet"
-            ], timeout=10, check=False)
+            subprocess.run(
+                [str(snapshot_script), "--action", "start", "--session-id", session_id, "--quiet"],
+                timeout=10,
+                check=False,
+            )
 
             if framework.debug_logger:
                 framework.debug_logger.debug("Snapshot script executed")
@@ -681,24 +677,25 @@ def session_start_logic(framework, typed_input):
             framework.debug_logger.warning(f"⚠️ Snapshot creation failed: {type(e).__name__}")
         pass  # Don't fail session start if snapshot fails
 
+
 def session_start_success_message(framework):
     """Custom success message for session start hook."""
     # Handle both typed input and raw dict for graceful degradation
-    if hasattr(framework, 'typed_input') and framework.typed_input:
+    if hasattr(framework, "typed_input") and framework.typed_input:
         typed_input = framework.typed_input
-        if hasattr(typed_input, 'session_id'):
+        if hasattr(typed_input, "session_id"):
             session_id = typed_input.session_id
         elif isinstance(typed_input, dict):
-            session_id = typed_input.get('session_id', 'unknown')
+            session_id = typed_input.get("session_id", "unknown")
         else:
-            session_id = 'unknown'
+            session_id = "unknown"
     else:
-        session_id = framework.raw_input_data.get('session_id', 'unknown')
+        session_id = framework.raw_input_data.get("session_id", "unknown")
     session_short = session_id[:8] if len(session_id) >= 8 else session_id
     print(f"✅ Session started: {session_short}", file=sys.stderr)
 
+
 if __name__ == "__main__":
-    HookFramework("session_start", enable_event_logging=True) \
-        .with_custom_logic(session_start_logic) \
-        .with_success_handler(session_start_success_message) \
-        .execute()
+    HookFramework("session_start", enable_event_logging=True).with_custom_logic(
+        session_start_logic
+    ).with_success_handler(session_start_success_message).execute()

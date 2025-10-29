@@ -6,7 +6,7 @@ organized by test category for efficient testing workflows.
 
 Test Categories:
 - unit: Fast, isolated component tests
-- integration: Cross-component interaction tests  
+- integration: Cross-component interaction tests
 - e2e: End-to-end workflow tests
 - performance: Benchmarking and performance validation
 - security: Security vulnerability testing
@@ -17,10 +17,10 @@ Test Categories:
 Quick Start:
     # Run all standard tests (unit + integration + e2e)
     ./run_tests.sh
-    
+
     # Fast development testing
     ./run_unit_tests.sh
-    
+
     # Performance benchmarking
     ./run_performance_tests.sh
 

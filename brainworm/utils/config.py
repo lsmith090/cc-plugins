@@ -33,35 +33,65 @@ def get_canonical_default_config() -> Dict[str, Any]:
             "blocked_tools": ["Edit", "Write", "MultiEdit", "NotebookEdit", "SlashCommand"],
             "read_only_bash_commands": {
                 "basic": [
-                    "ls", "ll", "pwd", "cd", "echo", "cat", "head", "tail",
-                    "less", "more", "grep", "rg", "find", "which", "whereis",
-                    "type", "file", "stat"
+                    "ls",
+                    "ll",
+                    "pwd",
+                    "cd",
+                    "echo",
+                    "cat",
+                    "head",
+                    "tail",
+                    "less",
+                    "more",
+                    "grep",
+                    "rg",
+                    "find",
+                    "which",
+                    "whereis",
+                    "type",
+                    "file",
+                    "stat",
                 ],
                 "git": [
-                    "git status", "git log", "git diff", "git show", "git branch",
-                    "git remote", "git fetch", "git describe", "git rev-parse",
-                    "git blame"
+                    "git status",
+                    "git log",
+                    "git diff",
+                    "git show",
+                    "git branch",
+                    "git remote",
+                    "git fetch",
+                    "git describe",
+                    "git rev-parse",
+                    "git blame",
                 ],
-                "docker": [
-                    "docker ps", "docker images", "docker logs"
-                ],
-                "package_managers": [
-                    "npm list", "npm ls", "pip list", "pip show", "yarn list"
-                ],
-                "network": [
-                    "curl", "wget", "ping"
-                ],
-                "text_processing": [
-                    "jq", "awk", "sed -n"
-                ],
+                "docker": ["docker ps", "docker images", "docker logs"],
+                "package_managers": ["npm list", "npm ls", "pip list", "pip show", "yarn list"],
+                "network": ["curl", "wget", "ping"],
+                "text_processing": ["jq", "awk", "sed -n"],
                 "testing": [
-                    "pytest", "python -m pytest", "python -m unittest", "uv run pytest",
-                    "npm test", "npm run test", "yarn test", "yarn run test",
-                    "npx jest", "npx vitest", "pnpm test", "pnpm run test",
-                    "cargo test", "go test", "mvn test", "gradle test",
-                    "rake test", "mix test", "dotnet test", "rspec", "make test"
-                ]
-            }
+                    "pytest",
+                    "python -m pytest",
+                    "python -m unittest",
+                    "uv run pytest",
+                    "npm test",
+                    "npm run test",
+                    "yarn test",
+                    "yarn run test",
+                    "npx jest",
+                    "npx vitest",
+                    "pnpm test",
+                    "pnpm run test",
+                    "cargo test",
+                    "go test",
+                    "mvn test",
+                    "gradle test",
+                    "rake test",
+                    "mix test",
+                    "dotnet test",
+                    "rspec",
+                    "make test",
+                ],
+            },
         },
         "debug": {
             "enabled": False,
@@ -73,14 +103,10 @@ def get_canonical_default_config() -> Dict[str, Any]:
                 "file": False,
                 "file_format": "json",
                 "framework": False,
-                "framework_format": "json"
-            }
+                "framework_format": "json",
+            },
         },
-        "github": {
-            "enabled": False,
-            "auto_link_issues": True,
-            "create_issue_on_task": False
-        }
+        "github": {"enabled": False, "auto_link_issues": True, "create_issue_on_task": False},
     }
 
 
@@ -92,7 +118,7 @@ def write_default_config(config_file: Path) -> None:
     default_config = get_canonical_default_config()
 
     # Use atomic writer for safer file operations
-    with AtomicFileWriter(config_file, mode='wb') as f:
+    with AtomicFileWriter(config_file, mode="wb") as f:
         tomli_w.dump(default_config, f)
 
 
@@ -118,7 +144,7 @@ def load_config(project_root: Path, verbose: bool = False) -> Dict[str, Any]:
 
     # Load existing config
     try:
-        with open(config_file, 'rb') as f:
+        with open(config_file, "rb") as f:
             config = tomllib.load(f)
 
         # Merge defaults with loaded config (preserves user customizations)
@@ -161,7 +187,7 @@ def update_config_value(project_root: Path, key: str, value: Any, create_if_miss
     try:
         # Load or create config
         if config_file.exists():
-            with open(config_file, 'rb') as f:
+            with open(config_file, "rb") as f:
                 config = tomllib.load(f)
         elif create_if_missing:
             config = get_canonical_default_config()
@@ -169,7 +195,7 @@ def update_config_value(project_root: Path, key: str, value: Any, create_if_miss
             return False
 
         # Handle nested keys (e.g., 'daic.enabled')
-        keys = key.split('.')
+        keys = key.split(".")
         current = config
         for key_part in keys[:-1]:
             if key_part not in current:
@@ -181,7 +207,8 @@ def update_config_value(project_root: Path, key: str, value: Any, create_if_miss
 
         # Use atomic writer for safer file operations
         from .file_manager import AtomicFileWriter
-        with AtomicFileWriter(config_file, mode='wb', create_backup=True) as f:
+
+        with AtomicFileWriter(config_file, mode="wb", create_backup=True) as f:
             tomli_w.dump(config, f)
 
         return True
@@ -205,13 +232,13 @@ def toggle_config_value(project_root: Path, key: str) -> tuple[bool, bool, bool]
     try:
         # Load current config
         if config_file.exists():
-            with open(config_file, 'rb') as f:
+            with open(config_file, "rb") as f:
                 config = tomllib.load(f)
         else:
             config = get_canonical_default_config()
 
         # Get current value (handle nested keys)
-        keys = key.split('.')
+        keys = key.split(".")
         current = config
         for key_part in keys[:-1]:
             if key_part not in current:
@@ -245,7 +272,7 @@ def get_config_value(project_root: Path, key: str, default: Any = None) -> Any:
         config = load_config(project_root)
 
         # Handle nested keys
-        keys = key.split('.')
+        keys = key.split(".")
         current = config
         for key_part in keys:
             if isinstance(current, dict) and key_part in current:

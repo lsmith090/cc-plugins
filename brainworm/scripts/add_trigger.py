@@ -40,12 +40,13 @@ def add_trigger_phrase() -> None:
         # Use file locking to prevent race conditions in read-modify-write
         try:
             from filelock import FileLock
-            lock_file = config_file.parent / '.config.lock'
+
+            lock_file = config_file.parent / ".config.lock"
             lock = FileLock(str(lock_file), timeout=10)
 
             with lock:
                 # Load existing config while holding lock
-                with open(config_file, 'rb') as f:
+                with open(config_file, "rb") as f:
                     config = tomllib.load(f)
 
                 # Ensure daic section exists
@@ -61,7 +62,7 @@ def add_trigger_phrase() -> None:
                     config["daic"]["trigger_phrases"].append(phrase)
 
                     # Write back to file while still holding lock
-                    with open(config_file, 'wb') as f:
+                    with open(config_file, "wb") as f:
                         tomli_w.dump(config, f)
 
                     print(f"✅ Added trigger phrase: '{phrase}'")
@@ -69,7 +70,7 @@ def add_trigger_phrase() -> None:
                     print(f"⚠️  Trigger phrase '{phrase}' already exists")
         except ImportError:
             # Fallback without locking (race condition possible but rare)
-            with open(config_file, 'rb') as f:
+            with open(config_file, "rb") as f:
                 config = tomllib.load(f)
 
             if "daic" not in config:
@@ -81,7 +82,7 @@ def add_trigger_phrase() -> None:
             if phrase not in config["daic"]["trigger_phrases"]:
                 config["daic"]["trigger_phrases"].append(phrase)
 
-                with open(config_file, 'wb') as f:
+                with open(config_file, "wb") as f:
                     tomli_w.dump(config, f)
 
                 print(f"✅ Added trigger phrase: '{phrase}'")
@@ -91,6 +92,7 @@ def add_trigger_phrase() -> None:
     except Exception as e:
         print(f"Error: Failed to update config: {e}", file=sys.stderr)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     add_trigger_phrase()

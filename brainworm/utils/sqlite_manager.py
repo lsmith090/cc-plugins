@@ -25,9 +25,11 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class SQLiteConfig:
     """Configuration for SQLite connections"""
+
     timeout: float = 5.0
     max_connections: int = 5
     enable_wal_mode: bool = True
@@ -35,6 +37,7 @@ class SQLiteConfig:
     journal_mode: str = "WAL"
     synchronous: str = "NORMAL"
     connection_check_interval: float = 300.0  # 5 minutes
+
 
 class SQLiteConnectionPool:
     """Simple connection pool for SQLite connections"""
@@ -95,11 +98,7 @@ class SQLiteConnectionPool:
 
     def _create_connection(self) -> sqlite3.Connection:
         """Create a configured SQLite connection"""
-        conn = sqlite3.connect(
-            str(self.db_path),
-            timeout=self.config.timeout,
-            check_same_thread=False
-        )
+        conn = sqlite3.connect(str(self.db_path), timeout=self.config.timeout, check_same_thread=False)
 
         # Configure SQLite settings
         conn.execute(f"PRAGMA journal_mode = {self.config.journal_mode}")
@@ -148,6 +147,7 @@ class SQLiteConnectionPool:
             else:
                 logger.info(f"Closed all SQLite connections for {self.db_path}")
 
+
 class HooksSQLiteManager:
     """
     Lightweight SQLite connection manager optimized for hooks usage.
@@ -188,11 +188,9 @@ class HooksSQLiteManager:
         with pool.get_connection() as conn:
             yield conn
 
-    def execute_query(self,
-                     db_path: Path,
-                     query: str,
-                     params: Optional[Tuple] = None,
-                     fetch: str = "all") -> List[sqlite3.Row]:
+    def execute_query(
+        self, db_path: Path, query: str, params: Optional[Tuple] = None, fetch: str = "all"
+    ) -> List[sqlite3.Row]:
         """
         Execute a SQLite query and return results.
 
@@ -216,9 +214,7 @@ class HooksSQLiteManager:
             else:  # fetch == "none"
                 return []
 
-    def execute_transaction(self,
-                           db_path: Path,
-                           operations: List[Tuple[str, Optional[Tuple]]]) -> bool:
+    def execute_transaction(self, db_path: Path, operations: List[Tuple[str, Optional[Tuple]]]) -> bool:
         """
         Execute multiple SQLite operations in a transaction.
 
@@ -239,10 +235,7 @@ class HooksSQLiteManager:
             logger.error(f"SQLite transaction failed: {e}")
             return False
 
-    def ensure_schema(self,
-                     db_path: Path,
-                     schema_sql: str,
-                     schema_name: str = "default") -> bool:
+    def ensure_schema(self, db_path: Path, schema_sql: str, schema_name: str = "default") -> bool:
         """
         Ensure SQLite database schema exists (idempotent).
 
@@ -263,7 +256,7 @@ class HooksSQLiteManager:
         try:
             with self.connection(db_path) as conn:
                 # Split and execute each SQL statement
-                statements = [stmt.strip() for stmt in schema_sql.split(';') if stmt.strip()]
+                statements = [stmt.strip() for stmt in schema_sql.split(";") if stmt.strip()]
                 for statement in statements:
                     conn.execute(statement)
 
@@ -284,7 +277,7 @@ class HooksSQLiteManager:
                 stats["pools"][db_path] = {
                     "active_connections": pool._active_connections,
                     "pool_size": len(pool._pool),
-                    "max_connections": self.config.max_connections
+                    "max_connections": self.config.max_connections,
                 }
 
         return stats
@@ -298,9 +291,11 @@ class HooksSQLiteManager:
             self._initialized_schemas.clear()
             logger.info("Closed all SQLite connections")
 
+
 # Global hooks SQLite manager instance
 _hooks_sqlite_manager: Optional[HooksSQLiteManager] = None
 _hooks_sqlite_manager_lock = threading.Lock()
+
 
 def get_hooks_sqlite_manager(config: Optional[SQLiteConfig] = None) -> HooksSQLiteManager:
     """
@@ -321,6 +316,7 @@ def get_hooks_sqlite_manager(config: Optional[SQLiteConfig] = None) -> HooksSQLi
 
     return _hooks_sqlite_manager
 
+
 def close_hooks_sqlite_manager():
     """Close the global hooks SQLite manager and all its connections"""
     global _hooks_sqlite_manager
@@ -330,11 +326,13 @@ def close_hooks_sqlite_manager():
             _hooks_sqlite_manager.close_all_connections()
             _hooks_sqlite_manager = None
 
+
 # Convenience functions for common patterns
 def execute_hooks_query(db_path: Path, query: str, params: Optional[Tuple] = None) -> List[sqlite3.Row]:
     """Execute a query using the global hooks SQLite manager"""
     manager = get_hooks_sqlite_manager()
     return manager.execute_query(db_path, query, params)
+
 
 def execute_hooks_transaction(db_path: Path, operations: List[Tuple[str, Optional[Tuple]]]) -> bool:
     """Execute a transaction using the global hooks SQLite manager"""

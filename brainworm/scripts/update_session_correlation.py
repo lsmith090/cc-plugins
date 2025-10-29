@@ -28,10 +28,7 @@ console = Console()
 
 
 def update_session_correlation(
-    project_root: Path,
-    session_id: str = None,
-    correlation_id: str = None,
-    show_current: bool = False
+    project_root: Path, session_id: str = None, correlation_id: str = None, show_current: bool = False
 ) -> dict:
     """Update session correlation using SessionCorrelationController"""
 
@@ -105,13 +102,12 @@ Examples:
   uv run update_session_correlation.py --session-id="abc-123"  # Generate correlation ID
   uv run update_session_correlation.py  # Generate both IDs
   uv run update_session_correlation.py --show-current  # Show current state
-        """
+        """,
     )
 
     parser.add_argument("--session-id", help="Session ID to set")
     parser.add_argument("--correlation-id", help="Correlation ID to set")
-    parser.add_argument("--show-current", action="store_true",
-                       help="Show current session correlation state")
+    parser.add_argument("--show-current", action="store_true", help="Show current session correlation state")
 
     args = parser.parse_args()
 
@@ -127,7 +123,7 @@ Examples:
         project_root=project_root,
         session_id=args.session_id,
         correlation_id=args.correlation_id,
-        show_current=args.show_current
+        show_current=args.show_current,
     )
 
 

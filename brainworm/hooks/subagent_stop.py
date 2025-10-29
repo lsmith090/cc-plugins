@@ -32,7 +32,7 @@ def subagent_stop_logic(framework, input_data: Dict[str, Any]):
         input_data: Raw input dict (always dict, typed input used for validation only)
     """
     # Extract data from dict - simple and direct
-    session_id = input_data.get('session_id', 'unknown')
+    session_id = input_data.get("session_id", "unknown")
 
     # Debug logging - INFO level
     if framework.debug_logger:
@@ -47,18 +47,17 @@ def subagent_stop_logic(framework, input_data: Dict[str, Any]):
 def subagent_stop_success_message(framework):
     """Generate success message for subagent stop"""
     # Direct dict access - simple and clear
-    session_id = framework.raw_input_data.get('session_id', 'unknown')
+    session_id = framework.raw_input_data.get("session_id", "unknown")
     session_short = session_id[:8] if len(session_id) >= 8 else session_id
     print(f"✅ Subagent stopped: {session_short}", file=sys.stderr)
 
 
 def main() -> None:
     """Main entry point for subagent stop hook"""
-    HookFramework("subagent_stop", enable_event_logging=True) \
-        .with_custom_logic(subagent_stop_logic) \
-        .with_success_handler(subagent_stop_success_message) \
-        .execute()
+    HookFramework("subagent_stop", enable_event_logging=True).with_custom_logic(
+        subagent_stop_logic
+    ).with_success_handler(subagent_stop_success_message).execute()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

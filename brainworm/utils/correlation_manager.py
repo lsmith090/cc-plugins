@@ -24,7 +24,7 @@ class CorrelationManager:
 
     def __init__(self, project_root: Path):
         self.project_root = project_root
-        self.correlation_file = project_root / '.brainworm' / 'state' / '.correlation_state'
+        self.correlation_file = project_root / ".brainworm" / "state" / ".correlation_state"
         self.state_manager = BrainwormStateManager(project_root)
 
     def get_or_create_correlation_id(self, session_id: Optional[str] = None) -> str:
@@ -38,7 +38,7 @@ class CorrelationManager:
             str: Correlation ID for this workflow
         """
         # Strategy 1: Check environment variable (highest priority)
-        if corr_id := os.environ.get('CLAUDE_CORRELATION_ID'):
+        if corr_id := os.environ.get("CLAUDE_CORRELATION_ID"):
             return corr_id
 
         # Strategy 2: Check for existing correlation for this session
@@ -46,7 +46,7 @@ class CorrelationManager:
             existing_id = self._get_session_correlation(session_id)
             if existing_id:
                 # Set environment variable for other hooks
-                os.environ['CLAUDE_CORRELATION_ID'] = existing_id
+                os.environ["CLAUDE_CORRELATION_ID"] = existing_id
                 return existing_id
 
         # Strategy 3: Create new correlation ID
@@ -57,7 +57,7 @@ class CorrelationManager:
             self._store_session_correlation(session_id, new_id)
 
         # Set environment variable for downstream hooks
-        os.environ['CLAUDE_CORRELATION_ID'] = new_id
+        os.environ["CLAUDE_CORRELATION_ID"] = new_id
 
         return new_id
 
@@ -82,7 +82,7 @@ class CorrelationManager:
             from filelock import FileLock
 
             # Use file locking to prevent race condition
-            lock_file = self.correlation_file.parent / '.correlation_state.lock'
+            lock_file = self.correlation_file.parent / ".correlation_state.lock"
             lock = FileLock(str(lock_file), timeout=10)
 
             with lock:
@@ -115,7 +115,7 @@ def get_workflow_correlation_id(project_root: Path, session_id: Optional[str] = 
     return manager.get_or_create_correlation_id(session_id)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Test correlation management
     from pathlib import Path
 
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     manager = CorrelationManager(project_root)
 
     # Test session correlation
-    session_id = 'test-session-123'
+    session_id = "test-session-123"
 
     # First call should create new ID
     corr_id_1 = manager.get_or_create_correlation_id(session_id)
@@ -142,7 +142,7 @@ if __name__ == '__main__':
         print("❌ Correlation ID mismatch")
 
     # Test environment variable
-    env_id = os.environ.get('CLAUDE_CORRELATION_ID')
+    env_id = os.environ.get("CLAUDE_CORRELATION_ID")
     print(f"Environment variable: {env_id}")
 
     if env_id == corr_id_1:

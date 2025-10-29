@@ -39,10 +39,12 @@ except ImportError:
                 return cls.IMPLEMENTATION
             return cls.DISCUSSION
 
+
 # Context limits based on model and mode
-SONNET_API_MODE_USABLE_TOKENS = 800000    # 1M Sonnet models in API mode
-STANDARD_USABLE_TOKENS = 160000           # Ultrathink mode or non-Sonnet models
-DEFAULT_STARTUP_TOKENS = 17900            # Typical conversation startup size (from /context)
+SONNET_API_MODE_USABLE_TOKENS = 800000  # 1M Sonnet models in API mode
+STANDARD_USABLE_TOKENS = 160000  # Ultrathink mode or non-Sonnet models
+DEFAULT_STARTUP_TOKENS = 17900  # Typical conversation startup size (from /context)
+
 
 def read_input() -> Dict[str, Any]:
     """Read and parse JSON input from stdin"""
@@ -51,16 +53,18 @@ def read_input() -> Dict[str, Any]:
     except json.JSONDecodeError:
         return {}
 
+
 def get_project_root(cwd: str) -> Path:
     """Find project root directory"""
     return Path(cwd) if cwd else Path.cwd()
+
 
 def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
     """Calculate context breakdown and progress with colored progress bar"""
 
     # Get basic info from input
-    model_name = input_data.get('model', {}).get('display_name', 'Claude')
-    transcript_path = input_data.get('transcript_path', '')
+    model_name = input_data.get("model", {}).get("display_name", "Claude")
+    transcript_path = input_data.get("transcript_path", "")
 
     # Determine usable context limit based on API mode and model
     api_mode_enabled = False
@@ -69,9 +73,10 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
     if config_path.exists():
         try:
             import toml
-            with open(config_path, 'r') as f:
+
+            with open(config_path, "r") as f:
                 config = toml.load(f)
-                api_mode_enabled = config.get('api_mode', False)
+                api_mode_enabled = config.get("api_mode", False)
         except ImportError:
             # toml library not available - skip config reading
             pass
@@ -89,7 +94,7 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
     total_tokens = 0
     if transcript_path and Path(transcript_path).exists():
         try:
-            with open(transcript_path, 'r') as f:
+            with open(transcript_path, "r") as f:
                 lines = f.readlines()[-100:]
 
             most_recent_usage = None
@@ -99,15 +104,15 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
                 try:
                     data = json.loads(line.strip())
                     # Skip sidechain entries (subagent calls)
-                    if data.get('isSidechain', False):
+                    if data.get("isSidechain", False):
                         continue
 
                     # Check for usage data in main-chain messages
-                    if data.get('message', {}).get('usage'):
-                        timestamp = data.get('timestamp')
+                    if data.get("message", {}).get("usage"):
+                        timestamp = data.get("timestamp")
                         if timestamp and (not most_recent_timestamp or timestamp > most_recent_timestamp):
                             most_recent_timestamp = timestamp
-                            most_recent_usage = data['message']['usage']
+                            most_recent_usage = data["message"]["usage"]
                 except Exception:
                     # Malformed JSON line in transcript - skip
                     continue
@@ -115,9 +120,9 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
             # Calculate context length (input + cache tokens only, NOT output)
             if most_recent_usage:
                 total_tokens = (
-                    most_recent_usage.get('input_tokens', 0) +
-                    most_recent_usage.get('cache_read_input_tokens', 0) +
-                    most_recent_usage.get('cache_creation_input_tokens', 0)
+                    most_recent_usage.get("input_tokens", 0)
+                    + most_recent_usage.get("cache_read_input_tokens", 0)
+                    + most_recent_usage.get("cache_creation_input_tokens", 0)
                 )
         except Exception:
             # Transcript file read error or parsing failure - use defaults
@@ -147,8 +152,8 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
     else:
         bar_color = "\033[38;5;203m"  # F26D78 red
 
-    gray_color = "\033[38;5;242m"     # Dim for empty blocks
-    text_color = "\033[38;5;250m"     # BFBDB6 light gray
+    gray_color = "\033[38;5;242m"  # Dim for empty blocks
+    text_color = "\033[38;5;250m"  # BFBDB6 light gray
     reset = "\033[0m"
 
     # Build progress bar
@@ -158,10 +163,11 @@ def calculate_context(input_data: Dict[str, Any], project_root: Path) -> str:
 
     return progress_bar
 
+
 def get_task_display(project_root: Path) -> str:
     """Get current task and open task count display"""
-    blue = "\033[38;5;111m"    # 73B8FF modified blue for Tasks label
-    cyan = "\033[38;5;117m"    # Light cyan for task name
+    blue = "\033[38;5;111m"  # 73B8FF modified blue for Tasks label
+    cyan = "\033[38;5;117m"  # Light cyan for task name
     reset = "\033[0m"
 
     task_name = "None"
@@ -171,11 +177,11 @@ def get_task_display(project_root: Path) -> str:
 
     if unified_state_file.exists():
         try:
-            with open(unified_state_file, 'r') as f:
+            with open(unified_state_file, "r") as f:
                 data = json.load(f)
-                task_name = data.get('current_task', 'None')
-                if task_name is None or task_name == '':
-                    task_name = 'None'
+                task_name = data.get("current_task", "None")
+                if task_name is None or task_name == "":
+                    task_name = "None"
         except Exception:
             # State file read error or JSON parsing failure
             pass
@@ -184,6 +190,7 @@ def get_task_display(project_root: Path) -> str:
     open_count = _count_open_tasks(project_root)
 
     return f"{blue}Active Task: {cyan}{task_name}{reset} {blue}[{open_count} open]{reset}"
+
 
 def _count_open_tasks(project_root: Path) -> int:
     """Count open tasks by scanning filesystem (fallback method)"""
@@ -196,24 +203,25 @@ def _count_open_tasks(project_root: Path) -> int:
                 readme_file = task_path / "README.md"
                 if readme_file.exists():
                     try:
-                        with open(readme_file, 'r') as f:
+                        with open(readme_file, "r") as f:
                             content = f.read()
-                            if not re.search(r'status:\s*(done|completed)', content, re.IGNORECASE):
+                            if not re.search(r"status:\s*(done|completed)", content, re.IGNORECASE):
                                 open_count += 1
                     except Exception:
                         # File read error - skip
                         pass
-            elif task_path.is_file() and task_path.suffix == '.md':
+            elif task_path.is_file() and task_path.suffix == ".md":
                 try:
-                    with open(task_path, 'r') as f:
+                    with open(task_path, "r") as f:
                         content = f.read()
-                        if not re.search(r'status:\s*(done|completed)', content, re.IGNORECASE):
+                        if not re.search(r"status:\s*(done|completed)", content, re.IGNORECASE):
                             open_count += 1
                 except Exception:
                     # File read error - skip
                     pass
 
     return open_count
+
 
 def get_daic_mode(project_root: Path) -> str:
     """Get DAIC mode with color from unified state"""
@@ -224,9 +232,9 @@ def get_daic_mode(project_root: Path) -> str:
 
     if unified_state_file.exists():
         try:
-            with open(unified_state_file, 'r') as f:
+            with open(unified_state_file, "r") as f:
                 data = json.load(f)
-                mode_str = data.get('daic_mode', 'discussion')
+                mode_str = data.get("daic_mode", "discussion")
                 mode = DAICMode.from_string(mode_str)
         except Exception:
             # State file read error or JSON parsing failure - use default
@@ -237,15 +245,16 @@ def get_daic_mode(project_root: Path) -> str:
         reset = "\033[0m"
         return f"{purple}DAIC: Discussion{reset}"
     else:
-        green = "\033[38;5;114m"   # AAD94C string green
+        green = "\033[38;5;114m"  # AAD94C string green
         reset = "\033[0m"
         return f"{green}DAIC: Implementation{reset}"
 
+
 def get_git_display(project_root: Path) -> str:
     """Get git branch and file count display with submodule branch awareness"""
-    green = "\033[38;5;114m"   # AAD94C string green for Git label and branch
+    green = "\033[38;5;114m"  # AAD94C string green for Git label and branch
     yellow = "\033[38;5;215m"  # FFB454 func orange for file count
-    cyan = "\033[38;5;117m"    # Light cyan for repo name
+    cyan = "\033[38;5;117m"  # Light cyan for repo name
     reset = "\033[0m"
 
     modified_count = 0
@@ -258,9 +267,9 @@ def get_git_display(project_root: Path) -> str:
     unified_state_file = project_root / ".brainworm" / "state" / "unified_session_state.json"
     if unified_state_file.exists():
         try:
-            with open(unified_state_file, 'r') as f:
+            with open(unified_state_file, "r") as f:
                 data = json.load(f)
-                active_submodule_branches = data.get('active_submodule_branches', {})
+                active_submodule_branches = data.get("active_submodule_branches", {})
         except Exception:
             # State file read error or JSON parsing failure
             pass
@@ -273,7 +282,7 @@ def get_git_display(project_root: Path) -> str:
                 cwd=project_root,
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=5,
             )
 
             if superproject_result.returncode == 0 and superproject_result.stdout.strip():
@@ -289,28 +298,20 @@ def get_git_display(project_root: Path) -> str:
 
             # Get current branch
             branch_result = subprocess.run(
-                ["git", "branch", "--show-current"],
-                cwd=project_root,
-                capture_output=True,
-                text=True,
-                timeout=5
+                ["git", "branch", "--show-current"], cwd=project_root, capture_output=True, text=True, timeout=5
             )
             if branch_result.returncode == 0:
                 branch_name = branch_result.stdout.strip() or "detached"
 
             # Count modified and staged files
             status_result = subprocess.run(
-                ["git", "status", "--porcelain"],
-                cwd=project_root,
-                capture_output=True,
-                text=True,
-                timeout=5
+                ["git", "status", "--porcelain"], cwd=project_root, capture_output=True, text=True, timeout=5
             )
 
             # Count lines that match modified/added pattern
             if status_result.returncode == 0:
-                for line in status_result.stdout.strip().split('\n'):
-                    if line and re.match(r'^[AM]|^.[AM]', line):
+                for line in status_result.stdout.strip().split("\n"):
+                    if line and re.match(r"^[AM]|^.[AM]", line):
                         modified_count += 1
         except subprocess.TimeoutExpired:
             # Git command timeout - use defaults (repository may be unresponsive)
@@ -333,35 +334,34 @@ def get_git_display(project_root: Path) -> str:
 
 def get_working_directory(input_data: Dict[str, Any]) -> str:
     """Get current working directory with color"""
-    cyan = "\033[38;5;117m"    # Light cyan for directory
+    cyan = "\033[38;5;117m"  # Light cyan for directory
     reset = "\033[0m"
 
-    cwd = input_data.get('workspace', {}).get('current_dir') or input_data.get('cwd', '')
+    cwd = input_data.get("workspace", {}).get("current_dir") or input_data.get("cwd", "")
 
     if cwd:
         return f"{cyan}{cwd}{reset}"
     else:
         return f"{cyan}--{reset}"
 
+
 def get_user_preferences(project_root: Path) -> Dict[str, Any]:
     """Get user preferences from user-config.json"""
-    default_prefs = {
-        "statusline_format": "full",
-        "context_warning_threshold": 75
-    }
+    default_prefs = {"statusline_format": "full", "context_warning_threshold": 75}
 
     user_config_file = project_root / ".brainworm" / "user-config.json"
 
     if user_config_file.exists():
         try:
-            with open(user_config_file, 'r') as f:
+            with open(user_config_file, "r") as f:
                 config = json.load(f)
-                preferences = config.get('preferences', {})
+                preferences = config.get("preferences", {})
                 return {**default_prefs, **preferences}
         except (FileNotFoundError, json.JSONDecodeError):
             pass
 
     return default_prefs
+
 
 def main() -> None:
     """Main function to build and output the complete statusline"""
@@ -370,12 +370,12 @@ def main() -> None:
     input_data = read_input()
 
     # Get project root
-    cwd = input_data.get('workspace', {}).get('current_dir') or input_data.get('cwd', '')
+    cwd = input_data.get("workspace", {}).get("current_dir") or input_data.get("cwd", "")
     project_root = get_project_root(cwd)
 
     # Get user preferences
     prefs = get_user_preferences(project_root)
-    statusline_format = prefs.get('statusline_format', 'full')
+    statusline_format = prefs.get("statusline_format", "full")
 
     # Build all components
     progress_info = calculate_context(input_data, project_root)
@@ -397,6 +397,7 @@ def main() -> None:
         print(f"{progress_info} | {working_dir_info}")
         print(f"{daic_info} | {git_info}")
         print(f"{task_info}")
+
 
 if __name__ == "__main__":
     main()

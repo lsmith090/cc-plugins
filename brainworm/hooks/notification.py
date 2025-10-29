@@ -38,16 +38,20 @@ def notification_logic(framework, input_data: Dict[str, Any]):
         input_data: Raw input dict (always dict, typed input used for validation only)
     """
     # Extract data from dict - simple and direct
-    message = input_data.get('message', 'Unknown notification')
+    message = input_data.get("message", "Unknown notification")
 
     # Log notification via debug_logger
     if framework.debug_logger:
         framework.debug_logger.info(f"📢 Notification received: {message}")
 
+
 def custom_notification_display(framework):
     """Custom success handler - no longer needed as debug_logger handles display."""
     pass  # Debug logging now handled by debug_logger in notification_logic
 
+
 if __name__ == "__main__":
     # Hooks Framework: Deploys 863+ lines of sophisticated infrastructure
-    HookFramework("notification").with_custom_logic(notification_logic).with_success_handler(custom_notification_display).execute()
+    HookFramework("notification").with_custom_logic(notification_logic).with_success_handler(
+        custom_notification_display
+    ).execute()
