@@ -5,6 +5,58 @@ All notable changes to the brainworm plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-10-29
+
+### Added
+
+**GitHub Integration**
+- Automatic issue linking via pattern matching in task names (`fix-bug-#123`)
+- Explicit issue linking via `--link-issue=N` CLI flag
+- Issue creation via `--create-issue` flag
+- Manual session summary posting via `./tasks summarize` command
+- Rich summaries generated from session-docs agent memory files
+- Issue context fetching at session start
+- Smart repository detection (supports SSH and HTTPS remotes)
+- Configurable via `[github]` section in config.toml
+- Graceful degradation when `gh` CLI unavailable
+
+**Smart Branch Management**
+- Detects current branch before creating tasks
+- Uses existing branch when on feature branches (agent-friendly)
+- Creates new branch only when on stable branches (main/master/develop)
+- Deterministic behavior for automated workflows
+- No prompts in non-interactive mode
+
+**Configuration**
+- New `[github]` configuration section with granular controls
+- `enabled`: Master switch for GitHub integration
+- `auto_link_issues`: Pattern matching for issue numbers in task names
+- `create_issue_on_task`: Auto-create issues for new tasks
+
+**CLI Enhancements**
+- `./tasks summarize`: Generate and post session summaries to GitHub
+- `--session-id`: Specify session to summarize
+- `--link-issue=N`: Link task to existing issue
+- `--create-issue`: Create new GitHub issue
+- `--no-github`: Skip GitHub integration for specific task
+- Enhanced help text with GitHub examples
+
+**Testing**
+- Comprehensive unit tests for GitHub integration utilities
+- Pattern matching tests (14 test cases, 100% pass rate)
+- Frontmatter update tests (atomic, safe operations)
+- Repository detection tests (SSH, HTTPS, non-GitHub handling)
+
+### Changed
+- Task creation now checks current branch first before deciding to create new branch
+- Task frontmatter extended with `github_issue` and `github_repo` fields
+- Session start hook enhanced with GitHub issue context fetching
+- Session end hook simplified (automatic summary posting removed in favor of manual `./tasks summarize`)
+
+### Fixed
+- Branch creation logic now respects existing feature branches
+- Non-interactive mode works seamlessly for agent-driven workflows
+
 ## [1.0.0] - 2025-01-15
 
 ### Added

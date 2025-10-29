@@ -7,6 +7,8 @@ created: YYYY-MM-DD
 modules: [list of services/modules involved]
 session_id: [current-session-id]
 correlation_id: [brainworm-correlation-id]
+github_issue: null  # GitHub issue number (e.g., 123)
+github_repo: null   # GitHub repo in "owner/repo" format
 ---
 
 # [Human-Readable Title]

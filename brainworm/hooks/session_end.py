@@ -58,6 +58,7 @@ def session_end_logic(framework, input_data: Dict[str, Any]):
             framework.debug_logger.warning(f"⚠️ Snapshot creation failed: {type(e).__name__}")
         pass  # Don't fail session end if snapshot fails
 
+
 def session_end_success_message(framework):
     """Custom success message for session end hook."""
     # Direct dict access - simple and clear

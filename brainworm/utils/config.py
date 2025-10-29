@@ -75,6 +75,11 @@ def get_canonical_default_config() -> Dict[str, Any]:
                 "framework": False,
                 "framework_format": "json"
             }
+        },
+        "github": {
+            "enabled": False,
+            "auto_link_issues": True,
+            "create_issue_on_task": False
         }
     }
 

@@ -62,3 +62,23 @@ file_format = "json"
 framework = false
 # Format for framework output (overrides global format if set)
 framework_format = "json"
+
+# GitHub integration configuration
+# Enables linking tasks to GitHub issues and manual session summary posting
+[github]
+# Master switch for GitHub integration (false = disabled, true = enabled)
+# Requires gh CLI to be installed and authenticated
+enabled = false
+
+# Automatically link tasks to issues when task name contains issue reference (e.g., "fix-bug-#123")
+# When true, brainworm detects "#123" patterns in task names and links automatically
+auto_link_issues = true
+
+# Automatically create GitHub issue when creating a task (without prompting)
+# WARNING: Setting this to true will create issues for every task
+# Recommended to keep false and use --create-issue flag when needed
+create_issue_on_task = false
+
+# To post session summaries to GitHub:
+# 1. During session: Ask Claude to use session-docs agent to create memory file
+# 2. When ready: Run `./tasks summarize` to post rich summary to linked GitHub issue

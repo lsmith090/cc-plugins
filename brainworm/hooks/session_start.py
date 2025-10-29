@@ -604,6 +604,58 @@ def session_start_logic(framework, typed_input):
         except Exception:
             pass  # Don't fail if logging fails
 
+    # GitHub integration: Fetch issue context if task has linked issue
+    try:
+        from utils.config import load_config
+        from utils.github_integration import check_gh_available, fetch_issue_context
+
+        config = load_config(project_root)
+        github_config = config.get("github", {})
+        github_enabled = github_config.get("enabled", False)
+
+        if github_enabled and check_gh_available():
+            state_mgr = DAICStateManager(project_root)
+            task_state = state_mgr.get_task_state()
+            current_task = task_state.get("task")
+
+            if current_task:
+                # Try to read task file for GitHub metadata
+                task_file = project_root / ".brainworm" / "tasks" / current_task / "README.md"
+                if task_file.exists():
+                    content = task_file.read_text()
+                    # Parse frontmatter to get github_issue and github_repo
+                    lines = content.split('\n')
+                    if lines and lines[0] == '---':
+                        github_issue = None
+                        github_repo = None
+                        for i in range(1, min(20, len(lines))):  # Check first 20 lines for frontmatter
+                            if lines[i] == '---':
+                                break
+                            if lines[i].startswith('github_issue:'):
+                                issue_str = lines[i].split(':', 1)[1].strip()
+                                if issue_str and issue_str != 'null':
+                                    try:
+                                        github_issue = int(issue_str)
+                                    except ValueError:
+                                        pass
+                            elif lines[i].startswith('github_repo:'):
+                                repo_str = lines[i].split(':', 1)[1].strip()
+                                if repo_str and repo_str != 'null':
+                                    github_repo = repo_str
+
+                        # If both issue and repo are present, fetch context
+                        if github_issue and github_repo:
+                            if framework.debug_logger:
+                                framework.debug_logger.info(f"🔗 Fetching GitHub issue #{github_issue} context")
+
+                            issue_data = fetch_issue_context(github_repo, github_issue)
+                            if issue_data and framework.debug_logger:
+                                framework.debug_logger.info(f"✅ Retrieved issue: {issue_data.get('title', 'unknown')}")
+    except Exception as e:
+        # Graceful degradation - log but don't fail session start
+        if framework.debug_logger:
+            framework.debug_logger.warning(f"⚠️ GitHub context fetch failed: {type(e).__name__}")
+
     # Debug logging - INFO level
     if framework.debug_logger:
         framework.debug_logger.info("✅ Session start logic completed")

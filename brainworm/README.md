@@ -161,6 +161,72 @@ Follow the task-completion protocol to:
 - Capture learnings
 - Close the task properly
 
+## GitHub Integration
+
+Brainworm integrates seamlessly with GitHub Issues for enhanced project tracking.
+
+### Features
+
+**🔗 Automatic Issue Linking**
+- Pattern matching: Tasks named `fix-bug-#123` auto-link to issue #123
+- Explicit linking: `./tasks create task-name --link-issue=456`
+- Smart branch management: Uses current branch on feature branches, creates new on main
+
+**📝 Session Summaries**
+- Manual session summary generation from memory files
+- Rich summaries with insights, code changes, and next steps
+- Memory files created by session-docs agent during development
+- Post summaries on-demand with `./tasks summarize`
+
+**🤖 Agent-First Design**
+- Deterministic defaults (no prompts in non-interactive mode)
+- Works seamlessly with Claude Code automation
+- Graceful degradation when `gh` CLI unavailable
+
+### Usage
+
+**Enable GitHub Integration**
+
+Edit `.brainworm/config.toml`:
+```toml
+[github]
+enabled = true
+auto_link_issues = true
+```
+
+**Create Task with Issue Link**
+
+```bash
+# Auto-link from task name
+./tasks create fix-auth-bug-#123
+
+# Explicit link
+./tasks create implement-feature --link-issue=456
+
+# Create new issue
+./tasks create add-new-feature --create-issue
+
+# Skip GitHub integration
+./tasks create task-name --no-github
+```
+
+**Post Session Summary**
+
+```bash
+# During session: create memory file (ask Claude to use session-docs agent)
+# "Please use the session-docs agent to capture this session's insights"
+
+# When ready: post summary to GitHub
+./tasks summarize
+
+# Or for specific session
+./tasks summarize --session-id=abc12345
+```
+
+**Requirements**
+- [GitHub CLI (`gh`)](https://cli.github.com/) installed and authenticated
+- Repository with GitHub remote
+
 ## Protocols
 
 Brainworm includes structured protocols for common workflows:
