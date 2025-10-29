@@ -194,6 +194,7 @@ def summarize(
       tasks summarize --session-id=abc   # Summarize specific session
     """
     import json
+
     from utils.config import load_config
     from utils.github_integration import (
         check_gh_available,
@@ -325,7 +326,7 @@ def summarize(
         console.print(f"[green]✓ Summary posted to GitHub issue #{github_issue}[/green]")
         raise typer.Exit(code=0)
     else:
-        console.print(f"[red]✗ Failed to post summary to GitHub[/red]")
+        console.print("[red]✗ Failed to post summary to GitHub[/red]")
         raise typer.Exit(code=1)
 
 

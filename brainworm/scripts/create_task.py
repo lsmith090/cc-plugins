@@ -267,7 +267,7 @@ def create_task(
                 # Continue with task creation
 
         # 8. Smart branch detection - decide whether to create new branch or use current
-        console.print(f"\n[cyan]Checking current branch...[/cyan]")
+        console.print("\n[cyan]Checking current branch...[/cyan]")
 
         # Get current branch in main repo (or submodule if specified)
         current_branch = sm.get_current_branch(submodule=submodule if submodule else None)
@@ -340,7 +340,7 @@ def create_task(
                     branch_created = len(active_submodule_branches) > 0
             else:
                 # Using current branches in services
-                console.print(f"[green]Using current branches in services (no new branch creation)[/green]")
+                console.print("[green]Using current branches in services (no new branch creation)[/green]")
                 # Track current branches for each service
                 for svc in services:
                     svc_branch = sm.get_current_branch(submodule=svc)
