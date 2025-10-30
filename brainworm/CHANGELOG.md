@@ -10,13 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 **Intelligent Skills System**
-- Four user-facing skills with progressive disclosure pattern
+- Five user-facing skills with progressive disclosure pattern
 - **managing-tasks** (263 lines): Orchestrates task lifecycle operations (create/switch/complete)
 - **understanding-daic** (322 lines): Explains DAIC methodology and guides mode transitions
 - **executing-protocols** (398 lines): Guides protocol execution with step-by-step instructions
 - **coordinating-agents** (479 lines): Helps select and invoke specialized agents
+- **utilizing-memory** (432 lines): Search and access session history for context continuity
 - Natural language trigger phrases for intuitive skill invocation
-- Comprehensive reference documentation (7 files, 3,500+ lines total)
+- Comprehensive reference documentation (10 files, 5,200+ lines total)
 - Skills reduce cognitive load and make brainworm workflows discoverable
 - SKILL.md files under 500 lines with detailed references/ subdirectories
 
