@@ -21,9 +21,12 @@ Brainworm is a comprehensive Claude Code plugin that enforces the **DAIC methodo
 - **service-documentation**: Keeps CLAUDE.md files current
 
 **🎨 Intelligent Skills**
-- **managing-tasks**: Automatically orchestrates task creation, switching, and completion
+- **managing-tasks**: Orchestrates task creation, switching, and completion
+- **understanding-daic**: Explains DAIC methodology and guides mode transitions
+- **executing-protocols**: Guides protocol execution with step-by-step instructions
+- **coordinating-agents**: Helps select and invoke specialized agents
+- **utilizing-memory**: Search and access session history for context continuity
 - Natural language triggers recognize user intent
-- Seamless GitHub issue integration
 - Progressive disclosure with detailed reference docs
 
 **📊 Event Storage System**
