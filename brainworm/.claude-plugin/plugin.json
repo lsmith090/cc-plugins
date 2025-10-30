@@ -1,6 +1,6 @@
 {
   "name": "brainworm",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "DAIC workflow enforcement and event storage system for Claude Code with GitHub integration",
   "author": {
     "name": "Logan Smith",
