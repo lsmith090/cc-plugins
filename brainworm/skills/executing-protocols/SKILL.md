@@ -83,206 +83,72 @@ This tells you:
 
 Follow the protocol exactly, executing each step in order. Don't skip steps or assume anything.
 
-## Context Compaction Protocol
+## Protocol Overview
 
-When users need to compact context (approaching token limits):
+### Available Protocols
 
-### Overview
-Context compaction preserves work while resetting the conversation context. It's essential for long sessions.
+| Protocol | When to Use | Wrapper Command |
+|----------|-------------|-----------------|
+| **Context Compaction** | Approaching token limits | `./daic status`, `./tasks status` |
+| **Task Completion** | Finishing current task | `./tasks clear` |
+| **Task Startup** | Begin work on existing task | `./tasks switch <name>` |
+| **Task Creation** | Create new task | `./tasks create <name>` |
 
-### Execution Steps
+### Quick Execution Pattern
 
-**1. Verify Current State**
-```bash
-./tasks status
-./daic status
-```
+For ALL protocols:
 
-Confirm what task you're on and what mode you're in. This state must be preserved.
+1. **Read protocol file**: `cat .brainworm/protocols/<protocol-name>.md`
+2. **Check current state**: `./tasks status && ./daic status`
+3. **Execute sequentially**: Follow steps in order
+4. **Verify after critical steps**: Check state after changes
+5. **Inform user**: Explain progress throughout
 
-**2. Check if Continuing Same Task**
+### Context Compaction (Summary)
 
-Ask the user: "Are you continuing work on this task after compaction, or switching to something else?"
+**Purpose**: Preserve work while resetting conversation context
 
-**If continuing same task**:
-- Invoke logging agent to consolidate work logs
-- Invoke context-refinement agent if significant discoveries were made
-- State is already set correctly
+**Core steps**:
+1. Verify current state (task, mode, branch)
+2. Invoke logging agent (required)
+3. Invoke context-refinement agent (if discoveries made)
+4. Invoke service-documentation agent (if services changed)
+5. Verify state preservation
+6. Inform user of completion
 
-**If switching tasks or finishing**:
-- May need task completion protocol first
-- Then handle as task switch
+**Key fact**: Git state, task state, and mode are ALL preserved. Only conversation context resets.
 
-**3. Invoke Logging Agent**
+### Task Completion (Summary)
 
-For the current task, consolidate work logs:
+**Purpose**: Close out completed task
 
-Use Task tool with:
-- `subagent_type: "brainworm:logging"`
-- `prompt: "Consolidate work logs for context compaction.
-          Task file: /absolute/path/.brainworm/tasks/<task-name>/README.md
+**Core steps**:
+1. Verify all success criteria met
+2. Invoke logging agent (final consolidation)
+3. Invoke service-documentation agent (if services changed)
+4. Clear task state: `./tasks clear`
+5. Switch to discussion mode: `./daic discussion`
+6. Suggest git cleanup (user's choice)
 
-          Current timestamp: <current-date>
+**Key fact**: Does NOT automatically merge branches or close GitHub issues.
 
-          Clean up completed items, update work log with session progress,
-          remove obsolete next steps."`
+### Task Startup (Summary)
 
-**4. Invoke Service Documentation Agent (if applicable)**
+**Purpose**: Begin work on existing task
 
-If services were modified during the session:
+**Core steps**:
+1. List tasks if needed: `./tasks list`
+2. Switch to task: `./tasks switch <name>`
+3. Verify context exists
+4. Invoke context-gathering if missing context
+5. Ensure discussion mode
+6. Review task with user
 
-Use Task tool with:
-- `subagent_type: "brainworm:service-documentation"`
-- `prompt: "Update service documentation after session work.
-          Services modified: <list>
+**Key fact**: Always starts in discussion mode for alignment.
 
-          Review CLAUDE.md files and update with any new patterns or changes."`
+For complete step-by-step execution instructions, troubleshooting, and examples, see:
 
-**5. Verify State Preservation**
-
-Confirm state is correct:
-```bash
-./tasks status  # Should show current task
-./daic status   # Should show current mode
-```
-
-**6. Inform User**
-
-Tell them:
-- Work logs have been consolidated
-- State preserved (task: X, mode: Y)
-- They can continue in a new session
-- Context has been compacted and session can restart
-
-### Important Notes
-
-- Context compaction does NOT change git state
-- Task remains active
-- Mode remains the same
-- All state is preserved in files
-
-## Task Completion Protocol
-
-When users are done with a task and want to close it out:
-
-### Overview
-Task completion involves consolidating work, updating documentation, and cleaning up state.
-
-### Execution Steps
-
-**1. Verify Task is Actually Complete**
-
-Ask yourself:
-- Are all success criteria met?
-- Is all work documented in task README?
-- Are tests passing?
-- Is code reviewed?
-
-If not complete, tell the user what remains.
-
-**2. Invoke Logging Agent**
-
-Consolidate all work logs for the final time:
-
-Use Task tool with:
-- `subagent_type: "brainworm:logging"`
-- `prompt: "Consolidate work logs for task completion.
-          Task file: /absolute/path/.brainworm/tasks/<task-name>/README.md
-
-          This is the final log update for this task.
-          Clean up all sections, mark completed items, remove obsolete information."`
-
-**3. Invoke Service Documentation Agent**
-
-Update any affected service documentation:
-
-Use Task tool with:
-- `subagent_type: "brainworm:service-documentation"`
-- `prompt: "Update service documentation after task completion.
-          Task: <task-name>
-          Services: <list>
-
-          Ensure CLAUDE.md files reflect all changes made during this task."`
-
-**4. Clear Task State**
-
-Remove the task from active state:
-```bash
-./tasks clear
-```
-
-**5. Switch to Discussion Mode**
-
-Return to discussion for next work:
-```bash
-./daic discussion
-```
-
-**6. Suggest Git Cleanup (Manual)**
-
-Tell the user they may want to:
-- Merge or archive the feature branch
-- Delete the task branch locally/remotely
-- Update any tracking systems
-
-**Do NOT automatically do git operations.** Let the user decide.
-
-**7. GitHub Integration (if applicable)**
-
-If task was linked to GitHub issue, suggest:
-```bash
-./tasks summarize
-```
-
-This posts a session summary to the linked issue.
-
-## Task Startup Protocol
-
-When beginning work on an existing task:
-
-### Execution Steps
-
-**1. Switch to Task**
-```bash
-./tasks switch <task-name>
-```
-
-This handles:
-- Git branch checkout
-- State update
-- Service coordination
-
-**2. Verify Context Exists**
-
-Check if task has Context Manifest:
-```bash
-grep -q "## Context Manifest" .brainworm/tasks/<task-name>/README.md
-```
-
-**3. If No Context, Invoke Context-Gathering Agent**
-
-Create comprehensive context:
-
-Use Task tool with:
-- `subagent_type: "brainworm:context-gathering"`
-- `prompt: "Create context manifest for existing task.
-          Task file: /absolute/path/.brainworm/tasks/<task-name>/README.md
-
-          Read the task requirements and build comprehensive context."`
-
-**4. Start in Discussion Mode**
-
-Ensure you're in discussion mode:
-```bash
-./daic discussion
-```
-
-**5. Review Task with User**
-
-- Read task README aloud
-- Highlight success criteria
-- Ask if requirements have changed
-- Confirm approach before implementing
+**@references/protocol-specifications.md**
 
 ## Protocol Execution Best Practices
 
@@ -375,4 +241,6 @@ Your role is to be a **reliable executor** of protocols, not to improvise. Proto
 
 When users trust protocols, they trust the system. When protocols are followed correctly, work is preserved, state is consistent, and quality is maintained.
 
-For detailed protocol specifications, see @references/protocol-specifications.md.
+For complete step-by-step execution instructions, verification checks, troubleshooting guidance, and protocol development guidelines, see:
+
+**@references/protocol-specifications.md**

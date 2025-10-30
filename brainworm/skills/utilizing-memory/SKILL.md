@@ -101,151 +101,39 @@ Present relevant information to the user:
 
 ## Search Strategies
 
-### Strategy 1: Recent Work First
+### Quick Reference
 
-When users ask "what did we do last time":
+**Recent work**: `ls -lt .brainworm/memory/*.md | head -10`
 
-```bash
-# List recent files
-ls -lt .brainworm/memory/*.md | head -10
+**Topic search**: `grep -l "topic" .brainworm/memory/*.md`
 
-# Read most recent
-cat $(ls -t .brainworm/memory/*.md | head -1)
-```
+**Time range**: `ls .brainworm/memory/2025-10-*.md`
 
-### Strategy 2: Topic-Based Search
+**Multiple keywords**: `grep -l -E "word1|word2" .brainworm/memory/*.md`
 
-When users ask about specific topics:
+For complete search patterns including case-insensitive search, context display, multi-file patterns, and advanced grep techniques, see:
 
-```bash
-# Find files mentioning topic
-grep -l "GitHub integration" .brainworm/memory/*.md
-
-# Search with multiple keywords
-grep -l -E "agent|subagent|specialized" .brainworm/memory/*.md
-
-# Case-insensitive search
-grep -il "context" .brainworm/memory/*.md
-```
-
-### Strategy 3: Time Range Search
-
-When users reference specific timeframes:
-
-```bash
-# October 2025 sessions
-ls .brainworm/memory/2025-10-*.md
-
-# Specific date
-ls .brainworm/memory/2025-10-29-*.md
-
-# Date range (using find)
-find .brainworm/memory -name "2025-10-2[0-9]-*.md"
-```
-
-### Strategy 4: Multi-File Pattern Search
-
-When investigating recurring themes:
-
-```bash
-# Count occurrences per file
-grep -c "testing" .brainworm/memory/*.md
-
-# Show context around matches
-grep -n -B 2 -A 2 "decision" .brainworm/memory/*.md
-
-# Find files with multiple related terms
-grep -l "task" .brainworm/memory/*.md | xargs grep -l "GitHub"
-```
-
-See @references/search-patterns.md for more advanced patterns.
+**@references/search-patterns.md**
 
 ## Memory File Structure
 
-Each memory file captures a work session:
+Each memory file follows a standard structure with frontmatter (session ID, task, branch) and sections for git analysis, insights, decisions, issues, and cross-references.
 
-**Frontmatter** (optional):
-- Session ID
-- Correlation ID
-- Task name
-- Branch name
+**Standard sections**: Session Overview, Git Analysis, Development Insights, Code Areas Active, Issues & Solutions, Next Development Directions, Memory Cross-References, Key Takeaways
 
-**Standard Sections**:
-1. **Session Overview**: Duration, focus, status, session metadata
-2. **Git Analysis**: Commits, branches, file changes
-3. **Development Insights**: Key decisions, architectural patterns, discoveries
-4. **Code Areas Active**: What components were modified
-5. **Issues & Solutions**: Problems encountered and resolutions
-6. **Next Development Directions**: Immediate next steps, follow-up work
-7. **Memory Cross-References**: Links to related sessions
-8. **Key Takeaways**: Summary of learnings
+For complete structure details, field descriptions, and examples, see:
 
-See @references/memory-format-guide.md for complete structure details.
+**@references/memory-format-guide.md**
 
 ## Common Usage Patterns
 
-### Pattern 1: "What Did We Do About X?"
+**Pattern 1 - "What Did We Do About X?"**: Search topic → Read files → Summarize chronologically (when, decisions, implementation, issues) → Current state
 
-User asks about past work on specific topic:
+**Pattern 2 - "How Did We Solve Y Before?"**: Search problem terms → Check "Issues & Solutions" → Extract solution → Verify relevance → Provide summary
 
-```
-User: "What did we do about GitHub integration?"
+**Pattern 3 - "Show Me Recent Work"**: List recent 5-10 files → Read overviews → Create timeline → Highlight themes → Note in-progress items
 
-Your process:
-1. Search for "GitHub" in memory files
-2. Read relevant files (probably multiple)
-3. Summarize chronologically:
-   - When work started
-   - Key decisions made
-   - What was implemented
-   - Any issues encountered
-4. Identify current state and next steps
-```
-
-### Pattern 2: "How Did We Solve Y Before?"
-
-User references past problem-solving:
-
-```
-User: "How did we handle the dependency validation issue?"
-
-Your process:
-1. Search for "dependency" and "validation"
-2. Look in "Issues & Solutions" sections
-3. Extract the solution pattern
-4. Check if approach is still relevant
-5. Provide actionable summary
-```
-
-### Pattern 3: "Show Me Recent Work"
-
-User wants overview of recent activity:
-
-```
-User: "What have we been working on lately?"
-
-Your process:
-1. List last 5-10 memory files
-2. Read session overviews
-3. Create timeline of work
-4. Highlight major themes
-5. Note any in-progress items
-```
-
-### Pattern 4: "Find All Sessions About Z"
-
-User wants comprehensive view:
-
-```
-User: "Show me all sessions about testing"
-
-Your process:
-1. Search all files for "testing"
-2. Read matching files
-3. Organize chronologically
-4. Extract key learnings from each
-5. Show evolution of testing approach
-```
+**Pattern 4 - "Find All Sessions About Z"**: Search all files → Read matches → Organize chronologically → Extract learnings → Show evolution
 
 ## Cross-Referencing Sessions
 
@@ -368,25 +256,13 @@ Source: 2025-10-29-1630-github-integration-completion.md
 
 ## Advanced: Finding Patterns
 
-When users want to understand trends:
+**Identify recurring themes**: Use grep with frequency counts to find most common topics, agents, or components
 
-**Identify recurring themes**:
-```bash
-# What topics appear most?
-grep -oh "\*\*[^*]*\*\*" .brainworm/memory/*.md | sort | uniq -c | sort -rn
+**Analyze evolution**: Compare oldest vs newest sessions on topic to show how understanding and practices evolved
 
-# What agents are used most?
-grep -o "agent[^.]*" .brainworm/memory/*.md | sort | uniq -c | sort -rn
+For complete pattern analysis commands and techniques, see:
 
-# What components are modified frequently?
-grep "Code Areas Active" -A 10 .brainworm/memory/*.md
-```
-
-**Analyze evolution**:
-1. Find oldest and newest sessions on topic
-2. Compare approaches and understanding
-3. Identify when key decisions were made
-4. Show how practices evolved
+**@references/search-patterns.md**
 
 ## Handling Missing Memory
 
@@ -440,6 +316,6 @@ Brainworm captures extensive session history, but it's only valuable if users ca
 
 You make the memory system searchable and accessible.
 
-For complete memory file structure details, see @references/memory-format-guide.md.
-
-For advanced search patterns and grep techniques, see @references/search-patterns.md.
+For detailed information:
+- **Memory structure**: @references/memory-format-guide.md
+- **Search techniques**: @references/search-patterns.md

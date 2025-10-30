@@ -49,73 +49,27 @@ This reveals:
 
 ### Step 3: Explain Based on Context
 
-#### If They're in Discussion Mode
+#### Quick Mode Summary
 
-Explain what discussion mode means:
+**Discussion Mode** (Purple statusline):
+- **Purpose**: Understand, explore, plan, align
+- **CAN**: Read, search, use agents, create tasks, discuss
+- **CANNOT**: Edit files, make code changes
+- **Why**: Enforces thoughtful development before implementation
+- **Transition**: Trigger phrases ("go ahead", "make it so") or `./daic implementation`
 
-**What discussion mode is for**:
-- Understanding requirements and exploring approaches
-- Reading code and analyzing patterns
-- Planning implementation strategy
-- Asking questions and considering alternatives
-- Using specialized agents for deep analysis
+**Implementation Mode** (Green statusline):
+- **Purpose**: Execute agreed changes, write code
+- **CAN**: Everything from discussion mode PLUS editing files
+- **Why**: You have consensus and clarity on what to build
+- **Best practice**: Only implement what was discussed
+- **Transition**: `./daic discussion` when done or questions arise
 
-**What you CAN do**:
-- Read files (Read tool)
-- Search code (Grep, Glob)
-- Run git commands for exploration (git status, git log, git diff)
-- Use specialized subagents (context-gathering, code-review, etc.)
-- Create and switch tasks (planning activities)
-- Ask questions and discuss approaches
+For detailed explanations of capabilities, trigger phrases, and mode philosophy, see:
 
-**What you CANNOT do**:
-- Edit files (Edit, Write, MultiEdit tools blocked)
-- Make code changes
-- Modify notebooks (NotebookEdit blocked)
+**@references/daic-methodology.md**
 
-**Why this matters**:
-Discussion mode enforces **thoughtful development**. It ensures you fully understand the problem before jumping to implementation. This prevents bugs, reduces refactoring, and improves code quality.
-
-**How to transition to implementation**:
-When ready to implement, use a trigger phrase:
-- "go ahead"
-- "make it so"
-- "ship it"
-- "let's do it"
-- "execute"
-- "implement it"
-
-Or manually: `./daic implementation`
-
-#### If They're in Implementation Mode
-
-Explain what implementation mode means:
-
-**What implementation mode is for**:
-- Executing the agreed-upon changes
-- Writing and editing code
-- Making concrete modifications
-- Following the plan discussed earlier
-
-**What you CAN do**:
-- Everything from discussion mode, PLUS:
-- Edit files (Edit, Write, MultiEdit)
-- Create new files
-- Modify code
-- Update notebooks
-- Make concrete changes
-
-**Why this matters**:
-Implementation mode means you have **consensus and clarity** on what to build. The discussion phase ensured you understand the requirements and approach.
-
-**Best practice**:
-Only implement what was discussed and agreed upon. If you discover new questions or concerns during implementation, consider returning to discussion mode to address them.
-
-**How to return to discussion**:
-When done implementing or when new questions arise:
-```bash
-./daic discussion
-```
+#### Contextual Guidance
 
 ### Step 4: Provide Contextual Guidance
 
@@ -162,94 +116,28 @@ You're in [mode] working on [task or general work]. Based on what you've mention
 
 ## Understanding the DAIC Methodology
 
-When users ask "what is DAIC", explain the four phases:
+When users ask "what is DAIC", provide this overview:
 
-### D - Discussion Phase 🎯
-**Purpose**: Understand requirements and explore approaches
+### The Four Phases
 
-**Activities**:
-- Read code and documentation
-- Search for patterns and similar implementations
-- Ask clarifying questions
-- Explore edge cases and constraints
-- Use agents for deep analysis
+**D - Discussion** 🎯: Understand requirements, explore approaches, use agents for analysis
+**A - Alignment** 🤝: Achieve consensus, present findings, get confirmation
+**I - Implementation** 🛠️: Execute agreed changes, follow the plan, stay focused
+**C - Check** ✅: Run tests, review code, verify completeness
 
-**Goal**: Achieve thorough understanding before any changes
+**Core principle**: Thoughtful development through structured workflow
 
-### A - Alignment Phase 🤝
-**Purpose**: Achieve consensus on the approach
+For complete methodology including activities, goals, and integration patterns, see:
 
-**Activities**:
-- Present findings and recommendations
-- Identify risks and dependencies
-- Propose specific implementation strategy
-- Get explicit confirmation from user
+**@references/daic-methodology.md**
 
-**Goal**: Ensure both you and the user agree on the plan
+## Common Workflow Patterns
 
-### I - Implementation Phase 🛠️
-**Purpose**: Execute the agreed-upon changes
+**Starting New Work**: Discussion (explore) → Alignment (confirm) → "go ahead" → Implementation → Check
 
-**Activities**:
-- Write and modify code
-- Follow the established plan
-- Make concrete changes
-- Stay focused on the agreed scope
+**Mid-Implementation Discovery**: Pause → `./daic discussion` → Research → Align → "make it so" → Resume implementation
 
-**Goal**: Implement efficiently with clarity
-
-### C - Check Phase ✅
-**Purpose**: Verify quality and completeness
-
-**Activities**:
-- Run tests
-- Review changes
-- Use code-review agent
-- Verify success criteria met
-
-**Goal**: Ensure implementation is correct and complete
-
-## Common Patterns
-
-### Pattern 1: Starting New Work
-
-```
-User: "I need to add user authentication"
-
-[Discussion Mode]
-You: Explore codebase, understand auth patterns, ask questions
-
-[Alignment]
-You: Present findings, propose approach, get confirmation
-
-User: "go ahead"
-[Implementation Mode]
-You: Write the auth code
-
-[Check]
-You: Test and review the implementation
-```
-
-### Pattern 2: Mid-Implementation Discovery
-
-```
-User: "Actually, I think we need to handle OAuth too"
-
-[Currently in Implementation Mode]
-You: "This is a significant change to our approach. Let me switch to discussion mode to explore OAuth requirements."
-
-./daic discussion
-
-[Discussion Mode]
-You: Research OAuth integration, understand implications
-
-[Alignment]
-You: Present updated approach including OAuth
-
-User: "make it so"
-[Implementation Mode]
-You: Implement OAuth support
-```
+**Completing Work**: Implementation → Check → "done" → Discussion mode (ready for next)
 
 ## When Users Should Use Each Mode
 
@@ -319,4 +207,6 @@ Your goal is to help users understand **why** DAIC exists, not just **what** it 
 
 When users are frustrated by blocked tools, empathize but explain the value. When users are ready to implement, guide the transition smoothly.
 
-For detailed information about DAIC methodology and configuration, see @references/daic-methodology.md.
+For complete methodology details including phase activities, tool allowlists, integration patterns, and configuration options, see:
+
+**@references/daic-methodology.md**

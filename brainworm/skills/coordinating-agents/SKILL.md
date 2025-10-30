@@ -18,180 +18,43 @@ You're activated when users need help with agents:
 
 ## Available Specialized Agents
 
-Brainworm provides six specialized agents, each with specific expertise:
+Brainworm provides six specialized agents. Each agent operates in its own context window with specialized expertise.
 
-### 1. context-gathering 📋
-**Purpose**: Creates comprehensive context manifests for tasks
+### Quick Reference
 
-**When to use**:
-- Creating new task (ALWAYS use after task creation)
-- Starting work on task that lacks context
-- Task file exists but has no "Context Manifest" section
+| Agent | Use When | Purpose |
+|-------|----------|---------|
+| **context-gathering** 📋 | New task, missing context | Creates comprehensive context manifests |
+| **code-review** 🔍 | After coding, before commit | Reviews for quality, security, consistency |
+| **logging** 📝 | Context compaction, task completion | Consolidates and organizes work logs |
+| **context-refinement** 🔄 | End of session with discoveries | Updates context with learnings |
+| **service-documentation** 📚 | Services modified | Updates CLAUDE.md files |
+| **session-docs** 💾 | Capture session insights | Creates memory files |
 
-**What it does**:
-- Reads entire task file
-- Analyzes codebase for relevant components
-- Traces architectural layers
-- Documents how current systems work
-- Writes comprehensive Context Manifest section in task README
+### Basic Invocation Pattern
 
-**Invocation**:
+All agents use the Task tool with this structure:
+
 ```
 Use Task tool:
-- subagent_type: "brainworm:context-gathering"
-- prompt: "Create context manifest for <task-name>.
-          Task file: /absolute/path/.brainworm/tasks/<task>/README.md
+- subagent_type: "brainworm:<agent-name>"
+- description: "<brief-description>"
+- prompt: "<detailed-instructions>
 
-          This task involves [brief description].
-          Focus on understanding [relevant systems]."
+          [Required file paths - use absolute paths]
+          [Context about what to focus on]
+          [Specific deliverables]"
 ```
 
-**Tools available**: Read, Glob, Grep, LS, Bash, Edit, MultiEdit
+**Key requirements**:
+- Always use absolute paths for task files
+- Provide clear focus and context
+- Specify what the agent should deliver
+- Include relevant information (timestamps, file lists, etc.)
 
-### 2. code-review 🔍
-**Purpose**: Reviews code for quality, security, and consistency
+For complete agent specifications including detailed capabilities, tools, and examples, see:
 
-**When to use**:
-- After writing significant code
-- Before committing changes
-- When you want quality feedback
-
-**What it does**:
-- Reads specified files and line ranges
-- Checks for security vulnerabilities
-- Identifies bugs and code smells
-- Verifies consistency with project patterns
-- Provides actionable feedback
-
-**Invocation**:
-```
-Use Task tool:
-- subagent_type: "brainworm:code-review"
-- prompt: "Review code changes for <task-name>.
-
-          Files to review:
-          - file.py:10-50
-          - another.py:100-200
-
-          Task file: /absolute/path/.brainworm/tasks/<task>/README.md
-
-          Focus on: [security/performance/consistency]"
-```
-
-**Tools available**: Read, Grep, Glob, Bash
-
-### 3. logging 📝
-**Purpose**: Consolidates and organizes work logs
-
-**When to use**:
-- During context compaction
-- During task completion
-- When work logs are messy or redundant
-
-**What it does**:
-- Reads full conversation transcript
-- Consolidates work log entries
-- Removes obsolete/redundant information
-- Updates Success Criteria checkboxes
-- Cleans up Next Steps
-- Maintains chronological order
-
-**Invocation**:
-```
-Use Task tool:
-- subagent_type: "brainworm:logging"
-- prompt: "Consolidate work logs for <context>.
-          Task file: /absolute/path/.brainworm/tasks/<task>/README.md
-
-          Current timestamp: <date>
-
-          [Specify context: compaction, completion, mid-session]"
-```
-
-**Tools available**: Read, Edit, MultiEdit, Bash, Grep, Glob
-
-### 4. context-refinement 🔄
-**Purpose**: Updates task context with session discoveries
-
-**When to use**:
-- End of long session (before context compaction)
-- When significant discoveries were made
-- When understanding evolved during work
-
-**What it does**:
-- Reads conversation transcript
-- Identifies new discoveries
-- Updates Context Manifest with learnings
-- Preserves architectural insights
-- Documents pattern changes
-
-**Invocation**:
-```
-Use Task tool:
-- subagent_type: "brainworm:context-refinement"
-- prompt: "Update context with session discoveries.
-          Task file: /absolute/path/.brainworm/tasks/<task>/README.md
-
-          We discovered [brief summary of key learnings]."
-```
-
-**Tools available**: Read, Edit, MultiEdit, LS, Glob
-
-### 5. service-documentation 📚
-**Purpose**: Updates CLAUDE.md files to reflect current implementation
-
-**When to use**:
-- During context compaction (if services modified)
-- During task completion (if services changed)
-- When documentation has drifted from code
-
-**What it does**:
-- Reads current service code
-- Compares with CLAUDE.md documentation
-- Updates docs to match implementation
-- Adapts to project structure (super-repo, monorepo, single-repo)
-- Maintains consistent documentation
-
-**Invocation**:
-```
-Use Task tool:
-- subagent_type: "brainworm:service-documentation"
-- prompt: "Update service documentation after changes.
-
-          Services modified: [list]
-
-          Changes made: [brief summary]"
-```
-
-**Tools available**: Read, Grep, Glob, LS, Edit, MultiEdit, Bash
-
-### 6. session-docs 💾
-**Purpose**: Creates ad-hoc session memory files
-
-**When to use**:
-- During development to capture insights
-- After significant work sessions
-- When you want to preserve session learning
-
-**What it does**:
-- Captures development insights
-- Performs git analysis
-- Tracks progress and decisions
-- Stores in `.brainworm/memory/` files
-- Formats for future reference
-
-**Invocation**:
-```
-Use Task tool:
-- subagent_type: "brainworm:session-docs"
-- prompt: "Create session memory for <topic>.
-
-          Key topics: [list]
-
-          Focus: [what to capture]"
-```
-
-**Tools available**: Read, Write, Bash, Grep, Glob
+**@references/agent-specifications.md**
 
 ## Your Decision Process
 
@@ -337,51 +200,15 @@ Quick reference for which agent to use:
 | Task completion | logging + service-documentation | Final consolidation and docs |
 | Want to remember session | session-docs | Capture insights for future |
 
-## Common Patterns
+## Common Agent Combinations
 
-### Pattern 1: New Task Workflow
+**New Task**: context-gathering only
 
-```
-User: Created task for feature X
-You: Use context-gathering agent
-Agent: Creates comprehensive context manifest
-User: Ready to implement
-```
+**Context Compaction**: logging (required) → context-refinement (if discoveries) → service-documentation (if services changed)
 
-### Pattern 2: Implementation Review Workflow
+**Task Completion**: logging (required) → service-documentation (if services changed)
 
-```
-User: Finished implementing feature X
-You: Use code-review agent
-Agent: Reviews code, identifies issues
-User: Addresses feedback
-You: Use code-review agent again
-Agent: Confirms issues resolved
-```
-
-### Pattern 3: Context Compaction Workflow
-
-```
-User: Running out of tokens
-You: Use logging agent
-Agent: Consolidates work logs
-You: Check if discoveries were made
-User: Yes, we learned a lot
-You: Use context-refinement agent
-Agent: Updates context with discoveries
-User: Continue in new session
-```
-
-### Pattern 4: Task Completion Workflow
-
-```
-User: Task is complete
-You: Use logging agent
-Agent: Final work log consolidation
-You: Use service-documentation agent
-Agent: Updates CLAUDE.md files
-User: Clear task state
-```
+**Implementation Review**: code-review → address feedback → code-review again (optional)
 
 ## Agent Coordination Best Practices
 
@@ -439,4 +266,6 @@ Your role is to be an **agent matchmaker** - connecting users with the right spe
 
 Agents are powerful tools but come with overhead. Recommend them when they add value, not just because they exist.
 
-For detailed agent specifications, see @references/agent-specifications.md.
+For complete specifications including detailed capabilities, invocation examples, troubleshooting, and development guidelines, see:
+
+**@references/agent-specifications.md**
