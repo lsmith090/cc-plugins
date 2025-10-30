@@ -5,6 +5,32 @@ All notable changes to the brainworm plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-10-30
+
+### Added
+
+**Intelligent Skills System**
+- Four user-facing skills with progressive disclosure pattern
+- **managing-tasks** (263 lines): Orchestrates task lifecycle operations (create/switch/complete)
+- **understanding-daic** (322 lines): Explains DAIC methodology and guides mode transitions
+- **executing-protocols** (398 lines): Guides protocol execution with step-by-step instructions
+- **coordinating-agents** (479 lines): Helps select and invoke specialized agents
+- Natural language trigger phrases for intuitive skill invocation
+- Comprehensive reference documentation (7 files, 3,500+ lines total)
+- Skills reduce cognitive load and make brainworm workflows discoverable
+- SKILL.md files under 500 lines with detailed references/ subdirectories
+
+**Skills Architecture**
+- YAML frontmatter with name, description, allowed-tools
+- Minimal tool allowlists maintain security boundaries (Bash, Read, Task)
+- Progressive disclosure: concise guidance with deep-dive docs available
+- Cross-references between skills and reference documentation
+- Seamless integration with existing wrapper commands and agents
+
+### Changed
+- Updated brainworm README.md with Intelligent Skills section
+- Enhanced .claude/settings.json to register four new skills
+
 ## [1.1.0] - 2025-10-29
 
 ### Added
