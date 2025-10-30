@@ -1,6 +1,12 @@
 # Hook Framework Quick Patterns
 
-Quick copy-paste patterns for common hook scenarios.
+Quick copy-paste patterns for common hook scenarios. This file contains minimal boilerplate code ready for immediate use.
+
+For detailed explanations and schemas, see:
+- **hook-types.md** - Complete hook type documentation
+- **dependencies.md** - Dependency management guide
+- **testing.md** - Testing patterns and best practices
+- **debugging.md** - Troubleshooting and debugging techniques
 
 ## Minimal Hook Template
 
