@@ -46,11 +46,13 @@ try:
         BaseHookInput,
         NotificationInput,
         PostToolUseInput,
+        PreCompactInput,
         PreToolUseDecisionOutput,
         PreToolUseInput,
         SessionEndInput,
         SessionStartInput,
         StopInput,
+        SubagentStopInput,
         UserPromptSubmitInput,
     )
 except ImportError as import_error:
@@ -265,6 +267,10 @@ class HookFramework:
                 self.typed_input = SessionEndInput.parse(self.raw_input_data)
             elif self.hook_name == "stop" and StopInput:
                 self.typed_input = StopInput.parse(self.raw_input_data)
+            elif self.hook_name == "subagent_stop" and SubagentStopInput:
+                self.typed_input = SubagentStopInput.parse(self.raw_input_data)
+            elif self.hook_name == "pre_compact" and PreCompactInput:
+                self.typed_input = PreCompactInput.parse(self.raw_input_data)
             elif self.hook_name == "notification" and NotificationInput:
                 self.typed_input = NotificationInput.parse(self.raw_input_data)
             elif BaseHookInput:

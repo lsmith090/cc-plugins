@@ -167,8 +167,40 @@ Tests live at repository level (`tests/brainworm/`) so they:
 
 **Hook Framework Integration**:
 - Use `hook_types.py` for type safety
-- Follow typed input/output schemas
+- Follow typed input/output schemas (aligned with official Claude Code spec)
 - Handle errors gracefully with fail-fast architecture
+
+**Hook Schema Compliance** (as of v1.4.0):
+
+All hook schemas now align with official Claude Code hooks specification:
+
+- **permission_mode field**: Added to all input types (BaseHookInput line 246, propagates to all derived schemas)
+  - Values: "default", "plan", "acceptEdits", "bypassPermissions"
+  - Enables hooks to understand permission context for smarter decisions
+
+- **SubagentStop support**: Full typed schema implemented (hook_types.py:436-457)
+  - SubagentStopInput with stop_hook_active field for recursion prevention
+  - Registered in hooks.json, executes via hooks/subagent_stop.py
+  - Logs subagent completion events to database
+
+- **PreCompact support**: Full typed schema implemented (hook_types.py:459-480)
+  - PreCompactInput with trigger ("manual"/"auto") and custom_instructions fields
+  - Registered in hooks.json, executes via hooks/pre_compact.py
+  - Enables state preservation before context compaction
+
+- **Stop recursion prevention**: stop_hook_active field added to StopInput
+  - Prevents infinite loops when Stop hook itself gets interrupted
+
+- **Session source tracking**: source field added to SessionStartInput
+  - Values: "startup", "resume", "clear", "compact"
+  - Differentiates fresh sessions from resumed sessions for state initialization
+
+- **PreToolUse parameter modification**: updated_input field added to PreToolUseDecisionOutput
+  - Enables hooks to modify tool parameters before execution
+  - Automatically serialized to hookSpecificOutput.updatedInput via to_dict()
+  - No framework changes needed - data flow handles it automatically
+
+See utils/hook_types.py for complete schema definitions. All changes maintain backward compatibility via Optional fields.
 
 **Dependency Management** (CRITICAL):
 - All hooks MUST declare complete inline dependencies in `# /// script` block
