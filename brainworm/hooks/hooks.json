@@ -64,6 +64,22 @@
           "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/notification.py"
         }]
       }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [{
+          "type": "command",
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/subagent_stop.py"
+        }]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [{
+          "type": "command",
+          "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/pre_compact.py"
+        }]
+      }
     ]
   }
 }

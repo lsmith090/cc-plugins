@@ -248,6 +248,7 @@ class BaseHookInput:
     transcript_path: str
     cwd: str  # Required field from official specification
     hook_event_name: str
+    permission_mode: Optional[str] = None  # "default", "plan", "acceptEdits", "bypassPermissions"
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
@@ -257,6 +258,7 @@ class BaseHookInput:
             transcript_path=data.get("transcript_path", ""),
             cwd=data.get("cwd", ""),
             hook_event_name=data.get("hook_event_name", ""),
+            permission_mode=data.get("permission_mode"),
             raw=data,
         )
 
@@ -268,6 +270,7 @@ class PreToolUseInput:
     cwd: str
     hook_event_name: str
     tool_name: str  # Required field from official specification
+    permission_mode: Optional[str] = None  # "default", "plan", "acceptEdits", "bypassPermissions"
     tool_input: Optional[ToolInputVariant] = None
     raw: Dict[str, Any] = field(default_factory=dict)
 
@@ -279,6 +282,7 @@ class PreToolUseInput:
             cwd=data.get("cwd", ""),
             hook_event_name=data.get("hook_event_name", ""),
             tool_name=data.get("tool_name", ""),
+            permission_mode=data.get("permission_mode"),
             tool_input=parse_tool_input(data.get("tool_input")),
             raw=data,
         )
@@ -291,6 +295,7 @@ class PostToolUseInput:
     cwd: str
     hook_event_name: str
     tool_name: str  # Required field from official specification
+    permission_mode: Optional[str] = None  # "default", "plan", "acceptEdits", "bypassPermissions"
     tool_input: Optional[ToolInputVariant] = None
     tool_response: Optional[ToolResponse] = None
     raw: Dict[str, Any] = field(default_factory=dict)
@@ -303,6 +308,7 @@ class PostToolUseInput:
             cwd=data.get("cwd", ""),
             hook_event_name=data.get("hook_event_name", ""),
             tool_name=data.get("tool_name", ""),
+            permission_mode=data.get("permission_mode"),
             tool_input=parse_tool_input(data.get("tool_input")),
             tool_response=ToolResponse.parse(data.get("tool_response")),
             raw=data,
@@ -316,6 +322,7 @@ class UserPromptSubmitInput:
     cwd: str
     hook_event_name: str
     prompt: str  # Required field from official specification
+    permission_mode: Optional[str] = None  # "default", "plan", "acceptEdits", "bypassPermissions"
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
@@ -326,6 +333,7 @@ class UserPromptSubmitInput:
             cwd=data.get("cwd", ""),
             hook_event_name=data.get("hook_event_name", ""),
             prompt=data.get("prompt", ""),
+            permission_mode=data.get("permission_mode"),
             raw=data,
         )
 
@@ -336,6 +344,8 @@ class SessionStartInput:
     transcript_path: str
     cwd: str
     hook_event_name: str
+    permission_mode: Optional[str] = None  # "default", "plan", "acceptEdits", "bypassPermissions"
+    source: Optional[str] = None  # "startup", "resume", "clear", "compact"
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
@@ -345,6 +355,8 @@ class SessionStartInput:
             transcript_path=data.get("transcript_path", ""),
             cwd=data.get("cwd", ""),
             hook_event_name=data.get("hook_event_name", ""),
+            permission_mode=data.get("permission_mode"),
+            source=data.get("source"),
             raw=data,
         )
 
@@ -355,7 +367,8 @@ class SessionEndInput:
     transcript_path: str
     cwd: str
     hook_event_name: str
-    reason: Optional[str] = None  # Why session ended: "user_stop", "timeout", "error"
+    permission_mode: Optional[str] = None  # "default", "plan", "acceptEdits", "bypassPermissions"
+    reason: Optional[str] = None  # Why session ended: "clear", "logout", "prompt_input_exit", "other"
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
@@ -365,6 +378,7 @@ class SessionEndInput:
             transcript_path=data.get("transcript_path", ""),
             cwd=data.get("cwd", ""),
             hook_event_name=data.get("hook_event_name", ""),
+            permission_mode=data.get("permission_mode"),
             reason=data.get("reason"),
             raw=data,
         )
@@ -376,6 +390,8 @@ class StopInput:
     transcript_path: str
     cwd: str
     hook_event_name: str
+    permission_mode: Optional[str] = None  # "default", "plan", "acceptEdits", "bypassPermissions"
+    stop_hook_active: bool = False  # Prevents infinite loops when Stop hook is interrupted
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
@@ -385,6 +401,8 @@ class StopInput:
             transcript_path=data.get("transcript_path", ""),
             cwd=data.get("cwd", ""),
             hook_event_name=data.get("hook_event_name", ""),
+            permission_mode=data.get("permission_mode"),
+            stop_hook_active=data.get("stop_hook_active", False),
             raw=data,
         )
 
@@ -396,6 +414,7 @@ class NotificationInput:
     cwd: str
     hook_event_name: str
     message: str  # Notification message text
+    permission_mode: Optional[str] = None  # "default", "plan", "acceptEdits", "bypassPermissions"
     severity: Optional[str] = None  # "info", "warning", "error"
     raw: Dict[str, Any] = field(default_factory=dict)
 
@@ -407,7 +426,56 @@ class NotificationInput:
             cwd=data.get("cwd", ""),
             hook_event_name=data.get("hook_event_name", ""),
             message=data.get("message", ""),
+            permission_mode=data.get("permission_mode"),
             severity=data.get("severity"),
+            raw=data,
+        )
+
+
+@dataclass
+class SubagentStopInput:
+    session_id: str
+    transcript_path: str
+    cwd: str
+    hook_event_name: str
+    permission_mode: Optional[str] = None  # "default", "plan", "acceptEdits", "bypassPermissions"
+    stop_hook_active: bool = False  # Prevents infinite loops when subagent stop hook is interrupted
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @staticmethod
+    def parse(data: Dict[str, Any]) -> "SubagentStopInput":
+        return SubagentStopInput(
+            session_id=data.get("session_id", ""),
+            transcript_path=data.get("transcript_path", ""),
+            cwd=data.get("cwd", ""),
+            hook_event_name=data.get("hook_event_name", ""),
+            permission_mode=data.get("permission_mode"),
+            stop_hook_active=data.get("stop_hook_active", False),
+            raw=data,
+        )
+
+
+@dataclass
+class PreCompactInput:
+    session_id: str
+    transcript_path: str
+    cwd: str
+    hook_event_name: str
+    permission_mode: Optional[str] = None  # "default", "plan", "acceptEdits", "bypassPermissions"
+    trigger: str = "manual"  # "manual" or "auto"
+    custom_instructions: Optional[str] = None  # User's custom compaction instructions
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @staticmethod
+    def parse(data: Dict[str, Any]) -> "PreCompactInput":
+        return PreCompactInput(
+            session_id=data.get("session_id", ""),
+            transcript_path=data.get("transcript_path", ""),
+            cwd=data.get("cwd", ""),
+            hook_event_name=data.get("hook_event_name", ""),
+            permission_mode=data.get("permission_mode"),
+            trigger=data.get("trigger", "manual"),
+            custom_instructions=data.get("custom_instructions"),
             raw=data,
         )
 
@@ -515,6 +583,7 @@ class PreToolUseDecisionOutput:
     stop_reason: Optional[str] = None  # Official spec field
     suppress_output: Optional[bool] = None  # Official spec capability
     system_message: Optional[str] = None  # Official spec capability
+    updated_input: Optional[Dict[str, Any]] = None  # Modified tool parameters before execution
     validation_issues: List[Dict[str, Any]] = field(default_factory=list)
     session_id: Optional[str] = None
     raw: Dict[str, Any] = field(default_factory=dict)
@@ -541,6 +610,10 @@ class PreToolUseDecisionOutput:
             hook_specific["permissionDecision"] = "deny"
             if self.stop_reason:
                 hook_specific["permissionDecisionReason"] = self.stop_reason
+
+        # Include updated input if provided (allows hooks to modify tool parameters)
+        if self.updated_input is not None:
+            hook_specific["updatedInput"] = self.updated_input
 
         result["hookSpecificOutput"] = hook_specific
         return result
@@ -1460,6 +1533,8 @@ __all__ = [
     "SessionStartInput",
     "SessionEndInput",
     "StopInput",
+    "SubagentStopInput",
+    "PreCompactInput",
     "NotificationInput",
     "PreToolUseDecisionOutput",
     "CommandToolInput",
